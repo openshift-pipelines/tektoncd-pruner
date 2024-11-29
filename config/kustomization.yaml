@@ -2,7 +2,6 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - 100-namespace.yaml
   - 200-clusterrole.yaml
   - 200-role.yaml
   - 200-serviceaccount.yaml
@@ -12,4 +11,4 @@ resources:
   - config-logging.yaml
   - config-observability.yaml
   - controller.yaml
-namespace: tekton-pipelines
+  - config-info.yaml
