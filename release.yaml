@@ -1,0 +1,3 @@
+release:
+    controller: quay.io/redhat-user-workloads/tekton-ecosystem-tenant/tektoncd-pruner-poc/controller@sha256:0bee6e518192f1a82f7369d68bd1810e2204e75c4c4d9461908b5a84d3895a7d
+    webhook: quay.io/redhat-user-workloads/tekton-ecosystem-tenant/tektoncd-pruner-poc/webhook@sha256:0bee6e518192f1a82f7369d68bd1810e2204e75c4c4d9461908b5a84d3895a7d
