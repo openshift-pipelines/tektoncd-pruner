@@ -11,6 +11,7 @@ spec:
   application: tektoncd-pruner-poc
   build-nudges-ref:
   - operator-poc-bundle
+  - tektoncd-pruner-poc-webhook
   source:
     git:
       url: https://github.com/pramodbindal/tektoncd-pruner
