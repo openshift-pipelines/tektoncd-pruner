@@ -5,20 +5,21 @@ metadata:
   annotations:
     build.appstudio.openshift.io/repo: https://github.com/openshift-pipelines/tektoncd-pruner?rev={{revision}}
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
+    build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
+    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
       == "main" &&
-      ("***".pathChanged() ||
-      ".konflux/dockerfiles/controller.Dockerfile".pathChanged() ||
-      ".tekton/tektoncd-pruner-main-controller-push.yaml".pathChanged() ||
+      ("upstream/***".pathChanged() || ".konflux/patches/***".pathChanged() || ".konflux/rpms/***".pathChanged() ||
+      ".konflux/dockerfiles/webhook.Dockerfile".pathChanged() ||
+      ".tekton/tektoncd-pruner-next-webhook-pull-request.yaml".pathChanged() ||
       ".tekton/docker-build-ta.yaml".pathChanged())
   creationTimestamp: null
   labels:
-    appstudio.openshift.io/application: tektoncd-pruner-main
-    appstudio.openshift.io/component: tektoncd-pruner-main-controller
+    appstudio.openshift.io/application: tektoncd-pruner-next
+    appstudio.openshift.io/component: tektoncd-pruner-next-webhook
     pipelines.appstudio.openshift.io/type: build
-  name: tektoncd-pruner-main-controller-on-push
+  name: tektoncd-pruner-next-webhook-on-pull-request
   namespace: tekton-ecosystem-tenant
 spec:
   params:
@@ -27,13 +28,14 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/redhat-user-workloads/tekton-ecosystem-tenant/tektoncd-pruner-main/controller:{{revision}}
+    value: quay.io/redhat-user-workloads/tekton-ecosystem-tenant/tektoncd-pruner-next/webhook:on-pr-{{revision}}
+  - name: image-expires-after
+    value: 5d
   - name: dockerfile
-    value: .konflux/dockerfiles/controller.Dockerfile
+    value: .konflux/dockerfiles/webhook.Dockerfile
   - name: build-platforms
     value:
     - linux/x86_64
-    - linux-m2xlarge/arm64
   - name: prefetch-input
     value: |
       {"type": "rpm", "path": ".konflux/rpms"}
