@@ -9,7 +9,6 @@ metadata:
   name: tektoncd-pruner-next-rp
 spec:
   application: tektoncd-pruner-next
-  target: tekton-ecosystem-tenant
   tenantPipeline:
     serviceAccountName: release-registry-openshift-pipelines-next
     pipelineRef:
