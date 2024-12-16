@@ -47,7 +47,7 @@ jobs:
 
       - name: update release notes and executables
         if: startsWith(github.ref, 'refs/tags/') # executes only for new release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
