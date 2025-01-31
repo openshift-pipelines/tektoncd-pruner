@@ -3,17 +3,21 @@
 apiVersion: appstudio.redhat.com/v1beta2
 kind: IntegrationTestScenario
 metadata:
-  name: tektoncd-pruner-main-enterprise-contract-group
+  name: tektoncd-pruner-main-enterprise-contract
 spec:
   application: tektoncd-pruner-main
   contexts:
-    - description: Application testing
-      name: group
+    - description: Application testing for tektoncd-pruner-main-controller
+      name: component_tektoncd-pruner-main-controller
+    - description: Application testing for tektoncd-pruner-main-webhook
+      name: component_tektoncd-pruner-main-webhook
   params:
     - name: POLICY_CONFIGURATION
       value: tekton-ecosystem-tenant/tekton-ecosystem-tenant-containers
     - name: TIMEOUT
       value: "15m0s"
+    - name: SINGLE_COMPONENT
+      value: "true"
   resolverRef:
     params:
       - name: url
