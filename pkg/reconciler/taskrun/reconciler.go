@@ -73,6 +73,8 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, tr *pipelinev1.TaskRun) 
 		return err
 	}
 
+	fmt.Println("Processed ttl handler ......")
+
 	return nil
 }
 

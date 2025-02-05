@@ -141,6 +141,7 @@ func getFromPrunerConfigResourceLevel(namespacesSpec map[string]PrunerResourceSp
 	return nil
 }
 
+// TODO: Add unit test for this
 func getResourceFieldData(namespacedSpec map[string]PrunerResourceSpec, globalSpec PrunerConfig, namespace, name string, resourceType PrunerResourceType, fieldType PrunerFieldType, enforcedConfigLevel tektonprunerv1alpha1.EnforcedConfigLevel) *int32 {
 	var ttl *int32
 

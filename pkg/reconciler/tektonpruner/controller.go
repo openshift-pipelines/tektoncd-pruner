@@ -50,7 +50,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 func onConfigChange(ctx context.Context) configmap.Observer {
 	logger := logging.FromContext(ctx)
 	return func(configMap *corev1.ConfigMap) {
-		logger.Debugw("updating pruner global config map with pruner config store",
+		logger.Info("updating pruner global config map with pruner config store",
 			"newGlobalConfig", configMap.Data[helper.PrunerGlobalConfigKey],
 		)
 		err := helper.PrunerConfigStore.LoadGlobalConfig(configMap)

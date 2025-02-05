@@ -123,6 +123,7 @@ func (hl *HistoryLimiter) markAsProcessed(ctx context.Context, resource metav1.O
 			zap.Error(err),
 		)
 	}
+
 }
 
 func (hl *HistoryLimiter) isProcessed(resource metav1.Object) bool {
