@@ -3,48 +3,23 @@ package tektonpruner
 import (
 	"context"
 
-	tektonprunerv1alpha1 "github.com/openshift-pipelines/tektoncd-pruner/pkg/apis/tektonpruner/v1alpha1"
-	tektonprunerreconciler "github.com/openshift-pipelines/tektoncd-pruner/pkg/client/injection/reconciler/tektonpruner/v1alpha1/tektonpruner"
-	"github.com/openshift-pipelines/tektoncd-pruner/pkg/reconciler/helper"
 	"k8s.io/client-go/kubernetes"
 	"knative.dev/pkg/logging"
-	"knative.dev/pkg/reconciler"
 )
 
-// Reconciler implements simpledeploymentreconciler.Interface for
-// SimpleDeployment resources.
+// Reconciler includes the kubernetes client to interact with the cluster
 type Reconciler struct {
 	kubeclient kubernetes.Interface
 }
 
-// Check that our Reconciler implements Interface
-var _ tektonprunerreconciler.Interface = (*Reconciler)(nil)
-
-func (r *Reconciler) FinalizeKindOld(ctx context.Context, tknPr *tektonprunerv1alpha1.TektonPruner) reconciler.Event {
-	// This logger has all the context necessary to identify which resource is being reconciled.
+// Reconcile is the method that will be called when resources change
+func (r *Reconciler) Reconcile(ctx context.Context, key string) error {
 	logger := logging.FromContext(ctx)
-	logger.Infow("received a delete event",
-		"namespace", tknPr.Namespace, "name", tknPr.Name, "deletionTimestamp", tknPr.GetDeletionTimestamp(),
-	)
 
-	// update spec on the common store
-	helper.PrunerConfigStore.DeleteNamespacedSpec(tknPr.Namespace)
-	return nil
-}
+	// Example logic: log the key of the changed resource (you can replace this with your custom logic)
+	logger.Infof("Reconcile called for key: %s", key)
 
-// ReconcileKind implements Interface.ReconcileKind.
-func (r *Reconciler) ReconcileKind(ctx context.Context, tknPr *tektonprunerv1alpha1.TektonPruner) reconciler.Event {
-	// This logger has all the context necessary to identify which resource is being reconciled.
-	logger := logging.FromContext(ctx)
-	logger.Debugw("received an event",
-		"namespace", tknPr.Namespace, "name", tknPr.Name,
-	)
+	// Nothing to reconcile at the moment. We are just updating the configstore
 
-	// update spec on the common store
-	helper.PrunerConfigStore.UpdateNamespacedSpec(tknPr)
-
-	// mark reconciliation completed and this config is ready to use
-	tknPr.Status.MarkReady()
-
-	return nil
+	return nil // Return nil to indicate successful reconciliation
 }

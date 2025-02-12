@@ -8,8 +8,7 @@ import (
 	"go.uber.org/zap"
 	"k8s.io/client-go/kubernetes"
 
-	tektonprunerv1alpha1 "github.com/openshift-pipelines/tektoncd-pruner/pkg/apis/tektonpruner/v1alpha1"
-	"github.com/openshift-pipelines/tektoncd-pruner/pkg/reconciler/helper"
+	"github.com/openshift-pipelines/tektoncd-pruner/pkg/config"
 	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	pipelineversioned "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	taskrunreconciler "github.com/tektoncd/pipeline/pkg/client/injection/reconciler/pipeline/v1/taskrun"
@@ -25,8 +24,8 @@ import (
 // SimpleDeployment resources.
 type Reconciler struct {
 	kubeclient     kubernetes.Interface
-	ttlHandler     *helper.TTLHandler
-	historyLimiter *helper.HistoryLimiter
+	ttlHandler     *config.TTLHandler
+	historyLimiter *config.HistoryLimiter
 }
 
 // Check that our Reconciler implements Interface
@@ -76,15 +75,19 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, tr *pipelinev1.TaskRun) 
 	return nil
 }
 
-type TaskRunFuncs struct {
+// TrFuncs provides methods for working with TaskRun resources
+// it contains a client to interact with the pipeline API and manage TaskRuns
+type TrFuncs struct {
 	client pipelineversioned.Interface
 }
 
-func (trf *TaskRunFuncs) Type() string {
-	return helper.KindTaskRun
+// Type returns the kind of resource represented by the TaskRunFuncs struct, which is "TaskRun".
+func (trf *TrFuncs) Type() string {
+	return config.KindTaskRun
 }
 
-func (trf *TaskRunFuncs) List(ctx context.Context, namespace, labelSelector string) ([]metav1.Object, error) {
+// List returns a list of TaskRuns in a given namespace with a label selector.
+func (trf *TrFuncs) List(ctx context.Context, namespace, labelSelector string) ([]metav1.Object, error) {
 	// TODO: should we have to implement pagination support?
 	prsList, err := trf.client.TektonV1().TaskRuns(namespace).List(ctx, metav1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
@@ -98,17 +101,18 @@ func (trf *TaskRunFuncs) List(ctx context.Context, namespace, labelSelector stri
 	return trs, nil
 }
 
-// resource k8s operations
-
-func (trf *TaskRunFuncs) Get(ctx context.Context, namespace, name string) (metav1.Object, error) {
+// Get retrieves a specific TaskRun by name in the given namespace.
+func (trf *TrFuncs) Get(ctx context.Context, namespace, name string) (metav1.Object, error) {
 	return trf.client.TektonV1().TaskRuns(namespace).Get(ctx, name, metav1.GetOptions{})
 }
 
-func (trf *TaskRunFuncs) Delete(ctx context.Context, namespace, name string) error {
+// Delete removes a specific TaskRun by name in the given namespace.
+func (trf *TrFuncs) Delete(ctx context.Context, namespace, name string) error {
 	return trf.client.TektonV1().TaskRuns(namespace).Delete(ctx, name, metav1.DeleteOptions{})
 }
 
-func (trf *TaskRunFuncs) Update(ctx context.Context, resource metav1.Object) error {
+// Update modifies an existing TaskRun resource.
+func (trf *TrFuncs) Update(ctx context.Context, resource metav1.Object) error {
 	tr, ok := resource.(*pipelinev1.TaskRun)
 	if !ok {
 		return fmt.Errorf("invalid type received. Namespace:%s, Name:%s", resource.GetNamespace(), resource.GetName())
@@ -117,7 +121,8 @@ func (trf *TaskRunFuncs) Update(ctx context.Context, resource metav1.Object) err
 	return err
 }
 
-func (trf *TaskRunFuncs) GetCompletionTime(resource metav1.Object) (metav1.Time, error) {
+// GetCompletionTime retrieves the completion time of a TaskRun resource.
+func (trf *TrFuncs) GetCompletionTime(resource metav1.Object) (metav1.Time, error) {
 	tr, ok := resource.(*pipelinev1.TaskRun)
 	if !ok {
 		return metav1.Time{}, fmt.Errorf("resource type error, this is not a TaskRun resource. namespace:%s, name:%s, type:%T",
@@ -141,17 +146,19 @@ func (trf *TaskRunFuncs) GetCompletionTime(resource metav1.Object) (metav1.Time,
 	return metav1.Time{}, fmt.Errorf("unable to find the status of the finished resource: %s/%s", tr.Namespace, tr.Name)
 }
 
-func (trf *TaskRunFuncs) Ignore(resource metav1.Object) bool {
+// Ignore returns true if the resource should be ignored based on labels and annotations.
+func (trf *TrFuncs) Ignore(resource metav1.Object) bool {
 	// labels and annotations are not populated, lets wait sometime
 	if resource.GetLabels() == nil {
-		if resource.GetAnnotations() == nil || resource.GetAnnotations()[helper.AnnotationTTLSecondsAfterFinished] == "" {
+		if resource.GetAnnotations() == nil || resource.GetAnnotations()[config.AnnotationTTLSecondsAfterFinished] == "" {
 			return true
 		}
 	}
 	return false
 }
 
-func (trf *TaskRunFuncs) IsCompleted(resource metav1.Object) bool {
+// IsCompleted checks if the TaskRun resource has completed.
+func (trf *TrFuncs) IsCompleted(resource metav1.Object) bool {
 	tr, ok := resource.(*pipelinev1.TaskRun)
 	if !ok {
 		return false
@@ -174,7 +181,8 @@ func (trf *TaskRunFuncs) IsCompleted(resource metav1.Object) bool {
 	return true
 }
 
-func (trf *TaskRunFuncs) IsSuccessful(resource metav1.Object) bool {
+// IsSuccessful checks if the TaskRun resource has successfully completed.
+func (trf *TrFuncs) IsSuccessful(resource metav1.Object) bool {
 	tr, ok := resource.(*pipelinev1.TaskRun)
 	if !ok {
 		return false
@@ -189,7 +197,8 @@ func (trf *TaskRunFuncs) IsSuccessful(resource metav1.Object) bool {
 	return runReason == pipelinev1.TaskRunReasonSuccessful
 }
 
-func (trf *TaskRunFuncs) IsFailed(resource metav1.Object) bool {
+// IsFailed checks if the TaskRun resource has failed.
+func (trf *TrFuncs) IsFailed(resource metav1.Object) bool {
 	_, ok := resource.(*pipelinev1.TaskRun)
 	if !ok {
 		return false
@@ -198,22 +207,27 @@ func (trf *TaskRunFuncs) IsFailed(resource metav1.Object) bool {
 	return !trf.IsSuccessful(resource)
 }
 
-func (trf *TaskRunFuncs) GetDefaultLabelKey() string {
-	return helper.LabelTaskName
+// GetDefaultLabelKey returns the default label key for TaskRun resources.
+func (trf *TrFuncs) GetDefaultLabelKey() string {
+	return config.LabelTaskName
 }
 
-func (trf *TaskRunFuncs) GetTTLSecondsAfterFinished(namespace, taskName string) *int32 {
-	return helper.PrunerConfigStore.GetTaskTTLSecondsAfterFinished(namespace, taskName)
+// GetTTLSecondsAfterFinished retrieves the TTL (time-to-live) in seconds after a TaskRun finishes.
+func (trf *TrFuncs) GetTTLSecondsAfterFinished(namespace, taskName string) *int32 {
+	return config.PrunerConfigStore.GetTaskTTLSecondsAfterFinished(namespace, taskName)
 }
 
-func (trf *TaskRunFuncs) GetSuccessHistoryLimitCount(namespace, name string) *int32 {
-	return helper.PrunerConfigStore.GetTaskSuccessHistoryLimitCount(namespace, name)
+// GetSuccessHistoryLimitCount retrieves the success history limit count for a TaskRun.
+func (trf *TrFuncs) GetSuccessHistoryLimitCount(namespace, name string) *int32 {
+	return config.PrunerConfigStore.GetTaskSuccessHistoryLimitCount(namespace, name)
 }
 
-func (trf *TaskRunFuncs) GetFailedHistoryLimitCount(namespace, name string) *int32 {
-	return helper.PrunerConfigStore.GetTaskFailedHistoryLimitCount(namespace, name)
+// GetFailedHistoryLimitCount retrieves the failed history limit count for a TaskRun.
+func (trf *TrFuncs) GetFailedHistoryLimitCount(namespace, name string) *int32 {
+	return config.PrunerConfigStore.GetTaskFailedHistoryLimitCount(namespace, name)
 }
 
-func (trf *TaskRunFuncs) GetEnforcedConfigLevel(namespace, name string) tektonprunerv1alpha1.EnforcedConfigLevel {
-	return helper.PrunerConfigStore.GetTaskEnforcedConfigLevel(namespace, name)
+// GetEnforcedConfigLevel retrieves the enforced config level for a TaskRun.
+func (trf *TrFuncs) GetEnforcedConfigLevel(namespace, name string) config.EnforcedConfigLevel {
+	return config.PrunerConfigStore.GetTaskEnforcedConfigLevel(namespace, name)
 }
