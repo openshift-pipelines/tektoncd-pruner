@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
-	tektonprunerv1alpha1 "github.com/openshift-pipelines/tektoncd-pruner/pkg/apis/tektonpruner/v1alpha1"
-	"github.com/openshift-pipelines/tektoncd-pruner/pkg/reconciler/helper"
+	"github.com/openshift-pipelines/tektoncd-pruner/pkg/config"
 	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	pipelineversioned "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	pipelinerunreconciler "github.com/tektoncd/pipeline/pkg/client/injection/reconciler/pipeline/v1/pipelinerun"
@@ -20,11 +20,11 @@ import (
 	"knative.dev/pkg/reconciler"
 )
 
-// Reconciler
+// Reconciler includes the kubernetes client to interact with the cluster
 type Reconciler struct {
 	kubeclient     kubernetes.Interface
-	ttlHandler     *helper.TTLHandler
-	historyLimiter *helper.HistoryLimiter
+	ttlHandler     *config.TTLHandler
+	historyLimiter *config.HistoryLimiter
 }
 
 // Check that our Reconciler implements Interface
@@ -68,15 +68,19 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, pr *pipelinev1.PipelineR
 	return nil
 }
 
-type PipelineRunFuncs struct {
+// PrFuncs provides methods for working with PipelineRun resources
+// it contains a client to interact with the pipeline API and manage PipelineRuns
+type PrFuncs struct {
 	client pipelineversioned.Interface
 }
 
-func (prf *PipelineRunFuncs) Type() string {
-	return helper.KindPipelineRun
+// Type returns the kind of resource represented by the PRFuncs struct, which is "PipelineRun".
+func (prf *PrFuncs) Type() string {
+	return config.KindPipelineRun
 }
 
-func (prf *PipelineRunFuncs) List(ctx context.Context, namespace, label string) ([]metav1.Object, error) {
+// List returns a list of PipelineRuns in a given namespace with a label selector.
+func (prf *PrFuncs) List(ctx context.Context, namespace, label string) ([]metav1.Object, error) {
 	// TODO: should we have to implement pagination support?
 	prsList, err := prf.client.TektonV1().PipelineRuns(namespace).List(ctx, metav1.ListOptions{LabelSelector: label})
 	if err != nil {
@@ -90,15 +94,107 @@ func (prf *PipelineRunFuncs) List(ctx context.Context, namespace, label string) 
 	return prs, nil
 }
 
-func (prf *PipelineRunFuncs) Get(ctx context.Context, namespace, name string) (metav1.Object, error) {
+// List returns a list of PipelineRuns in a given namespace with label and annotation selectors.
+// Annotations take higher priority. If annotations match, labels are ignored for that resource.
+func (prf *PrFuncs) MultiSelectorList(ctx context.Context, namespace string, annotations interface{}, labels interface{}) ([]metav1.Object, error) {
+	var annotationSelector string
+	var labelSelector string
+
+	// Handle annotations (manually filter later if provided)
+	if annotations != nil {
+		switch v := annotations.(type) {
+		case string:
+			// If a single annotation is provided, use it directly
+			annotationSelector = v
+		case map[string]string:
+			// If a map of annotations is provided, construct a selector for multiple annotations
+			for key, value := range v {
+				if annotationSelector != "" {
+					annotationSelector += ","
+				}
+				annotationSelector += key + "=" + value
+			}
+		default:
+			return nil, fmt.Errorf("invalid annotations type: must be string or map[string]string")
+		}
+	}
+
+	// Handle labels
+	if labels != nil {
+		switch v := labels.(type) {
+		case string:
+			// If a single label is provided, use it directly
+			labelSelector = v
+		case map[string]string:
+			// If a map of labels is provided, construct a selector for multiple labels
+			for key, value := range v {
+				if labelSelector != "" {
+					labelSelector += ","
+				}
+				labelSelector += key + "=" + value
+			}
+		default:
+			return nil, fmt.Errorf("invalid labels type: must be string or map[string]string")
+		}
+	}
+
+	// Prepare options to list resources with the correct label selector
+	options := metav1.ListOptions{}
+
+	// Apply label selector if provided
+	if labelSelector != "" {
+		options.LabelSelector = labelSelector
+	}
+
+	// List PipelineRuns using the constructed label selector
+	prsList, err := prf.client.TektonV1().PipelineRuns(namespace).List(ctx, options)
+	if err != nil {
+		return nil, err
+	}
+
+	// Filter by annotations first if annotations are provided
+	var filteredPRs []metav1.Object
+	if annotationSelector != "" {
+		for _, pr := range prsList.Items {
+			matches := true
+			// Check annotations if the selector matches
+			annotations := pr.GetAnnotations()
+			for key, value := range annotations {
+				if !strings.Contains(annotationSelector, key+"="+value) {
+					matches = false
+					break
+				}
+			}
+			if matches {
+				// If annotations match, include the resource and skip label filtering
+				filteredPRs = append(filteredPRs, pr.DeepCopy())
+			}
+		}
+	} else {
+		// If no annotations are provided, apply label filtering
+		for _, pr := range prsList.Items {
+			if labelSelector == "" || config.MatchLabels(pr.GetLabels(), labelSelector) {
+				filteredPRs = append(filteredPRs, pr.DeepCopy())
+			}
+		}
+	}
+
+	// Return the filtered list of PipelineRuns
+	return filteredPRs, nil
+}
+
+// Get retrieves a specific PipelineRun by name in the given namespace.
+func (prf *PrFuncs) Get(ctx context.Context, namespace, name string) (metav1.Object, error) {
 	return prf.client.TektonV1().PipelineRuns(namespace).Get(ctx, name, metav1.GetOptions{})
 }
 
-func (prf *PipelineRunFuncs) Delete(ctx context.Context, namespace, name string) error {
+// Delete removes a specific PipelineRun by name in the given namespace.
+func (prf *PrFuncs) Delete(ctx context.Context, namespace, name string) error {
 	return prf.client.TektonV1().PipelineRuns(namespace).Delete(ctx, name, metav1.DeleteOptions{})
 }
 
-func (prf *PipelineRunFuncs) Update(ctx context.Context, resource metav1.Object) error {
+// Update modifies an existing PipelineRun resource.
+func (prf *PrFuncs) Update(ctx context.Context, resource metav1.Object) error {
 	pr, ok := resource.(*pipelinev1.PipelineRun)
 	if !ok {
 		return fmt.Errorf("invalid type received. Namespace:%s, Name:%s", resource.GetNamespace(), resource.GetName())
@@ -107,7 +203,8 @@ func (prf *PipelineRunFuncs) Update(ctx context.Context, resource metav1.Object)
 	return err
 }
 
-func (prf *PipelineRunFuncs) GetCompletionTime(resource metav1.Object) (metav1.Time, error) {
+// GetCompletionTime retrieves the completion time of a PipelineRun resource.
+func (prf *PrFuncs) GetCompletionTime(resource metav1.Object) (metav1.Time, error) {
 	pr, ok := resource.(*pipelinev1.PipelineRun)
 	if !ok {
 		return metav1.Time{}, fmt.Errorf("resource type error, this is not a PipelineRun resource. namespace:%s, name:%s, type:%T",
@@ -130,17 +227,19 @@ func (prf *PipelineRunFuncs) GetCompletionTime(resource metav1.Object) (metav1.T
 	return metav1.Time{}, fmt.Errorf("unable to find the status of the finished resource: %s/%s", pr.Namespace, pr.Name)
 }
 
-func (prf *PipelineRunFuncs) Ignore(resource metav1.Object) bool {
+// Ignore returns true if the resource should be ignored based on labels and annotations.
+func (prf *PrFuncs) Ignore(resource metav1.Object) bool {
 	// labels and annotations are not populated, lets wait sometime
 	if resource.GetLabels() == nil {
-		if resource.GetAnnotations() == nil || resource.GetAnnotations()[helper.AnnotationTTLSecondsAfterFinished] == "" {
+		if resource.GetAnnotations() == nil || resource.GetAnnotations()[config.AnnotationTTLSecondsAfterFinished] == "" {
 			return true
 		}
 	}
 	return false
 }
 
-func (prf *PipelineRunFuncs) IsCompleted(resource metav1.Object) bool {
+// IsCompleted checks if the PipelineRun resource has completed.
+func (prf *PrFuncs) IsCompleted(resource metav1.Object) bool {
 	pr, ok := resource.(*pipelinev1.PipelineRun)
 	if !ok {
 		return false
@@ -167,7 +266,8 @@ func (prf *PipelineRunFuncs) IsCompleted(resource metav1.Object) bool {
 	return true
 }
 
-func (prf *PipelineRunFuncs) IsSuccessful(resource metav1.Object) bool {
+// IsSuccessful checks if the PipelineRun resource has successfully completed.
+func (prf *PrFuncs) IsSuccessful(resource metav1.Object) bool {
 	pr, ok := resource.(*pipelinev1.PipelineRun)
 	if !ok {
 		return false
@@ -191,7 +291,8 @@ func (prf *PipelineRunFuncs) IsSuccessful(resource metav1.Object) bool {
 	return false
 }
 
-func (prf *PipelineRunFuncs) IsFailed(resource metav1.Object) bool {
+// IsFailed checks if the PipelineRun resource has failed.
+func (prf *PrFuncs) IsFailed(resource metav1.Object) bool {
 	pr, ok := resource.(*pipelinev1.PipelineRun)
 	if !ok {
 		return false
@@ -204,22 +305,27 @@ func (prf *PipelineRunFuncs) IsFailed(resource metav1.Object) bool {
 	return !prf.IsSuccessful(resource)
 }
 
-func (prf *PipelineRunFuncs) GetDefaultLabelKey() string {
-	return helper.LabelPipelineName
+// GetDefaultLabelKey returns the default label key for PipelineRun resources.
+func (prf *PrFuncs) GetDefaultLabelKey() string {
+	return config.LabelPipelineName
 }
 
-func (prf *PipelineRunFuncs) GetTTLSecondsAfterFinished(namespace, pipelineName string) *int32 {
-	return helper.PrunerConfigStore.GetPipelineTTLSecondsAfterFinished(namespace, pipelineName)
+// GetTTLSecondsAfterFinished retrieves the TTL (time-to-live) in seconds after a PipelineRun finishes.
+func (prf *PrFuncs) GetTTLSecondsAfterFinished(namespace, pipelineName string, selectors config.SelectorSpec) *int32 {
+	return config.PrunerConfigStore.GetPipelineTTLSecondsAfterFinished(namespace, pipelineName, selectors)
 }
 
-func (prf *PipelineRunFuncs) GetSuccessHistoryLimitCount(namespace, name string) *int32 {
-	return helper.PrunerConfigStore.GetPipelineSuccessHistoryLimitCount(namespace, name)
+// GetSuccessHistoryLimitCount retrieves the success history limit count for a PipelineRun.
+func (prf *PrFuncs) GetSuccessHistoryLimitCount(namespace, name string, selectors config.SelectorSpec) *int32 {
+	return config.PrunerConfigStore.GetPipelineSuccessHistoryLimitCount(namespace, name, selectors)
 }
 
-func (prf *PipelineRunFuncs) GetFailedHistoryLimitCount(namespace, name string) *int32 {
-	return helper.PrunerConfigStore.GetPipelineFailedHistoryLimitCount(namespace, name)
+// GetFailedHistoryLimitCount retrieves the failed history limit count for a PipelineRun.
+func (prf *PrFuncs) GetFailedHistoryLimitCount(namespace, name string, selectors config.SelectorSpec) *int32 {
+	return config.PrunerConfigStore.GetPipelineFailedHistoryLimitCount(namespace, name, selectors)
 }
 
-func (prf *PipelineRunFuncs) GetEnforcedConfigLevel(namespace, name string) tektonprunerv1alpha1.EnforcedConfigLevel {
-	return helper.PrunerConfigStore.GetPipelineEnforcedConfigLevel(namespace, name)
+// GetEnforcedConfigLevel retrieves the enforced config level for a PipelineRun.
+func (prf *PrFuncs) GetEnforcedConfigLevel(namespace, name string, selectors config.SelectorSpec) config.EnforcedConfigLevel {
+	return config.PrunerConfigStore.GetPipelineEnforcedConfigLevel(namespace, name, selectors)
 }

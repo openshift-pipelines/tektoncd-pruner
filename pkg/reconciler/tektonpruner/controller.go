@@ -8,9 +8,7 @@ import (
 	"knative.dev/pkg/controller"
 	"knative.dev/pkg/logging"
 
-	tektonprunerinformer "github.com/openshift-pipelines/tektoncd-pruner/pkg/client/injection/informers/tektonpruner/v1alpha1/tektonpruner"
-	tektonprunerreconciler "github.com/openshift-pipelines/tektoncd-pruner/pkg/client/injection/reconciler/tektonpruner/v1alpha1/tektonpruner"
-	"github.com/openshift-pipelines/tektoncd-pruner/pkg/reconciler/helper"
+	"github.com/openshift-pipelines/tektoncd-pruner/pkg/config"
 	"github.com/openshift-pipelines/tektoncd-pruner/pkg/version"
 	corev1 "k8s.io/api/core/v1"
 	kubeclient "knative.dev/pkg/client/injection/kube/client"
@@ -18,42 +16,42 @@ import (
 
 // NewController creates a Reconciler and returns the result of NewImpl.
 func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
-	// Obtain an informer to both the main and child resources. These will be started by
-	// the injection framework automatically. They'll keep a cached representation of the
-	// cluster's state of the respective resource at all times.
-	tektonPrunerInformer := tektonprunerinformer.Get(ctx)
-
+	// Obtain a logger from context
 	logger := logging.FromContext(ctx)
+
+	logger.Info("Started Pruner controller")
+	// Print version details for the controller
 	ver := version.Get()
-	// print version details
 	logger.Infow("pruner version details",
 		"version", ver.Version, "arch", ver.Arch, "platform", ver.Platform,
 		"goVersion", ver.GoLang, "buildDate", ver.BuildDate, "gitCommit", ver.GitCommit,
 	)
 
+	// Reconciler only needs to watch ConfigMap changes, not Tekton resources
 	r := &Reconciler{
-		// The client will be needed to create/delete Pods via the API.
 		kubeclient: kubeclient.Get(ctx),
 	}
 
-	impl := tektonprunerreconciler.NewImpl(ctx, r)
+	//logger = logger.Named("configmap-watcher")
 
-	// Listen for events on the main resource and enqueue themselves.
-	tektonPrunerInformer.Informer().AddEventHandler(controller.HandleAll(impl.Enqueue))
-
-	// call
-	cmw.Watch(helper.PrunerConfigMapName, onConfigChange(ctx))
+	impl := controller.NewContext(ctx, r, controller.ControllerOptions{
+		Logger:        logger,
+		WorkQueueName: "configmap-watcher",
+	})
+	// Watch for changes to the ConfigMap, and trigger the `onConfigChange` function
+	cmw.Watch(config.PrunerConfigMapName, onConfigChange(ctx))
 
 	return impl
 }
 
 func onConfigChange(ctx context.Context) configmap.Observer {
 	logger := logging.FromContext(ctx)
+	logger.Info("Observer triggered")
 	return func(configMap *corev1.ConfigMap) {
 		logger.Debugw("updating pruner global config map with pruner config store",
-			"newGlobalConfig", configMap.Data[helper.PrunerGlobalConfigKey],
+			"newGlobalConfig", configMap.Data[config.PrunerGlobalConfigKey],
 		)
-		err := helper.PrunerConfigStore.LoadGlobalConfig(configMap)
+		err := config.PrunerConfigStore.LoadGlobalConfig(ctx, configMap)
 		if err != nil {
 			logger.Error("error on getting pruner global config", zap.Error(err))
 		}
