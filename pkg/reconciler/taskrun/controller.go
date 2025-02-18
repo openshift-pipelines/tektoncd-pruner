@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	"github.com/openshift-pipelines/tektoncd-pruner/pkg/reconciler/helper"
+	"github.com/openshift-pipelines/tektoncd-pruner/pkg/config"
 	pipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client"
 	taskruninformer "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1/taskrun"
 	taskrunreconciler "github.com/tektoncd/pipeline/pkg/client/injection/reconciler/pipeline/v1/taskrun"
@@ -28,15 +28,15 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 
 	logger := logging.FromContext(ctx)
 
-	taskRunFuncs := &TaskRunFuncs{
+	taskRunFuncs := &TrFuncs{
 		client: pipelineclient.Get(ctx),
 	}
-	ttlHandler, err := helper.NewTTLHandler(clock.RealClock{}, taskRunFuncs)
+	ttlHandler, err := config.NewTTLHandler(clock.RealClock{}, taskRunFuncs)
 	if err != nil {
 		logger.Fatal("error on getting ttl handler", zap.Error(err))
 	}
 
-	historyLimiter, err := helper.NewHistoryLimiter(taskRunFuncs)
+	historyLimiter, err := config.NewHistoryLimiter(taskRunFuncs)
 	if err != nil {
 		logger.Fatal("error on getting history limiter", zap.Error(err))
 	}
@@ -49,10 +49,10 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	}
 
 	// number of works to process the events
-	concurrentWorkers, err := helper.GetEnvValueAsInt(helper.EnvTTLConcurrentWorkersTaskRun, helper.DefaultTTLConcurrentWorkersTaskRun)
+	concurrentWorkers, err := config.GetEnvValueAsInt(config.EnvTTLConcurrentWorkersTaskRun, config.DefaultTTLConcurrentWorkersTaskRun)
 	if err != nil {
 		logger.Fatalw("error on getting TaskRun ttl concurrent workers count",
-			"environmentKey", helper.EnvTTLConcurrentWorkersTaskRun, "environmentValue", os.Getenv(helper.EnvTTLConcurrentWorkersTaskRun),
+			"environmentKey", config.EnvTTLConcurrentWorkersTaskRun, "environmentValue", os.Getenv(config.EnvTTLConcurrentWorkersTaskRun),
 			zap.Error(err),
 		)
 	}
@@ -63,8 +63,10 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 
 	impl := taskrunreconciler.NewImpl(ctx, r, func(impl *controller.Impl) controller.Options { return ctrlOptions })
 
-	// Listen for events on the main resource and enqueue themselves.
-	taskRunInformer.Informer().AddEventHandler(controller.HandleAll(filterTaskRun(logger, impl)))
+	_, err = taskRunInformer.Informer().AddEventHandler(controller.HandleAll(filterTaskRun(logger, impl)))
+	if err != nil {
+		logger.Fatal("Failed to add event handler", zap.Error(err))
+	}
 
 	return impl
 }
@@ -89,7 +91,7 @@ func filterTaskRun(logger *zap.SugaredLogger, impl *controller.Impl) func(obj in
 // returns true if the TaskRun is part of a PipelineRun
 func isStandaloneTaskRun(taskRun metav1.Object) bool {
 	// verify the taskRun is not part of a pipelineRun
-	if taskRun.GetLabels() != nil && taskRun.GetLabels()[helper.LabelPipelineRunName] != "" {
+	if taskRun.GetLabels() != nil && taskRun.GetLabels()[config.LabelPipelineRunName] != "" {
 		return false
 	}
 
@@ -97,7 +99,7 @@ func isStandaloneTaskRun(taskRun metav1.Object) bool {
 	// if so, ignore this taskRun
 	if len(taskRun.GetOwnerReferences()) > 0 {
 		for _, ownerReference := range taskRun.GetOwnerReferences() {
-			if ownerReference.Kind == helper.KindPipelineRun {
+			if ownerReference.Kind == config.KindPipelineRun {
 				return false
 			}
 		}

@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	"github.com/openshift-pipelines/tektoncd-pruner/pkg/reconciler/helper"
+	"github.com/openshift-pipelines/tektoncd-pruner/pkg/config"
 	pipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client"
 	pipelineruninformer "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1/pipelinerun"
 	pipelinerunreconciler "github.com/tektoncd/pipeline/pkg/client/injection/reconciler/pipeline/v1/pipelinerun"
@@ -25,15 +25,15 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 
 	logger := logging.FromContext(ctx)
 
-	pipelineRunFuncs := &PipelineRunFuncs{
+	pipelineRunFuncs := &PrFuncs{
 		client: pipelineclient.Get(ctx),
 	}
-	ttlHandler, err := helper.NewTTLHandler(clock.RealClock{}, pipelineRunFuncs)
+	ttlHandler, err := config.NewTTLHandler(clock.RealClock{}, pipelineRunFuncs)
 	if err != nil {
 		logger.Fatal("error on getting ttl handler", zap.Error(err))
 	}
 
-	historyLimiter, err := helper.NewHistoryLimiter(pipelineRunFuncs)
+	historyLimiter, err := config.NewHistoryLimiter(pipelineRunFuncs)
 	if err != nil {
 		logger.Fatal("error on getting history limiter", zap.Error(err))
 	}
@@ -46,10 +46,10 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	}
 
 	// number of works to process the events
-	concurrentWorkers, err := helper.GetEnvValueAsInt(helper.EnvTTLConcurrentWorkersPipelineRun, helper.DefaultTTLConcurrentWorkersPipelineRun)
+	concurrentWorkers, err := config.GetEnvValueAsInt(config.EnvTTLConcurrentWorkersPipelineRun, config.DefaultTTLConcurrentWorkersPipelineRun)
 	if err != nil {
 		logger.Fatalw("error on getting PipelineRun ttl concurrent workers count",
-			"environmentKey", helper.EnvTTLConcurrentWorkersPipelineRun, "environmentValue", os.Getenv(helper.EnvTTLConcurrentWorkersPipelineRun),
+			"environmentKey", config.EnvTTLConcurrentWorkersPipelineRun, "environmentValue", os.Getenv(config.EnvTTLConcurrentWorkersPipelineRun),
 			zap.Error(err),
 		)
 	}
@@ -61,6 +61,9 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	impl := pipelinerunreconciler.NewImpl(ctx, r, func(impl *controller.Impl) controller.Options { return ctrlOptions })
 
 	// listen for events on the main resource and enqueue themselves.
-	pipelineRunInformer.Informer().AddEventHandler(controller.HandleAll(impl.Enqueue))
+	_, err = pipelineRunInformer.Informer().AddEventHandler(controller.HandleAll(impl.Enqueue))
+	if err != nil {
+		logger.Fatal("Failed to add event handler", zap.Error(err))
+	}
 	return impl
 }
