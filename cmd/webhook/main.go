@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"knative.dev/pkg/configmap"
 	"knative.dev/pkg/controller"
 	"knative.dev/pkg/injection/sharedmain"
@@ -15,75 +14,7 @@ import (
 	"knative.dev/pkg/webhook"
 	"knative.dev/pkg/webhook/certificates"
 	"knative.dev/pkg/webhook/configmaps"
-	"knative.dev/pkg/webhook/resourcesemantics"
-	"knative.dev/pkg/webhook/resourcesemantics/defaulting"
-	"knative.dev/pkg/webhook/resourcesemantics/validation"
-
-	"github.com/openshift-pipelines/tektoncd-pruner/pkg/apis/tektonpruner/v1alpha1"
 )
-
-var types = map[schema.GroupVersionKind]resourcesemantics.GenericCRD{
-	// List the types to validate.
-	v1alpha1.SchemeGroupVersion.WithKind("TektonPruner"): &v1alpha1.TektonPruner{},
-}
-
-var callbacks = map[schema.GroupVersionKind]validation.Callback{}
-
-func newDefaultingAdmissionController(name string) func(context.Context, configmap.Watcher) *controller.Impl {
-	return func(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
-		return defaulting.NewAdmissionController(ctx,
-
-			// Name of the resource webhook.
-			name,
-
-			// The path on which to serve the webhook.
-			"/defaulting",
-
-			// The resources to default.
-			types,
-
-			// A function that infuses the context passed to Validate/SetDefaults with custom metadata.
-			func(ctx context.Context) context.Context {
-				// Here is where you would infuse the context with state
-				// (e.g. attach a store with configmap data)
-				return ctx
-			},
-
-			// Whether to disallow unknown fields.
-			true,
-		)
-	}
-}
-
-func newValidationAdmissionController(name string) func(context.Context, configmap.Watcher) *controller.Impl {
-	return func(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
-		return validation.NewAdmissionController(ctx,
-
-			// Name of the validation webhook, it is based on the value of the environment variable WEBHOOK_ADMISSION_CONTROLLER_NAME
-			// default is "validation.webhook.pruner.tekton.dev"
-			fmt.Sprintf("validation.%s", name),
-
-			// The path on which to serve the webhook.
-			"/resource-validation",
-
-			// The resources to validate.
-			types,
-
-			// A function that infuses the context passed to Validate/SetDefaults with custom metadata.
-			func(ctx context.Context) context.Context {
-				// Here is where you would infuse the context with state
-				// (e.g. attach a store with configmap data)
-				return ctx
-			},
-
-			// Whether to disallow unknown fields.
-			true,
-
-			// Extra validating callbacks to be applied to resources.
-			callbacks,
-		)
-	}
-}
 
 func newConfigValidationController(name string) func(context.Context, configmap.Watcher) *controller.Impl {
 	return func(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
@@ -130,8 +61,6 @@ func main() {
 
 	sharedmain.MainWithContext(ctx, serviceName,
 		certificates.NewController,
-		newDefaultingAdmissionController(webhookName),
-		newValidationAdmissionController(webhookName),
 		newConfigValidationController(webhookName),
 	)
 }
