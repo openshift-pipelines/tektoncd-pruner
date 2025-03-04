@@ -12,7 +12,7 @@ metadata:
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
       == "next" &&
-      ("upstream/***".pathChanged() || ".konflux/patches/***".pathChanged() || ".konflux/rpms/***".pathChanged() ||
+      ("***".pathChanged() ||
       ".konflux/dockerfiles/tektoncd-pruner-controller.Dockerfile".pathChanged() ||
       ".tekton/tektoncd-pruner-next-tektoncd-pruner-controller-pull-request.yaml".pathChanged())
   creationTimestamp: null
