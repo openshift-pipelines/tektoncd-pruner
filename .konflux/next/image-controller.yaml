@@ -7,7 +7,7 @@ metadata:
   annotations:
     image-controller.appstudio.redhat.com/update-component-image: "true"
   labels:
-    appstudio.redhat.com/component: tektoncd-pruner-next-tektoncd-pruner-controller
+    appstudio.redhat.com/component: tektoncd-pruner-next-controller
     appstudio.redhat.com/application: tektoncd-pruner-next
 spec:
   image:

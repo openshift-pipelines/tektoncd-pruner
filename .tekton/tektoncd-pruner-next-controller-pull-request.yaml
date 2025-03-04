@@ -13,14 +13,14 @@ metadata:
     pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
       == "next" &&
       ("***".pathChanged() ||
-      ".konflux/dockerfiles/tektoncd-pruner-controller.Dockerfile".pathChanged() ||
-      ".tekton/tektoncd-pruner-next-tektoncd-pruner-controller-pull-request.yaml".pathChanged())
+      ".konflux/dockerfiles/controller.Dockerfile".pathChanged() ||
+      ".tekton/tektoncd-pruner-next-controller-pull-request.yaml".pathChanged())
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: tektoncd-pruner-next
-    appstudio.openshift.io/component: tektoncd-pruner-next-tektoncd-pruner-controller
+    appstudio.openshift.io/component: tektoncd-pruner-next-controller
     pipelines.appstudio.openshift.io/type: build
-  name: tektoncd-pruner-next-tektoncd-pruner-controller-on-pull-request
+  name: tektoncd-pruner-next-controller-on-pull-request
   namespace: tekton-ecosystem-tenant
 spec:
   params:
@@ -33,7 +33,7 @@ spec:
   - name: image-expires-after
     value: 5d
   - name: dockerfile
-    value: .konflux/dockerfiles/tektoncd-pruner-controller.Dockerfile
+    value: .konflux/dockerfiles/controller.Dockerfile
   - name: build-platforms
     value:
     - linux/x86_64
