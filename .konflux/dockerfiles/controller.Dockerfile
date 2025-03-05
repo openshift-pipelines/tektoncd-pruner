@@ -1,30 +1,35 @@
 ARG GO_BUILDER=brew.registry.redhat.io/rh-osbs/openshift-golang-builder:v1.23
-ARG RUNTIME=registry.access.redhat.com/ubi9/ubi-minimal@sha256:daa61d6103e98bccf40d7a69a0d4f8786ec390e2204fd94f7cc49053e9949360
+ARG RUNTIME=registry.access.redhat.com/ubi9/ubi-minimal:latest@sha256:66b99214cb9733e77c4a12cc3e3cbbe76769a213f4e2767f170a4f0fdf9db490
 
 FROM $GO_BUILDER AS builder
 
 WORKDIR /go/src/github.com/openshift-pipelines/tektoncd-pruner
 COPY . .
 
-RUN go build -v -o /tmp/controller  ./cmd/controller
+ENV GODEBUG="http2server=0"
+RUN go build -ldflags="-X 'knative.dev/pkg/changeset.rev=$(cat HEAD)'" -mod=vendor -tags disable_gcp -v -o /tmp/controller \
+    ./cmd/controller
 
 FROM $RUNTIME
-ARG VERSION=tektoncd-pruner
+ARG VERSION=tektoncd-pruner-1-18
 
-COPY --from=builder /tmp/controller /ko-app/controller
+ENV KO_APP=/ko-app \
+    CONTROLLER=${KO_APP}/controller
 
+COPY --from=builder /tmp/controller ${CONTROLLER}
 
 LABEL \
-      com.redhat.component="openshift-pipelines-tektoncd-pruner-controller" \
-      name="openshift-pipelines/pipelines-tektoncd-pruner-rhel9" \
+      com.redhat.component="openshift-pipelines-tektoncd-pruner-controller-rhel9-container" \
+      name="openshift-pipelines/pipelines-tektoncd-pruner-controller-rhel9" \
       version=$VERSION \
-      summary="Red Hat OpenShift Pipelines Tekton Pruner - Controller" \
+      summary="Red Hat OpenShift Pipelines tektoncd-pruner Controller" \
       maintainer="pipelines-extcomm@redhat.com" \
-      description="Red Hat OpenShift Pipelines Tekton Pruner - Controller" \
-      io.k8s.display-name="Red Hat OpenShift Pipelines Tekton Pruner - Controller" \
-      io.k8s.description="Red Hat OpenShift Pipelines Tekton Pruner - Controller" \
-      io.openshift.tags="pipelines,tekton,openshift,tektoncd-pruner-controller"
+      description="Red Hat OpenShift Pipelines tektoncd-pruner Controller" \
+      io.k8s.display-name="Red Hat OpenShift Pipelines tektoncd-pruner Controller" \
+      io.k8s.description="Red Hat OpenShift Pipelines tektoncd-pruner Controller" \
+      io.openshift.tags="pipelines,tekton,openshift"
 
-RUN microdnf install -y shadow-utils
 RUN groupadd -r -g 65532 nonroot && useradd --no-log-init -r -u 65532 -g nonroot nonroot
 USER 65532
+
+ENTRYPOINT $CONTROLLER
