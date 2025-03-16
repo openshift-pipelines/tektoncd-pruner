@@ -11,7 +11,7 @@ require (
 	k8s.io/client-go v0.30.1
 	k8s.io/code-generator v0.30.1
 	k8s.io/kube-openapi v0.0.0-20240228011516-70dd3763d340
-	k8s.io/utils v0.0.0-20240102154912-e7106e64919e
+	k8s.io/utils v0.0.0-20241210054802-24370beab758
 	knative.dev/pkg v0.0.0-20240708181110-b4e5f07a2c37
 )
 
@@ -21,7 +21,7 @@ replace (
 	k8s.io/client-go => k8s.io/client-go v0.29.6
 	k8s.io/code-generator => k8s.io/code-generator v0.29.6
 	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20231010175941-2dd684a91f00
-	k8s.io/utils => k8s.io/utils v0.0.0-20240102154912-e7106e64919e
+	k8s.io/utils => k8s.io/utils v0.0.0-20241210054802-24370beab758
 )
 
 require (
