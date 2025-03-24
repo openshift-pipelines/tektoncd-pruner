@@ -7,13 +7,14 @@ linters-settings:
     exclude-generated: true
   errcheck:
     exclude-functions:
-      - (*github.com/openshift-pipelines/tektoncd-pruner/vendor/go.uber.org/zap.SugaredLogger).Sync
+      - (*github.com/tektoncd/pipeline/vendor/go.uber.org/zap.SugaredLogger).Sync
       - flag.Set
       - os.Setenv
       - logger.Sync
       - fmt.Fprintf
       - fmt.Fprintln
       - (io.Closer).Close
+      - updateConfigMap
   gomodguard:
     blocked:
       modules:
@@ -65,15 +66,10 @@ issues:
   # Enable off-by-default rules for revive requiring that all exported elements have a properly formatted comment.
   - EXC0012 # https://golangci-lint.run/usage/false-positives/#exc0012
   - EXC0014 # https://golangci-lint.run/usage/false-positives/#exc0014
-  exclude-files:
-  - .*/zz_generated.deepcopy.go
-  exclude-dirs:
-  - vendor
-# run:
-#  issues-exit-code: 1
-#  build-tags:
-#  - e2e
-#  timeout: 20m
-#  modules-download-mode: vendor
-#  skip-dirs:
-#  - vendor
+run:
+  issues-exit-code: 1
+  build-tags:
+  - e2e
+  timeout: 20m
+  modules-download-mode: vendor
+
