@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/openshift-pipelines/tektoncd-pruner/pkg/config"
 	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
@@ -33,19 +32,14 @@ var _ pipelinerunreconciler.Interface = (*Reconciler)(nil)
 // ReconcileKind implements Interface.ReconcileKind.
 func (r *Reconciler) ReconcileKind(ctx context.Context, pr *pipelinev1.PipelineRun) reconciler.Event {
 	logger := logging.FromContext(ctx)
-	logger.Debugw("received a PipelineRun event",
-		"namespace", pr.Namespace, "name", pr.Name,
-	)
+	logger.Debugw("received a PipelineRun event", "namespace", pr.Namespace, "name", pr.Name, "status", pr.Status)
 
 	// execute the history limiter earlier than the ttl handler
 
 	// execute history limit action
 	err := r.historyLimiter.ProcessEvent(ctx, pr)
 	if err != nil {
-		logger.Errorw("error on processing history limiting for a PipelineRun",
-			"namespace", pr.Namespace, "name", pr.Name,
-			zap.Error(err),
-		)
+		logger.Errorw("error on processing history limiting for a PipelineRun", "namespace", pr.Namespace, "name", pr.Name, zap.Error(err))
 		return err
 	}
 
@@ -56,11 +50,7 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, pr *pipelinev1.PipelineR
 		// the error is not a requeue error, print the error
 		if !isRequeueKey {
 			data, _ := json.Marshal(pr)
-			logger.Errorw("error on processing ttl for a PipelineRun",
-				"namespace", pr.Namespace, "name", pr.Name,
-				"resource", string(data),
-				zap.Error(err),
-			)
+			logger.Errorw("error on processing ttl for a PipelineRun", "namespace", pr.Namespace, "name", pr.Name, "resource", string(data), zap.Error(err))
 		}
 		return err
 	}
@@ -81,6 +71,8 @@ func (prf *PrFuncs) Type() string {
 
 // List returns a list of PipelineRuns in a given namespace with a label selector.
 func (prf *PrFuncs) List(ctx context.Context, namespace, label string) ([]metav1.Object, error) {
+	logger := logging.FromContext(ctx)
+
 	// TODO: should we have to implement pagination support?
 	prsList, err := prf.client.TektonV1().PipelineRuns(namespace).List(ctx, metav1.ListOptions{LabelSelector: label})
 	if err != nil {
@@ -88,15 +80,23 @@ func (prf *PrFuncs) List(ctx context.Context, namespace, label string) ([]metav1
 	}
 
 	prs := []metav1.Object{}
+	prnames := []string{}
 	for _, pr := range prsList.Items {
 		prs = append(prs, pr.DeepCopy())
+		prnames = append(prnames, pr.GetName())
 	}
+
+	logger.Debugw("PipelineRuns list", "namespace", namespace, "label", label, "prnames", prnames)
+
 	return prs, nil
 }
 
+/*
 // List returns a list of PipelineRuns in a given namespace with label and annotation selectors.
 // Annotations take higher priority. If annotations match, labels are ignored for that resource.
-func (prf *PrFuncs) MultiSelectorList(ctx context.Context, namespace string, annotations interface{}, labels interface{}) ([]metav1.Object, error) {
+func (prf *PrFuncs) List(ctx context.Context, namespace string, annotations interface{}, labels interface{}) ([]metav1.Object, error) {
+	logger := logging.FromContext(ctx)
+
 	var annotationSelector string
 	var labelSelector string
 
@@ -118,6 +118,7 @@ func (prf *PrFuncs) MultiSelectorList(ctx context.Context, namespace string, ann
 			return nil, fmt.Errorf("invalid annotations type: must be string or map[string]string")
 		}
 	}
+	logger.Debugw("annotationSelector", annotationSelector)
 
 	// Handle labels
 	if labels != nil {
@@ -137,6 +138,8 @@ func (prf *PrFuncs) MultiSelectorList(ctx context.Context, namespace string, ann
 			return nil, fmt.Errorf("invalid labels type: must be string or map[string]string")
 		}
 	}
+
+	logger.Debugw("labelSelector", labelSelector)
 
 	// Prepare options to list resources with the correct label selector
 	options := metav1.ListOptions{}
@@ -182,6 +185,7 @@ func (prf *PrFuncs) MultiSelectorList(ctx context.Context, namespace string, ann
 	// Return the filtered list of PipelineRuns
 	return filteredPRs, nil
 }
+*/
 
 // Get retrieves a specific PipelineRun by name in the given namespace.
 func (prf *PrFuncs) Get(ctx context.Context, namespace, name string) (metav1.Object, error) {

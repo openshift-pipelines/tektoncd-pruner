@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"go.uber.org/zap"
 	"k8s.io/client-go/kubernetes"
@@ -102,9 +101,12 @@ func (trf *TrFuncs) List(ctx context.Context, namespace, labelSelector string) (
 	return trs, nil
 }
 
+/*
 // List returns a list of TaskRuns in a given namespace with label and annotation selectors.
 // Annotations take higher priority. If annotations match, labels are ignored for that resource.
-func (trf *TrFuncs) MultiSelectorList(ctx context.Context, namespace string, annotations interface{}, labels interface{}) ([]metav1.Object, error) {
+func (trf *TrFuncs) List(ctx context.Context, namespace string, annotations interface{}, labels interface{}) ([]metav1.Object, error) {
+	logger := logging.FromContext(ctx)
+
 	var annotationSelector string
 	var labelSelector string
 
@@ -126,6 +128,7 @@ func (trf *TrFuncs) MultiSelectorList(ctx context.Context, namespace string, ann
 			return nil, fmt.Errorf("invalid annotations type: must be string or map[string]string")
 		}
 	}
+	logger.Debugw("annotationSelector", annotationSelector)
 
 	// Handle labels
 	if labels != nil {
@@ -145,6 +148,7 @@ func (trf *TrFuncs) MultiSelectorList(ctx context.Context, namespace string, ann
 			return nil, fmt.Errorf("invalid labels type: must be string or map[string]string")
 		}
 	}
+	logger.Debugw("labelSelector", labelSelector)
 
 	// Prepare options to list resources with the correct label selector
 	options := metav1.ListOptions{}
@@ -190,6 +194,7 @@ func (trf *TrFuncs) MultiSelectorList(ctx context.Context, namespace string, ann
 	// Return the filtered list of TaskRuns
 	return filteredTRs, nil
 }
+*/
 
 // Get retrieves a specific TaskRun by name in the given namespace.
 func (trf *TrFuncs) Get(ctx context.Context, namespace, name string) (metav1.Object, error) {
