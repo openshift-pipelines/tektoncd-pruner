@@ -125,32 +125,33 @@ func (th *TTLHandler) updateAnnotationTTLSeconds(ctx context.Context, resource m
 	labelKey := getResourceNameLabelKey(resource, th.resourceFn.GetDefaultLabelKey())
 	resourceName := getResourceName(resource, labelKey)
 
-	// Get Annotations and Labels
-	matchAnnotations := resource.GetAnnotations()
-	matchLabels := resource.GetLabels()
-
 	// Construct the selectors with both matchLabels and matchAnnotations
-	selectors := SelectorSpec{}
+	resourceSelectors := SelectorSpec{}
 
-	if len(matchAnnotations) > 0 {
-		selectors.MatchAnnotations = matchAnnotations
+	// Get Annotations and Labels
+	resourceAnnotations := resource.GetAnnotations()
+	if len(resourceAnnotations) > 0 {
+		resourceSelectors.MatchAnnotations = resourceAnnotations
 	}
 
-	if len(matchLabels) > 0 {
-		selectors.MatchLabels = matchLabels
+	resourceLabels := resource.GetLabels()
+	if len(resourceLabels) > 0 {
+		resourceSelectors.MatchLabels = resourceLabels
 	}
+
+	th_enforcedlevel := th.resourceFn.GetEnforcedConfigLevel(resource.GetNamespace(), resourceName, resourceSelectors)
+	logger.Debugw("CHECKING-ENFORCED-CONFIG-TTL", "enforced_level", th_enforcedlevel, "namespace", resource.GetNamespace(), "name", resourceName, "selectors", resourceSelectors)
 
 	// if the "enforceConfigLevel" is not resource level, do not consider ttl from the resource annotation
 	// take it from namespace config or global config
-	if th.resourceFn.
-		GetEnforcedConfigLevel(resource.GetNamespace(), resourceName, selectors) != EnforcedConfigLevelResource {
+	if th.resourceFn.GetEnforcedConfigLevel(resource.GetNamespace(), resourceName, resourceSelectors) != EnforcedConfigLevelResource {
 		needsUpdate = true
 	}
 
 	if needsUpdate {
-		ttl := th.resourceFn.GetTTLSecondsAfterFinished(resource.GetNamespace(), resourceName, selectors)
+		ttl := th.resourceFn.GetTTLSecondsAfterFinished(resource.GetNamespace(), resourceName, resourceSelectors)
 		if ttl == nil {
-			logger.Debugw("tll is not defined for this resource, no further action needed",
+			logger.Debugw("ttl is not defined for this resource, no further action needed",
 				"resource", th.resourceFn.Type(), "namespace", resource.GetNamespace(), "name", resource.GetName(),
 				"resourceLabelKey", labelKey, "resourceLabelValue", resourceName,
 			)
