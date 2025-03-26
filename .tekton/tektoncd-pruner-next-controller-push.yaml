@@ -5,7 +5,7 @@ metadata:
   annotations:
     pipelinesascode.tekton.dev/cancel-in-progress: "true" # Cancel in-progress pipelines
     pipelinesascode.tekton.dev/pipeline: "https://raw.githubusercontent.com/openshift-pipelines/operator/refs/heads/main/.tekton/docker-build-ta.yaml"
-    build.appstudio.openshift.io/repo: https://github.com/openshift-pipelines/tektoncd-pruner?rev={{revision}}
+    build.appstudio.openshift.io/repo: https://github.com/openshift-pipelines/tektoncd-pruner.git?rev={{revision}}
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
@@ -16,7 +16,7 @@ metadata:
       ".tekton/tektoncd-pruner-next-controller-push.yaml".pathChanged())
   creationTimestamp: null
   labels:
-    appstudio.openshift.io/application: tektoncd-pruner-next
+    appstudio.openshift.io/application: openshift-pipelines-next
     appstudio.openshift.io/component: tektoncd-pruner-next-controller
     pipelines.appstudio.openshift.io/type: build
   name: tektoncd-pruner-next-controller-on-push
@@ -28,7 +28,7 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/redhat-user-workloads/tekton-ecosystem-tenant/next/tektoncd-pruner-controller-rhel9:{{revision}}
+    value: quay.io/redhat-user-workloads/tekton-ecosystem-tenant/next/controller-rhel9:{{revision}}
   - name: dockerfile
     value: .konflux/dockerfiles/controller.Dockerfile
   - name: prefetch-input
