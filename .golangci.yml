@@ -7,7 +7,7 @@ linters-settings:
     exclude-generated: true
   errcheck:
     exclude-functions:
-      - (*github.com/tektoncd/pipeline/vendor/go.uber.org/zap.SugaredLogger).Sync
+      - (*github.com/openshift-pipelines/tektoncd-pruner/vendor/go.uber.org/zap.SugaredLogger).Sync
       - flag.Set
       - os.Setenv
       - logger.Sync
