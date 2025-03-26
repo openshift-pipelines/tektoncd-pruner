@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - 100-namespace.yaml
+  - 200-clusterrole.yaml
+  - 200-role.yaml
+  - 200-serviceaccount.yaml
+  - 201-clusterrolebinding.yaml
+  - 201-rolebinding.yaml
+  - 600-tekton-pruner-default-spec.yaml
+  - config-logging.yaml
+  - config-observability.yaml
+  - controller.yaml
+
+namespace: tekton-pipelines
+images:
+  - name: ko://github.com/openshift-pipelines/tektoncd-pruner/cmd/controller
+    newName: quay.io/openshift-pipeline/pipelines-pruner-controller-rhel9
+    newTag: next

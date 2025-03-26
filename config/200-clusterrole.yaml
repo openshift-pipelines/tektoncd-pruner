@@ -6,22 +6,6 @@ metadata:
   labels:
     pruner.tekton.dev/release: "devel"
 rules:
-  # allows to manage self managed CRs (TektonPruner CR)
-  - apiGroups:
-      - "pruner.tekton.dev"
-    resources:
-      - "tektonpruners"
-      - "tektonpruners/status"
-      - "tektonpruners/finalizers"
-    verbs:
-      - "get"
-      - "list"
-      - "create"
-      - "update"
-      - "delete"
-      - "patch"
-      - "watch"
-
   # Write permissions to publish events.
   - apiGroups:
       - ""
