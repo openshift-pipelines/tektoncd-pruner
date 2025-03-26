@@ -12,9 +12,4 @@ resources:
   - config-logging.yaml
   - config-observability.yaml
   - controller.yaml
-
 namespace: tekton-pipelines
-images:
-  - name: ko://github.com/openshift-pipelines/tektoncd-pruner/cmd/controller
-    newName: quay.io/openshift-pipeline/pipelines-pruner-controller-rhel9
-    newTag: next
