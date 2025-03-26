@@ -13,13 +13,13 @@ metadata:
       == "next" &&
       ("***".pathChanged() ||
       ".konflux/dockerfiles/controller.Dockerfile".pathChanged() ||
-      ".tekton/tektoncd-pruner-next-controller-push.yaml".pathChanged())
+      ".tekton/tektoncd-pruner-main-controller-push.yaml".pathChanged())
   creationTimestamp: null
   labels:
-    appstudio.openshift.io/application: openshift-pipelines-next
-    appstudio.openshift.io/component: tektoncd-pruner-next-controller
+    appstudio.openshift.io/application: openshift-pipelines-main
+    appstudio.openshift.io/component: tektoncd-pruner-main-controller
     pipelines.appstudio.openshift.io/type: build
-  name: tektoncd-pruner-next-controller-on-push
+  name: tektoncd-pruner-main-controller-on-push
   namespace: tekton-ecosystem-tenant
 spec:
   params:
@@ -28,7 +28,7 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/redhat-user-workloads/tekton-ecosystem-tenant/next/pruner-controller-rhel9:{{revision}}
+    value: quay.io/redhat-user-workloads/tekton-ecosystem-tenant/main/pruner-controller-rhel9:{{revision}}
   - name: dockerfile
     value: .konflux/dockerfiles/controller.Dockerfile
   - name: prefetch-input
