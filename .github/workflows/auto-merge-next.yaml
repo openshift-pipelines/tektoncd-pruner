@@ -1,4 +1,4 @@
-# Generated for Release next by openshift-pipelines/hack. DO NOT EDIT.
+# Generated for Release main by openshift-pipelines/hack. DO NOT EDIT.
 name: auto-merge-next
 
 on:
