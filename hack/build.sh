@@ -26,4 +26,4 @@ ko resolve \
   > ${BUILDS_DIR}/release-v${VERSION}.yaml
 
 # replace version tags in the manifests
-sed -i '' "s|pruner.tekton.dev/release: \"devel\"|pruner.tekton.dev/release: \"v${VERSION}\"|g" ${BUILDS_DIR}/release-v${VERSION}.yaml
+sed -i "s|pruner.tekton.dev/release: \"devel\"|pruner.tekton.dev/release: \"v${VERSION}\"|g" ${BUILDS_DIR}/release-v${VERSION}.yaml
