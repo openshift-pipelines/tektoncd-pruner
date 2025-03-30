@@ -336,8 +336,8 @@ github.com/stretchr/testify v1.9.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8
 github.com/stvp/go-udp-testing v0.0.0-20201019212854-469649b16807/go.mod h1:7jxmlfBCDBXRzr0eAQJ48XC1hBu1np4CS5+cHEYfwpc=
 github.com/tektoncd/pipeline v0.66.0 h1:WLL98YEgWzblSAD2mPbpZN97tkOC50wiftaW+8+6zTY=
 github.com/tektoncd/pipeline v0.66.0/go.mod h1:V3cyfxxc7b3GLT2a13GX2mWA86qmxWhh4mOp4gfFQwQ=
-github.com/tektoncd/plumbing v0.0.0-20250313115811-582146ce551e h1:3Zws3++VzABI9V2LLBjW2E7C1RcTKvI/8IHljCHf5V4=
-github.com/tektoncd/plumbing v0.0.0-20250313115811-582146ce551e/go.mod h1:KTAEcFHz49nBdj/+ZX9LjVGjP5aaXm0JFnpqNnMNPuM=
+github.com/tektoncd/plumbing v0.0.0-20250327221850-ef726ecabb7b h1:qJMW1BQoblLnXrLnYV0VmMIot9keGuVkYUcdwgWoE+o=
+github.com/tektoncd/plumbing v0.0.0-20250327221850-ef726ecabb7b/go.mod h1:KTAEcFHz49nBdj/+ZX9LjVGjP5aaXm0JFnpqNnMNPuM=
 github.com/vbatts/tar-split v0.11.6 h1:4SjTW5+PU11n6fZenf2IPoV8/tz3AaYHMWjf23envGs=
 github.com/vbatts/tar-split v0.11.6/go.mod h1:dqKNtesIOr2j2Qv3W/cHjnvk9I8+G7oAkFDFN6TCBEI=
 github.com/yuin/goldmark v1.1.25/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
