@@ -12,6 +12,7 @@ import (
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"knative.dev/pkg/apis"
 	"knative.dev/pkg/controller"
@@ -205,6 +206,24 @@ func (prf *PrFuncs) Update(ctx context.Context, resource metav1.Object) error {
 	}
 	_, err := prf.client.TektonV1().PipelineRuns(resource.GetNamespace()).Update(ctx, pr, metav1.UpdateOptions{})
 	return err
+}
+
+// Patch modifies an existing PipelineRun resource using a Merge Patch
+// This is useful for updating only specific fields of the resource.
+func (prf *PrFuncs) Patch(ctx context.Context, namespace, name string, patchBytes []byte) error {
+	_, err := prf.client.TektonV1().PipelineRuns(namespace).Patch(
+		ctx,
+		name,
+		types.MergePatchType,
+		patchBytes,
+		metav1.PatchOptions{},
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to patch PipelineRun %s/%s: %w", namespace, name, err)
+	}
+
+	return nil
 }
 
 // GetCompletionTime retrieves the completion time of a PipelineRun resource.

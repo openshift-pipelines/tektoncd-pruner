@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"go.uber.org/zap"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/openshift-pipelines/tektoncd-pruner/pkg/config"
@@ -214,6 +215,24 @@ func (trf *TrFuncs) Update(ctx context.Context, resource metav1.Object) error {
 	}
 	_, err := trf.client.TektonV1().TaskRuns(resource.GetNamespace()).Update(ctx, tr, metav1.UpdateOptions{})
 	return err
+}
+
+// Patch modifies an existing TaskRun resource using a JSON patch.
+// This is useful for updating only specific fields of the resource.
+func (trf *TrFuncs) Patch(ctx context.Context, namespace, name string, patchBytes []byte) error {
+	_, err := trf.client.TektonV1().TaskRuns(namespace).Patch(
+		ctx,
+		name,
+		types.MergePatchType,
+		patchBytes,
+		metav1.PatchOptions{},
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to patch TaskRun %s/%s: %w", namespace, name, err)
+	}
+
+	return nil
 }
 
 // GetCompletionTime retrieves the completion time of a TaskRun resource.

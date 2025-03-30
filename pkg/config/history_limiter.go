@@ -18,6 +18,7 @@ package config
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"slices"
 	"strconv"
@@ -37,6 +38,7 @@ type HistoryLimiterResourceFuncs interface {
 	Type() string
 	Get(ctx context.Context, namespace, name string) (metav1.Object, error)
 	Update(ctx context.Context, resource metav1.Object) error
+	Patch(ctx context.Context, namespace, name string, patchBytes []byte) error
 	Delete(ctx context.Context, namespace, name string) error
 	List(ctx context.Context, namespace, label string) ([]metav1.Object, error)
 	GetFailedHistoryLimitCount(namespace, name string, selectors SelectorSpec) *int32
@@ -109,33 +111,49 @@ func (hl *HistoryLimiter) ProcessEvent(ctx context.Context, resource metav1.Obje
 
 // adds an annotation, indicates this resource is already processed
 // no action needed on the further reconcile loop for this Resource
+// markAsProcessed patches the resource with the annotation 'mark as processed'
 func (hl *HistoryLimiter) markAsProcessed(ctx context.Context, resource metav1.Object) {
 	logger := logging.FromContext(ctx)
 
-	logger.Debugw("marking as resource as processed", "resource", hl.resourceFn.Type(), "namespace", resource.GetNamespace(), "name", resource.GetName())
-	// if user sets the history limit to 0, there is no Resource will be retained
-	// hence, fetch the resource and if available update 'mark as processed'
+	logger.Debugw("marking resource as processed", "resource", hl.resourceFn.Type(), "namespace", resource.GetNamespace(), "name", resource.GetName())
+
+	// Fetch the latest version of the resource
 	resourceLatest, err := hl.resourceFn.Get(ctx, resource.GetNamespace(), resource.GetName())
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return
 		}
-		logger.Errorw("error on getting a resource", "resource", hl.resourceFn.Type(),
+		logger.Errorw("error getting resource", "resource", hl.resourceFn.Type(),
 			"namespace", resource.GetNamespace(), "name", resource.GetName(), zap.Error(err))
 		return
 	}
 
+	// Prepare the annotation update
 	processedTimeAsString := time.Now().Format(time.RFC3339)
 	annotations := resourceLatest.GetAnnotations()
 	if annotations == nil {
 		annotations = map[string]string{}
 	}
 	annotations[AnnotationHistoryLimitCheckProcessed] = processedTimeAsString
-	resourceLatest.SetAnnotations(annotations)
-	err = hl.resourceFn.Update(ctx, resourceLatest)
+
+	// Create a patch with the new annotations
+	patchData := map[string]interface{}{
+		"metadata": map[string]interface{}{
+			"annotations": annotations,
+		},
+	}
+
+	// Convert patchData to JSON
+	patchBytes, err := json.Marshal(patchData)
 	if err != nil {
-		logger := logging.FromContext(ctx)
-		logger.Errorw("error on updating 'mark as processed' on a resource",
+		logger.Errorw("error marshaling patch data", zap.Error(err))
+		return
+	}
+
+	// Apply the patch
+	err = hl.resourceFn.Patch(ctx, resourceLatest.GetNamespace(), resourceLatest.GetName(), patchBytes)
+	if err != nil {
+		logger.Errorw("error patching resource with 'mark as processed' annotation",
 			"resource", hl.resourceFn.Type(), "namespace", resourceLatest.GetNamespace(), "name", resourceLatest.GetName(), zap.Error(err))
 	}
 }
