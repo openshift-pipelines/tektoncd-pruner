@@ -5,22 +5,21 @@ metadata:
   annotations:
     pipelinesascode.tekton.dev/cancel-in-progress: "true" # Cancel in-progress pipelines
     pipelinesascode.tekton.dev/pipeline: "https://raw.githubusercontent.com/openshift-pipelines/operator/refs/heads/main/.tekton/docker-build-ta.yaml"
-    build.appstudio.openshift.io/repo: https://github.com/openshift-pipelines/tektoncd-pruner.git?rev={{revision}}
+    build.appstudio.openshift.io/repo: https://github.com/openshift-pipelines/tektoncd-pruner?rev={{revision}}
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
-    build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
+    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
       == "next" &&
-      ("***".pathChanged() ||
+      ("upstream/***".pathChanged() || ".konflux/patches/***".pathChanged() || ".konflux/rpms/***".pathChanged() ||
       ".konflux/dockerfiles/controller.Dockerfile".pathChanged() ||
-      ".tekton/tektoncd-pruner-main-controller-pull-request.yaml".pathChanged())
+      ".tekton/tektoncd-pruner-next-controller-push.yaml".pathChanged())
   creationTimestamp: null
   labels:
-    appstudio.openshift.io/application: openshift-pipelines-main
-    appstudio.openshift.io/component: tektoncd-pruner-main-controller
+    appstudio.openshift.io/application: tektoncd-pruner-next
+    appstudio.openshift.io/component: tektoncd-pruner-next-controller
     pipelines.appstudio.openshift.io/type: build
-  name: tektoncd-pruner-main-controller-on-pull-request
+  name: tektoncd-pruner-next-controller-on-push
   namespace: tekton-ecosystem-tenant
 spec:
   params:
@@ -29,14 +28,9 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/redhat-user-workloads/tekton-ecosystem-tenant/main/pruner-controller-rhel9:on-pr-{{revision}}
-  - name: image-expires-after
-    value: 5d
+    value: quay.io/redhat-user-workloads/tekton-ecosystem-tenant/next/controller-rhel9:{{revision}}
   - name: dockerfile
     value: .konflux/dockerfiles/controller.Dockerfile
-  - name: build-platforms
-    value:
-    - linux/x86_64
   - name: prefetch-input
     value: |
       {"type": "rpm", "path": ".konflux/rpms"}
