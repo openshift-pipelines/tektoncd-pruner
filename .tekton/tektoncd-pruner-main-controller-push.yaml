@@ -13,6 +13,7 @@ metadata:
       == "main" &&
       ("***".pathChanged() ||
       ".konflux/dockerfiles/controller.Dockerfile".pathChanged() ||
+      ".tekton/docker-build-ta.yaml".pathChanged() ||
       ".tekton/tektoncd-pruner-main-controller-push.yaml".pathChanged())
   creationTimestamp: null
   labels:
