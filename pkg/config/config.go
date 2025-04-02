@@ -144,10 +144,10 @@ func (ps *prunerConfigStore) LoadGlobalConfig(ctx context.Context, configMap *co
 	return nil
 }
 
-func getFromPrunerConfigResourceLevelwithSelector(namespacesSpec map[string]NamespaceSpec, namespace, name string, selector SelectorSpec, resourceType PrunerResourceType, fieldType PrunerFieldType) *int32 {
+func getFromPrunerConfigResourceLevelwithSelector(namespacesSpec map[string]NamespaceSpec, namespace, name string, selector SelectorSpec, resourceType PrunerResourceType, fieldType PrunerFieldType) (*int32, string) {
 	prunerResourceSpec, found := namespacesSpec[namespace]
 	if !found {
-		return nil
+		return nil, "identifiedBy_global"
 	}
 
 	var resourceSpecs []ResourceSpec
@@ -167,11 +167,11 @@ func getFromPrunerConfigResourceLevelwithSelector(namespacesSpec map[string]Name
 				// Return the field value from the matched resourceSpec
 				switch fieldType {
 				case PrunerFieldTypeTTLSecondsAfterFinished:
-					return resourceSpec.TTLSecondsAfterFinished
+					return resourceSpec.TTLSecondsAfterFinished, "identifiedBy_resource_name"
 				case PrunerFieldTypeSuccessfulHistoryLimit:
-					return resourceSpec.SuccessfulHistoryLimit
+					return resourceSpec.SuccessfulHistoryLimit, "identifiedBy_resource_name"
 				case PrunerFieldTypeFailedHistoryLimit:
-					return resourceSpec.FailedHistoryLimit
+					return resourceSpec.FailedHistoryLimit, "identifiedBy_resource_name"
 				}
 			}
 		}
@@ -194,18 +194,18 @@ func getFromPrunerConfigResourceLevelwithSelector(namespacesSpec map[string]Name
 						// Return the field value if annotations match
 						switch fieldType {
 						case PrunerFieldTypeTTLSecondsAfterFinished:
-							return resourceSpec.TTLSecondsAfterFinished
+							return resourceSpec.TTLSecondsAfterFinished, "identifiedBy_resource_ann"
 						case PrunerFieldTypeSuccessfulHistoryLimit:
 							if resourceSpec.SuccessfulHistoryLimit != nil {
-								return resourceSpec.SuccessfulHistoryLimit
+								return resourceSpec.SuccessfulHistoryLimit, "identifiedBy_resource_ann"
 							} else {
-								return resourceSpec.HistoryLimit
+								return resourceSpec.HistoryLimit, "identifiedBy_resource_ann"
 							}
 						case PrunerFieldTypeFailedHistoryLimit:
 							if resourceSpec.SuccessfulHistoryLimit != nil {
-								return resourceSpec.FailedHistoryLimit
+								return resourceSpec.FailedHistoryLimit, "identifiedBy_resource_ann"
 							} else {
-								return resourceSpec.HistoryLimit
+								return resourceSpec.HistoryLimit, "identifiedBy_resource_ann"
 							}
 						}
 					}
@@ -223,18 +223,18 @@ func getFromPrunerConfigResourceLevelwithSelector(namespacesSpec map[string]Name
 						// Return the field value if labels match
 						switch fieldType {
 						case PrunerFieldTypeTTLSecondsAfterFinished:
-							return resourceSpec.TTLSecondsAfterFinished
+							return resourceSpec.TTLSecondsAfterFinished, "identifiedBy_resource_label"
 						case PrunerFieldTypeSuccessfulHistoryLimit:
 							if resourceSpec.SuccessfulHistoryLimit != nil {
-								return resourceSpec.SuccessfulHistoryLimit
+								return resourceSpec.SuccessfulHistoryLimit, "identifiedBy_resource_label"
 							} else {
-								return resourceSpec.HistoryLimit
+								return resourceSpec.HistoryLimit, "identifiedBy_resource_label"
 							}
 						case PrunerFieldTypeFailedHistoryLimit:
 							if resourceSpec.SuccessfulHistoryLimit != nil {
-								return resourceSpec.FailedHistoryLimit
+								return resourceSpec.FailedHistoryLimit, "identifiedBy_resource_label"
 							} else {
-								return resourceSpec.HistoryLimit
+								return resourceSpec.HistoryLimit, "identifiedBy_resource_label"
 							}
 						}
 					}
@@ -244,70 +244,74 @@ func getFromPrunerConfigResourceLevelwithSelector(namespacesSpec map[string]Name
 	}
 
 	// If no match found, return nil
-	return nil
+	return nil, ""
 }
 
-func getResourceFieldData(globalSpec PrunerConfig, namespace, name string, selector SelectorSpec, resourceType PrunerResourceType, fieldType PrunerFieldType, enforcedConfigLevel EnforcedConfigLevel) *int32 {
-	var ttl *int32
+func getResourceFieldData(globalSpec PrunerConfig, namespace, name string, selector SelectorSpec, resourceType PrunerResourceType, fieldType PrunerFieldType, enforcedConfigLevel EnforcedConfigLevel) (*int32, string) {
+	var fieldData *int32
+	var identified_by string
+
 	switch enforcedConfigLevel {
 	case EnforcedConfigLevelResource:
 		// get from resource level
-		ttl = getFromPrunerConfigResourceLevelwithSelector(globalSpec.Namespaces, namespace, name, selector, resourceType, fieldType)
+		fieldData, identified_by = getFromPrunerConfigResourceLevelwithSelector(globalSpec.Namespaces, namespace, name, selector, resourceType, fieldType)
 		fallthrough
 
 	case EnforcedConfigLevelNamespace:
-		if ttl == nil {
+		if fieldData == nil {
 			// get it from global spec, namespace root level
 			spec, found := globalSpec.Namespaces[namespace]
 			if found {
 				switch fieldType {
 				case PrunerFieldTypeTTLSecondsAfterFinished:
-					ttl = spec.TTLSecondsAfterFinished
+					fieldData = spec.TTLSecondsAfterFinished
 
 				case PrunerFieldTypeSuccessfulHistoryLimit:
 					if spec.SuccessfulHistoryLimit != nil {
-						ttl = spec.SuccessfulHistoryLimit
+						fieldData = spec.SuccessfulHistoryLimit
 					} else {
-						ttl = spec.HistoryLimit
+						fieldData = spec.HistoryLimit
 					}
 
 				case PrunerFieldTypeFailedHistoryLimit:
 					if spec.FailedHistoryLimit != nil {
-						ttl = spec.FailedHistoryLimit
+						fieldData = spec.FailedHistoryLimit
 					} else {
-						ttl = spec.HistoryLimit
+						fieldData = spec.HistoryLimit
 					}
 				}
 			}
+			identified_by = "identified_by_ns"
 		}
 		fallthrough
 
 	case EnforcedConfigLevelGlobal:
-		if ttl == nil {
+		if fieldData == nil {
 			// get it from global spec, root level
 			switch fieldType {
 			case PrunerFieldTypeTTLSecondsAfterFinished:
-				ttl = globalSpec.TTLSecondsAfterFinished
+				fieldData = globalSpec.TTLSecondsAfterFinished
 
 			case PrunerFieldTypeSuccessfulHistoryLimit:
 				if globalSpec.SuccessfulHistoryLimit != nil {
-					ttl = globalSpec.SuccessfulHistoryLimit
+					fieldData = globalSpec.SuccessfulHistoryLimit
 				} else {
-					ttl = globalSpec.HistoryLimit
+					fieldData = globalSpec.HistoryLimit
 				}
 
 			case PrunerFieldTypeFailedHistoryLimit:
 				if globalSpec.FailedHistoryLimit != nil {
-					ttl = globalSpec.FailedHistoryLimit
+					fieldData = globalSpec.FailedHistoryLimit
 				} else {
-					ttl = globalSpec.HistoryLimit
+					fieldData = globalSpec.HistoryLimit
 				}
 			}
 		}
+		identified_by = "identified_by_global"
 
 	}
 
-	return ttl
+	return fieldData, identified_by
 }
 
 func (ps *prunerConfigStore) GetEnforcedConfigLevelFromNamespaceSpec(namespacesSpec map[string]NamespaceSpec, namespace, name string, selector SelectorSpec, resourceType PrunerResourceType) *EnforcedConfigLevel {
@@ -416,42 +420,42 @@ func (ps *prunerConfigStore) GetTaskEnforcedConfigLevel(namespace, name string, 
 	return ps.getEnforcedConfigLevel(namespace, name, selector, PrunerResourceTypeTaskRun)
 }
 
-func (ps *prunerConfigStore) GetPipelineTTLSecondsAfterFinished(namespace, name string, selector SelectorSpec) *int32 {
+func (ps *prunerConfigStore) GetPipelineTTLSecondsAfterFinished(namespace, name string, selector SelectorSpec) (*int32, string) {
 	ps.mutex.Lock()
 	defer ps.mutex.Unlock()
 	enforcedConfigLevel := ps.GetPipelineEnforcedConfigLevel(namespace, name, selector)
 	return getResourceFieldData(ps.globalConfig, namespace, name, selector, PrunerResourceTypePipelineRun, PrunerFieldTypeTTLSecondsAfterFinished, enforcedConfigLevel)
 }
 
-func (ps *prunerConfigStore) GetPipelineSuccessHistoryLimitCount(namespace, name string, selector SelectorSpec) *int32 {
+func (ps *prunerConfigStore) GetPipelineSuccessHistoryLimitCount(namespace, name string, selector SelectorSpec) (*int32, string) {
 	ps.mutex.Lock()
 	defer ps.mutex.Unlock()
 	enforcedConfigLevel := ps.GetPipelineEnforcedConfigLevel(namespace, name, selector)
 	return getResourceFieldData(ps.globalConfig, namespace, name, selector, PrunerResourceTypePipelineRun, PrunerFieldTypeSuccessfulHistoryLimit, enforcedConfigLevel)
 }
 
-func (ps *prunerConfigStore) GetPipelineFailedHistoryLimitCount(namespace, name string, selector SelectorSpec) *int32 {
+func (ps *prunerConfigStore) GetPipelineFailedHistoryLimitCount(namespace, name string, selector SelectorSpec) (*int32, string) {
 	ps.mutex.Lock()
 	defer ps.mutex.Unlock()
 	enforcedConfigLevel := ps.GetPipelineEnforcedConfigLevel(namespace, name, selector)
 	return getResourceFieldData(ps.globalConfig, namespace, name, selector, PrunerResourceTypePipelineRun, PrunerFieldTypeFailedHistoryLimit, enforcedConfigLevel)
 }
 
-func (ps *prunerConfigStore) GetTaskTTLSecondsAfterFinished(namespace, name string, selector SelectorSpec) *int32 {
+func (ps *prunerConfigStore) GetTaskTTLSecondsAfterFinished(namespace, name string, selector SelectorSpec) (*int32, string) {
 	ps.mutex.Lock()
 	defer ps.mutex.Unlock()
 	enforcedConfigLevel := ps.GetTaskEnforcedConfigLevel(namespace, name, selector)
 	return getResourceFieldData(ps.globalConfig, namespace, name, selector, PrunerResourceTypeTaskRun, PrunerFieldTypeTTLSecondsAfterFinished, enforcedConfigLevel)
 }
 
-func (ps *prunerConfigStore) GetTaskSuccessHistoryLimitCount(namespace, name string, selector SelectorSpec) *int32 {
+func (ps *prunerConfigStore) GetTaskSuccessHistoryLimitCount(namespace, name string, selector SelectorSpec) (*int32, string) {
 	ps.mutex.Lock()
 	defer ps.mutex.Unlock()
 	enforcedConfigLevel := ps.GetTaskEnforcedConfigLevel(namespace, name, selector)
 	return getResourceFieldData(ps.globalConfig, namespace, name, selector, PrunerResourceTypeTaskRun, PrunerFieldTypeSuccessfulHistoryLimit, enforcedConfigLevel)
 }
 
-func (ps *prunerConfigStore) GetTaskFailedHistoryLimitCount(namespace, name string, selector SelectorSpec) *int32 {
+func (ps *prunerConfigStore) GetTaskFailedHistoryLimitCount(namespace, name string, selector SelectorSpec) (*int32, string) {
 	ps.mutex.Lock()
 	defer ps.mutex.Unlock()
 	enforcedConfigLevel := ps.GetTaskEnforcedConfigLevel(namespace, name, selector)

@@ -42,7 +42,7 @@ type TTLResourceFuncs interface {
 	IsCompleted(resource metav1.Object) bool
 	GetCompletionTime(resource metav1.Object) (metav1.Time, error)
 	Ignore(resource metav1.Object) bool
-	GetTTLSecondsAfterFinished(namespace, name string, selectors SelectorSpec) *int32
+	GetTTLSecondsAfterFinished(namespace, name string, selectors SelectorSpec) (*int32, string)
 	GetDefaultLabelKey() string
 	GetEnforcedConfigLevel(namespace, name string, selectors SelectorSpec) EnforcedConfigLevel
 }
@@ -149,7 +149,7 @@ func (th *TTLHandler) updateAnnotationTTLSeconds(ctx context.Context, resource m
 	}
 
 	if needsUpdate {
-		ttl := th.resourceFn.GetTTLSecondsAfterFinished(resource.GetNamespace(), resourceName, resourceSelectors)
+		ttl, _ := th.resourceFn.GetTTLSecondsAfterFinished(resource.GetNamespace(), resourceName, resourceSelectors)
 		if ttl == nil {
 			logger.Debugw("ttl is not defined for this resource, no further action needed",
 				"resource", th.resourceFn.Type(), "namespace", resource.GetNamespace(), "name", resource.GetName(),
