@@ -12,6 +12,7 @@ import (
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"knative.dev/pkg/apis"
 	"knative.dev/pkg/controller"
@@ -89,6 +90,72 @@ func (prf *PrFuncs) List(ctx context.Context, namespace, label string) ([]metav1
 	logger.Debugw("PipelineRuns list", "namespace", namespace, "label", label, "prnames", prnames)
 
 	return prs, nil
+}
+
+// ListByLabels returns a list of PipelineRuns in a given namespace filtered by multiple labels.
+func (prf *PrFuncs) ListByLabels(ctx context.Context, namespace string, labels map[string]string) ([]metav1.Object, error) {
+	logger := logging.FromContext(ctx)
+	selector := metav1.FormatLabelSelector(&metav1.LabelSelector{MatchLabels: labels})
+
+	prsList, err := prf.client.TektonV1().PipelineRuns(namespace).List(ctx, metav1.ListOptions{LabelSelector: selector})
+	if err != nil {
+		return nil, err
+	}
+
+	prs := []metav1.Object{}
+	for _, pr := range prsList.Items {
+		prs = append(prs, pr.DeepCopy())
+	}
+
+	logger.Debugw("PipelineRuns list by labels", "namespace", namespace, "labels", labels)
+
+	return prs, nil
+}
+
+// ListByAnnotations returns a list of PipelineRuns in a given namespace filtered by annotations.
+func (prf *PrFuncs) ListByAnnotations(ctx context.Context, namespace string, annotations map[string]string) ([]metav1.Object, error) {
+	logger := logging.FromContext(ctx)
+	allPrs, err := prf.List(ctx, namespace, "")
+	if err != nil {
+		return nil, err
+	}
+
+	filteredPrs := []metav1.Object{}
+	for _, pr := range allPrs {
+		match := true
+		for key, value := range annotations {
+			if pr.GetAnnotations()[key] != value {
+				match = false
+				break
+			}
+		}
+		if match {
+			filteredPrs = append(filteredPrs, pr)
+		}
+	}
+
+	logger.Debugw("PipelineRuns list by annotations", "namespace", namespace, "annotations", annotations)
+
+	return filteredPrs, nil
+}
+
+// ListByNamespaces returns a list of PipelineRuns across multiple namespaces.
+func (prf *PrFuncs) ListByNamespaces(ctx context.Context, namespaces []string) (map[string][]metav1.Object, error) {
+	logger := logging.FromContext(ctx)
+	results := make(map[string][]metav1.Object)
+
+	for _, ns := range namespaces {
+		prs, err := prf.List(ctx, ns, "")
+		if err != nil {
+			logger.Errorw("Failed to list PipelineRuns", "namespace", ns, "error", err)
+			continue
+		}
+		results[ns] = prs
+	}
+
+	logger.Debugw("PipelineRuns list by namespaces", "namespaces", namespaces)
+
+	return results, nil
 }
 
 /*
@@ -207,6 +274,24 @@ func (prf *PrFuncs) Update(ctx context.Context, resource metav1.Object) error {
 	return err
 }
 
+// Patch modifies an existing PipelineRun resource using a Merge Patch
+// This is useful for updating only specific fields of the resource.
+func (prf *PrFuncs) Patch(ctx context.Context, namespace, name string, patchBytes []byte) error {
+	_, err := prf.client.TektonV1().PipelineRuns(namespace).Patch(
+		ctx,
+		name,
+		types.MergePatchType,
+		patchBytes,
+		metav1.PatchOptions{},
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to patch PipelineRun %s/%s: %w", namespace, name, err)
+	}
+
+	return nil
+}
+
 // GetCompletionTime retrieves the completion time of a PipelineRun resource.
 func (prf *PrFuncs) GetCompletionTime(resource metav1.Object) (metav1.Time, error) {
 	pr, ok := resource.(*pipelinev1.PipelineRun)
@@ -315,17 +400,17 @@ func (prf *PrFuncs) GetDefaultLabelKey() string {
 }
 
 // GetTTLSecondsAfterFinished retrieves the TTL (time-to-live) in seconds after a PipelineRun finishes.
-func (prf *PrFuncs) GetTTLSecondsAfterFinished(namespace, pipelineName string, selectors config.SelectorSpec) *int32 {
+func (prf *PrFuncs) GetTTLSecondsAfterFinished(namespace, pipelineName string, selectors config.SelectorSpec) (*int32, string) {
 	return config.PrunerConfigStore.GetPipelineTTLSecondsAfterFinished(namespace, pipelineName, selectors)
 }
 
 // GetSuccessHistoryLimitCount retrieves the success history limit count for a PipelineRun.
-func (prf *PrFuncs) GetSuccessHistoryLimitCount(namespace, name string, selectors config.SelectorSpec) *int32 {
+func (prf *PrFuncs) GetSuccessHistoryLimitCount(namespace, name string, selectors config.SelectorSpec) (*int32, string) {
 	return config.PrunerConfigStore.GetPipelineSuccessHistoryLimitCount(namespace, name, selectors)
 }
 
 // GetFailedHistoryLimitCount retrieves the failed history limit count for a PipelineRun.
-func (prf *PrFuncs) GetFailedHistoryLimitCount(namespace, name string, selectors config.SelectorSpec) *int32 {
+func (prf *PrFuncs) GetFailedHistoryLimitCount(namespace, name string, selectors config.SelectorSpec) (*int32, string) {
 	return config.PrunerConfigStore.GetPipelineFailedHistoryLimitCount(namespace, name, selectors)
 }
 

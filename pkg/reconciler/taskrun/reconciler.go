@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"go.uber.org/zap"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/openshift-pipelines/tektoncd-pruner/pkg/config"
@@ -99,6 +100,72 @@ func (trf *TrFuncs) List(ctx context.Context, namespace, labelSelector string) (
 		trs = append(trs, tr.DeepCopy())
 	}
 	return trs, nil
+}
+
+// ListByLabels returns a list of TaskRuns in a given namespace filtered by multiple labels.
+func (trf *TrFuncs) ListByLabels(ctx context.Context, namespace string, labels map[string]string) ([]metav1.Object, error) {
+	logger := logging.FromContext(ctx)
+	selector := metav1.FormatLabelSelector(&metav1.LabelSelector{MatchLabels: labels})
+
+	trsList, err := trf.client.TektonV1().TaskRuns(namespace).List(ctx, metav1.ListOptions{LabelSelector: selector})
+	if err != nil {
+		return nil, err
+	}
+
+	trs := []metav1.Object{}
+	for _, tr := range trsList.Items {
+		trs = append(trs, tr.DeepCopy())
+	}
+
+	logger.Debugw("TaskRuns list by labels", "namespace", namespace, "labels", labels)
+
+	return trs, nil
+}
+
+// ListByAnnotations returns a list of TaskRuns in a given namespace filtered by annotations.
+func (trf *TrFuncs) ListByAnnotations(ctx context.Context, namespace string, annotations map[string]string) ([]metav1.Object, error) {
+	logger := logging.FromContext(ctx)
+	allTrs, err := trf.List(ctx, namespace, "")
+	if err != nil {
+		return nil, err
+	}
+
+	filteredTrs := []metav1.Object{}
+	for _, tr := range allTrs {
+		match := true
+		for key, value := range annotations {
+			if tr.GetAnnotations()[key] != value {
+				match = false
+				break
+			}
+		}
+		if match {
+			filteredTrs = append(filteredTrs, tr)
+		}
+	}
+
+	logger.Debugw("TaskRuns list by annotations", "namespace", namespace, "annotations", annotations)
+
+	return filteredTrs, nil
+}
+
+// ListByNamespaces returns a list of TaskRuns across multiple namespaces.
+func (trf *TrFuncs) ListByNamespaces(ctx context.Context, namespaces []string) (map[string][]metav1.Object, error) {
+	logger := logging.FromContext(ctx)
+	results := make(map[string][]metav1.Object)
+
+	for _, ns := range namespaces {
+		trs, err := trf.List(ctx, ns, "")
+		if err != nil {
+			logger.Errorw("Failed to list TaskRuns", "namespace", ns, "error", err)
+			continue
+		}
+		results[ns] = trs
+	}
+
+	logger.Debugw("TaskRuns list by namespaces", "namespaces", namespaces)
+
+	return results, nil
 }
 
 /*
@@ -216,6 +283,24 @@ func (trf *TrFuncs) Update(ctx context.Context, resource metav1.Object) error {
 	return err
 }
 
+// Patch modifies an existing TaskRun resource using a JSON patch.
+// This is useful for updating only specific fields of the resource.
+func (trf *TrFuncs) Patch(ctx context.Context, namespace, name string, patchBytes []byte) error {
+	_, err := trf.client.TektonV1().TaskRuns(namespace).Patch(
+		ctx,
+		name,
+		types.MergePatchType,
+		patchBytes,
+		metav1.PatchOptions{},
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to patch TaskRun %s/%s: %w", namespace, name, err)
+	}
+
+	return nil
+}
+
 // GetCompletionTime retrieves the completion time of a TaskRun resource.
 func (trf *TrFuncs) GetCompletionTime(resource metav1.Object) (metav1.Time, error) {
 	tr, ok := resource.(*pipelinev1.TaskRun)
@@ -308,41 +393,21 @@ func (trf *TrFuncs) GetDefaultLabelKey() string {
 }
 
 // GetTTLSecondsAfterFinished retrieves the TTL (time-to-live) in seconds after a TaskRun finishes.
-func (trf *TrFuncs) GetTTLSecondsAfterFinished(namespace, taskName string, selectors config.SelectorSpec) *int32 {
+func (trf *TrFuncs) GetTTLSecondsAfterFinished(namespace, taskName string, selectors config.SelectorSpec) (*int32, string) {
 	return config.PrunerConfigStore.GetTaskTTLSecondsAfterFinished(namespace, taskName, selectors)
 }
 
 // GetSuccessHistoryLimitCount retrieves the success history limit count for a TaskRun.
-func (trf *TrFuncs) GetSuccessHistoryLimitCount(namespace, name string, selectors config.SelectorSpec) *int32 {
+func (trf *TrFuncs) GetSuccessHistoryLimitCount(namespace, name string, selectors config.SelectorSpec) (*int32, string) {
 	return config.PrunerConfigStore.GetTaskSuccessHistoryLimitCount(namespace, name, selectors)
 }
 
 // GetFailedHistoryLimitCount retrieves the failed history limit count for a TaskRun.
-func (trf *TrFuncs) GetFailedHistoryLimitCount(namespace, name string, selectors config.SelectorSpec) *int32 {
+func (trf *TrFuncs) GetFailedHistoryLimitCount(namespace, name string, selectors config.SelectorSpec) (*int32, string) {
 	return config.PrunerConfigStore.GetTaskFailedHistoryLimitCount(namespace, name, selectors)
 }
 
 // GetEnforcedConfigLevel retrieves the enforced config level for a TaskRun.
 func (trf *TrFuncs) GetEnforcedConfigLevel(namespace, name string, selectors config.SelectorSpec) config.EnforcedConfigLevel {
-	return config.PrunerConfigStore.GetTaskEnforcedConfigLevel(namespace, name, selectors)
-}
-
-// GetTTLSecondsAfterFinished retrieves the TTL (time-to-live) in seconds after a TaskRun finishes.
-func (trf *TrFuncs) GetTTLSecondsAfterFinishedSelector(namespace, taskName string, selectors config.SelectorSpec) *int32 {
-	return config.PrunerConfigStore.GetTaskTTLSecondsAfterFinished(namespace, taskName, selectors)
-}
-
-// GetSuccessHistoryLimitCount retrieves the success history limit count for a TaskRun.
-func (trf *TrFuncs) GetSuccessHistoryLimitCountSelector(namespace, name string, selectors config.SelectorSpec) *int32 {
-	return config.PrunerConfigStore.GetTaskSuccessHistoryLimitCount(namespace, name, selectors)
-}
-
-// GetFailedHistoryLimitCount retrieves the failed history limit count for a TaskRun.
-func (trf *TrFuncs) GetFailedHistoryLimitCountSelector(namespace, name string, selectors config.SelectorSpec) *int32 {
-	return config.PrunerConfigStore.GetTaskFailedHistoryLimitCount(namespace, name, selectors)
-}
-
-// GetEnforcedConfigLevel retrieves the enforced config level for a TaskRun.
-func (trf *TrFuncs) GetEnforcedConfigLevelSelector(namespace, name string, selectors config.SelectorSpec) config.EnforcedConfigLevel {
 	return config.PrunerConfigStore.GetTaskEnforcedConfigLevel(namespace, name, selectors)
 }
