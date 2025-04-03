@@ -77,7 +77,7 @@ func NewTTLHandler(clock clockUtil.Clock, resourceFn TTLResourceFuncs) (*TTLHand
 // and updates the TTL annotation if needed
 func (th *TTLHandler) ProcessEvent(ctx context.Context, resource metav1.Object) error {
 	logger := logging.FromContext(ctx)
-	logger.Debugw("processing an event",
+	logger.Debugw("processing an event for TTLLOGIC",
 		"resource", th.resourceFn.Type(), "namespace", resource.GetNamespace(), "name", resource.GetName(),
 	)
 
@@ -89,7 +89,9 @@ func (th *TTLHandler) ProcessEvent(ctx context.Context, resource metav1.Object) 
 	}
 
 	// if a resource is not completed state, no further action needed
-	if th.resourceFn.Ignore(resource) {
+	if !th.resourceFn.IsCompleted(resource) && th.resourceFn.Ignore(resource) {
+		logger.Debugw("resource is ignored",
+			"resource", th.resourceFn.Type(), "namespace", resource.GetNamespace(), "name", resource.GetName())
 		return nil
 	}
 
@@ -150,6 +152,7 @@ func (th *TTLHandler) updateAnnotationTTLSeconds(ctx context.Context, resource m
 
 	if needsUpdate {
 		ttl, _ := th.resourceFn.GetTTLSecondsAfterFinished(resource.GetNamespace(), resourceName, resourceSelectors)
+		logger.Debugw("TTTTTLLLLLL", "ttl", ttl, "namespace", resource.GetNamespace(), "name", resourceName, "selectors", resourceSelectors)
 		if ttl == nil {
 			logger.Debugw("ttl is not defined for this resource, no further action needed",
 				"resource", th.resourceFn.Type(), "namespace", resource.GetNamespace(), "name", resource.GetName(),
