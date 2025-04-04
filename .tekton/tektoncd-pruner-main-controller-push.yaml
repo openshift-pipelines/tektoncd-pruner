@@ -13,6 +13,7 @@ metadata:
       == "main" &&
       ("***".pathChanged() ||
       ".konflux/dockerfiles/controller.Dockerfile".pathChanged() ||
+      ".tekton/docker-build-ta.yaml".pathChanged() ||
       ".tekton/tektoncd-pruner-main-controller-push.yaml".pathChanged())
   creationTimestamp: null
   labels:
@@ -31,6 +32,9 @@ spec:
     value: quay.io/redhat-user-workloads/tekton-ecosystem-tenant/main/pruner-controller-rhel9:{{revision}}
   - name: dockerfile
     value: .konflux/dockerfiles/controller.Dockerfile
+  - name: build-platforms
+    value:
+      - linux/x86_64
   - name: prefetch-input
     value: |
       {"type": "rpm", "path": ".konflux/rpms"}
