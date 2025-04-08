@@ -18,6 +18,7 @@ package config
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"time"
@@ -38,6 +39,7 @@ type TTLResourceFuncs interface {
 	Type() string
 	Get(ctx context.Context, namespace, name string) (metav1.Object, error)
 	Delete(ctx context.Context, namespace, name string) error
+	Patch(ctx context.Context, namespace, name string, patchBytes []byte) error
 	Update(ctx context.Context, resource metav1.Object) error
 	IsCompleted(resource metav1.Object) bool
 	GetCompletionTime(resource metav1.Object) (metav1.Time, error)
@@ -107,6 +109,7 @@ func (th *TTLHandler) ProcessEvent(ctx context.Context, resource metav1.Object) 
 	}
 
 	return th.removeResource(ctx, resource)
+
 }
 
 // updates the TTL of a Resource
@@ -142,7 +145,8 @@ func (th *TTLHandler) updateAnnotationTTLSeconds(ctx context.Context, resource m
 	}
 
 	th_enforcedlevel := th.resourceFn.GetEnforcedConfigLevel(resource.GetNamespace(), resourceName, resourceSelectors)
-	logger.Debugw("CHECKING-ENFORCED-CONFIG-TTL", "enforced_level", th_enforcedlevel, "namespace", resource.GetNamespace(), "name", resourceName, "selectors", resourceSelectors)
+	logger.Debugw("CHECKING-ENFORCED-CONFIG-TTL", "enforced_level", th_enforcedlevel,
+		"namespace", resource.GetNamespace(), "name", resourceName, "selectors", resourceSelectors)
 
 	// if the "enforceConfigLevel" is not resource level, do not consider ttl from the resource annotation
 	// take it from namespace config or global config
@@ -166,12 +170,48 @@ func (th *TTLHandler) updateAnnotationTTLSeconds(ctx context.Context, resource m
 			// there is no change on the TTL, update action not needed
 			return nil
 		}
+		/*
+			resource.SetAnnotations(annotations)
+			logger.Debugw("updating ttl of a resource",
+				"resource", th.resourceFn.Type(), "namespace", resource.GetNamespace(), "name", resource.GetName(), "ttl", ttl,
+			)
+			return th.resourceFn.Update(ctx, resource)
+		*/
+		// Prepare the annotation update
+		resourceLatest, err := th.resourceFn.Get(ctx, resource.GetNamespace(), resource.GetName())
+		if err != nil {
+			if errors.IsNotFound(err) {
+				return err
+			}
+			logger.Errorw("error getting resource", "resource", th.resourceFn.Type(),
+				"namespace", resource.GetNamespace(), "name", resource.GetName(), zap.Error(err))
+			return err
+		}
+		annotations := resourceLatest.GetAnnotations()
+		if annotations == nil {
+			annotations = map[string]string{}
+		}
 		annotations[AnnotationTTLSecondsAfterFinished] = newTTL
-		resource.SetAnnotations(annotations)
-		logger.Debugw("updating ttl of a resource",
-			"resource", th.resourceFn.Type(), "namespace", resource.GetNamespace(), "name", resource.GetName(), "ttl", ttl,
-		)
-		return th.resourceFn.Update(ctx, resource)
+		// Create a patch with the new annotations
+		patchData := map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"annotations": annotations,
+			},
+		}
+
+		// Convert patchData to JSON
+		patchBytes, err := json.Marshal(patchData)
+		if err != nil {
+			logger.Errorw("error marshaling patch data", zap.Error(err))
+			return err
+		}
+
+		// Apply the patch
+		err = th.resourceFn.Patch(ctx, resourceLatest.GetNamespace(), resourceLatest.GetName(), patchBytes)
+		if err != nil {
+			logger.Errorw("error patching resource with 'mark as processed' annotation",
+				"resource", th.resourceFn.Type(), "namespace", resourceLatest.GetNamespace(), "name", resourceLatest.GetName(), zap.Error(err))
+		}
 	}
 	return nil
 }

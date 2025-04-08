@@ -5,29 +5,6 @@ metadata:
   name: tekton-pruner-default-spec
   namespace: tekton-pipelines
 data:
-  _example: |
-    ttlSecondsAfterFinished: 600 # 10 minutes
-    successfulHistoryLimit: 3
-    failedHistoryLimit: 1
-    namespaces:
-      ns-1:
-        pipelines:
-        - name: foo
-          ttlSecondsAfterFinished: 60
-          successfulHistoryLimit: 3
-          failedHistoryLimit: 1
-        - name: bar
-          ttlSecondsAfterFinished: 600 # 10 minutes
-          successfulHistoryLimit: 3
-          failedHistoryLimit: 1
-        tasks:
-        - name: task1
-          ttlSecondsAfterFinished: 60
-      ns-2:
-        ttlSecondsAfterFinished: 300 # 5 minutes
-        pipelines:
-        - name: foo
-          ttlSecondsAfterFinished: 120 # 2 minutes
   global-config: |
     enforcedConfigLevel: global
     ttlSecondsAfterFinished: 300

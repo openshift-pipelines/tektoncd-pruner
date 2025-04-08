@@ -1,0 +1,83 @@
+
+name: Reusable workflow example
+
+on:
+  workflow_call:
+    inputs:
+      pipelines-release:
+        required: true
+        type: string
+      k8s-version:
+        required: true
+        type: string
+
+defaults:
+  run:
+    shell: bash
+    working-directory: ./
+
+jobs:
+  e2e-test:
+    name: e2e test
+    runs-on: ubuntu-22.04
+
+    env:
+      GOPATH: ${{ github.workspace }}
+      GO111MODULE: on
+      GOFLAGS: -ldflags=-s -ldflags=-w
+      KO_DOCKER_REPO: registry.local:5000/knative
+      KOCACHE: ~/ko
+      SIGSTORE_SCAFFOLDING_RELEASE_VERSION: "v0.7.12"
+      TEKTON_PIPELINES_RELEASE: "https://storage.googleapis.com/tekton-releases/pipeline/previous/${{ inputs.pipelines-release }}/release.yaml"
+      # Note that we do not include the v prefix here so we can use it in all
+      # the places this is used.
+      TEKTON_CLI_RELEASE: "0.30.0"
+
+    steps:
+    - name: Set up Go
+      uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+      with:
+        go-version: 1.22.x
+
+    - uses: ko-build/setup-ko@v0.8
+      with:
+        version: tip
+
+    - name: Install tkn cli
+      run: |
+        curl -Lo ./tkn_${{ env.TEKTON_CLI_RELEASE }}_Linux_x86_64.tar.gz https://github.com/tektoncd/cli/releases/download/v${{ env.TEKTON_CLI_RELEASE }}/tkn_${{ env.TEKTON_CLI_RELEASE }}_Linux_x86_64.tar.gz
+        tar xvzf ./tkn_${{ env.TEKTON_CLI_RELEASE }}_Linux_x86_64.tar.gz tkn
+        chmod u+x ./tkn
+
+    - name: Check out our repo
+      uses: actions/checkout@6d193bf28034eafb982f37bd894289fe649468fc # v4.1.7
+      with:
+        path: ./src/github.com/openshift-pipelines/tektoncd-pruner
+
+    - name: Install Tekton pipelines
+      run: |
+        while ! kubectl apply --filename ${{ env.TEKTON_PIPELINES_RELEASE }}
+        do
+          echo "waiting for tekton pipelines to get installed"
+          sleep 2
+        done
+
+        # Restart so picks up the changes.
+        kubectl -n tekton-pipelines delete po -l app=tekton-pipelines-controller
+
+    - name: Install all the everythings
+      working-directory: ./src/github.com/openshift-pipelines/tektoncd-pruner
+      timeout-minutes: 10
+      run: |
+        ko apply -BRf ./config/
+        sleep 10
+
+    - name: Run tutorial taskrun
+      run: |
+        kubectl create -f https://raw.githubusercontent.com/tektoncd/chains/main/examples/taskruns/task-output-image.yaml
+
+        # Sleep so the taskrun shows up.
+        sleep 2
+
+        echo "Waiting for the taskrun to complete..."
+        kubectl wait --timeout 3m --for=condition=Succeeded taskruns --all || kubectl get taskruns -o yaml

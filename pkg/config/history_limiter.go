@@ -100,12 +100,12 @@ func (hl *HistoryLimiter) ProcessEvent(ctx context.Context, resource metav1.Obje
 
 	if hl.resourceFn.IsSuccessful(resource) {
 		logger.Debugw("success - cleanup", "resource", hl.resourceFn.Type(), "namespace", resource.GetNamespace(), "name", resource.GetName())
-		return hl.doSuccessfulResourceCleanup(ctx, resource)
+		return hl.DoSuccessfulResourceCleanup(ctx, resource)
 	}
 
 	if hl.resourceFn.IsFailed(resource) {
 		logger.Debugw("failed - cleanup", "resource", hl.resourceFn.Type(), "namespace", resource.GetNamespace(), "name", resource.GetName())
-		return hl.doFailedResourceCleanup(ctx, resource)
+		return hl.DoFailedResourceCleanup(ctx, resource)
 	}
 
 	return nil
@@ -169,14 +169,14 @@ func (hl *HistoryLimiter) isProcessed(resource metav1.Object) bool {
 	return found
 }
 
-func (hl *HistoryLimiter) doSuccessfulResourceCleanup(ctx context.Context, resource metav1.Object) error {
+func (hl *HistoryLimiter) DoSuccessfulResourceCleanup(ctx context.Context, resource metav1.Object) error {
 	logging := logging.FromContext(ctx)
 
 	logging.Debugw("processing a successful resource", "resource", hl.resourceFn.Type(), "namespace", resource.GetNamespace(), "name", resource.GetName())
 	return hl.doResourceCleanup(ctx, resource, AnnotationSuccessfulHistoryLimit, hl.resourceFn.GetSuccessHistoryLimitCount, hl.isSuccessfulResource)
 }
 
-func (hl *HistoryLimiter) doFailedResourceCleanup(ctx context.Context, resource metav1.Object) error {
+func (hl *HistoryLimiter) DoFailedResourceCleanup(ctx context.Context, resource metav1.Object) error {
 	logging := logging.FromContext(ctx)
 	logging.Debugw("processing a failed resource", "resource", hl.resourceFn.Type(), "namespace", resource.GetNamespace(), "name", resource.GetName())
 	return hl.doResourceCleanup(ctx, resource, AnnotationFailedHistoryLimit, hl.resourceFn.GetFailedHistoryLimitCount, hl.isFailedResource)

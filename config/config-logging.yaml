@@ -48,5 +48,4 @@ data:
 
   # Log level overrides
   # Changes are be picked up immediately.
-  loglevel.tekton-pruner-controller: "warn"
-  loglevel.tekton-pruner-webhook: "warn"
+  loglevel.tekton-pruner-controller: "debug"
