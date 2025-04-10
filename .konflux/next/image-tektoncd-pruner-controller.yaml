@@ -3,13 +3,13 @@
 apiVersion: appstudio.redhat.com/v1alpha1
 kind: ImageRepository
 metadata:
-  name: tektoncd-pruner-poc-controller
+  name: next-tektoncd-pruner-controller-rhel9
   annotations:
     image-controller.appstudio.redhat.com/update-component-image: "true"
   labels:
-    appstudio.redhat.com/component: tektoncd-pruner-poc-controller
-    appstudio.redhat.com/application: tektoncd-pruner-poc
+    appstudio.redhat.com/component: tektoncd-pruner-next-tektoncd-pruner-controller
+    appstudio.redhat.com/application: tektoncd-pruner-next
 spec:
   image:
-   name: tektoncd-pruner-poc/controller
+   name: next/tektoncd-pruner-controller-rhel9
    visibility: public
