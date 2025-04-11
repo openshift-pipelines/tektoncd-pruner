@@ -38,6 +38,8 @@ spec:
   - name: build-platforms
     value:
     - linux/x86_64
+  - name: build-image-index
+    value: false
   - name: prefetch-input
     value: |
       {"type": "rpm", "path": ".konflux/rpms"}
