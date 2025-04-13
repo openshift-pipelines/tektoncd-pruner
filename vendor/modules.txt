@@ -298,7 +298,7 @@ github.com/tektoncd/pipeline/pkg/reconciler/pipeline/dag
 github.com/tektoncd/pipeline/pkg/result
 github.com/tektoncd/pipeline/pkg/spire/config
 github.com/tektoncd/pipeline/pkg/substitution
-# github.com/tektoncd/plumbing v0.0.0-20250327221850-ef726ecabb7b
+# github.com/tektoncd/plumbing v0.0.0-20250408080654-cc5a88a24e9f
 ## explicit; go 1.23
 github.com/tektoncd/plumbing
 github.com/tektoncd/plumbing/cmd/combine
