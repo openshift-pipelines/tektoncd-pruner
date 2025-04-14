@@ -30,7 +30,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: ko-build/setup-ko@v0.8
+      - uses: ko-build/setup-ko@v0.9
 
       - name: build and push container images
         run: ./hack/build.sh
