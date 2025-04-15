@@ -2,6 +2,7 @@ package tektonpruner
 
 import (
 	"context"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -74,6 +75,18 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		WorkQueueName: "pruner",
 	})
 
+	// Set up a periodic garbage collection (GC) Interval
+	controllerConfigMap, err := kubeclient.Get(ctx).CoreV1().ConfigMaps(system.Namespace()).Get(ctx, config.PrunerControllerConfigMapName, metav1.GetOptions{})
+	if err != nil {
+		logger.Warnw("Failed to get pruner ConfigMap, using default GC interval", "error", err)
+	}
+	gcIntervalStr := controllerConfigMap.Data["gcIntervalSeconds"]
+	gcInterval, err := strconv.Atoi(gcIntervalStr)
+	if err != nil {
+		logger.Warnw("Invalid gcIntervalSeconds in ConfigMap, using default", "value", gcIntervalStr, "error", err)
+		gcInterval = config.DefaultGCIntervalSeconds
+	}
+
 	// ConfigMap watcher triggers GC
 	cmw.Watch(config.PrunerConfigMapName, func(cm *corev1.ConfigMap) {
 		go safeRunGarbageCollector(ctx, logger)
@@ -81,7 +94,7 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 
 	// Periodic GC trigger
 	go func() {
-		ticker := time.NewTicker(5 * time.Minute)
+		ticker := time.NewTicker(time.Duration(gcInterval) * time.Second)
 		defer ticker.Stop()
 
 		safeRunGarbageCollector(ctx, logger)

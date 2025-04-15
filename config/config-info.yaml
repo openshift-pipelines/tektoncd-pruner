@@ -27,3 +27,4 @@ data:
   # other resources in the namespace we still can have access to
   # this ConfigMap.
   version: "devel"
+  gcIntervalSeconds: "300" #10 minutes
