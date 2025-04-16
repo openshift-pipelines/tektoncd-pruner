@@ -48,4 +48,4 @@ data:
 
   # Log level overrides
   # Changes are be picked up immediately.
-  loglevel.tekton-pruner-controller: "debug"
+  loglevel.tekton-pruner-controller: "info"

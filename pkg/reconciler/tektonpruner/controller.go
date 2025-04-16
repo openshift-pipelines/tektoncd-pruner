@@ -76,15 +76,20 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	})
 
 	// Set up a periodic garbage collection (GC) Interval
-	controllerConfigMap, err := kubeclient.Get(ctx).CoreV1().ConfigMaps(system.Namespace()).Get(ctx, config.PrunerControllerConfigMapName, metav1.GetOptions{})
+	controllerConfigMap, err := kubeclient.Get(ctx).CoreV1().ConfigMaps(system.Namespace()).Get(ctx, config.PrunerConfigMapName, metav1.GetOptions{})
 	if err != nil {
 		logger.Warnw("Failed to get pruner ConfigMap, using default GC interval", "error", err)
 	}
-	gcIntervalStr := controllerConfigMap.Data["gcIntervalSeconds"]
+
+	// Check if periodic cleanup is enabled by default this will be disabled
+	val, ok := controllerConfigMap.Data["periodicCleanupEnabled"]
+	cleanupEnabled := ok && strings.ToLower(val) == "true"
+
+	gcIntervalStr := controllerConfigMap.Data["periodicCleanupIntervalSeconds"]
 	gcInterval, err := strconv.Atoi(gcIntervalStr)
 	if err != nil {
-		logger.Warnw("Invalid gcIntervalSeconds in ConfigMap, using default", "value", gcIntervalStr, "error", err)
-		gcInterval = config.DefaultGCIntervalSeconds
+		logger.Warnw("Invalid periodicCleanUpIntervalSeconds in ConfigMap, using default", "value", gcIntervalStr, "error", err)
+		gcInterval = config.DefaultPeriodicCleanupIntervalSeconds
 	}
 
 	// ConfigMap watcher triggers GC
@@ -92,24 +97,27 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 		go safeRunGarbageCollector(ctx, logger)
 	})
 
-	// Periodic GC trigger
-	go func() {
-		ticker := time.NewTicker(time.Duration(gcInterval) * time.Second)
-		defer ticker.Stop()
+	if cleanupEnabled {
+		logger.Infow("Periodic GC enabled", "interval", gcInterval)
+		// Periodic GC trigger
+		go func() {
+			ticker := time.NewTicker(time.Duration(gcInterval) * time.Second)
+			defer ticker.Stop()
 
-		safeRunGarbageCollector(ctx, logger)
+			safeRunGarbageCollector(ctx, logger)
 
-		for {
-			select {
-			case <-ctx.Done():
-				logger.Info("Stopping periodic garbage collection")
-				return
-			case <-ticker.C:
-				logger.Info("Periodic GC tick")
-				safeRunGarbageCollector(ctx, logger)
+			for {
+				select {
+				case <-ctx.Done():
+					logger.Info("Stopping periodic garbage collection")
+					return
+				case <-ticker.C:
+					logger.Info("Periodic GC tick")
+					safeRunGarbageCollector(ctx, logger)
+				}
 			}
-		}
-	}()
+		}()
+	}
 
 	return impl
 }

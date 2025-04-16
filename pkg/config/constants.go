@@ -94,12 +94,8 @@ const (
 	DefaultTTLConcurrentWorkersTaskRun = int(5)
 
 	// DefaultGCInterval represents
-	// number of workers in the TaskRun controller
-	DefaultGCIntervalSeconds = 600 // 10 minutes
-
-	// PrunerControllerConfigMapName represents the name of the config map
-	// that holds the cluster-wide pruner configuration data
-	PrunerControllerConfigMapName = "pruner-info"
+	// interval in seconds for the periodic cleanup i.e garbage collector to run
+	DefaultPeriodicCleanupIntervalSeconds = 600 // 10 minutes
 )
 
 // GetEnvValueAsInt fetches the value of an environment variable and converts it to an integer
