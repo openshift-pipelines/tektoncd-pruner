@@ -7,8 +7,8 @@ metadata:
 spec:
   application: tektoncd-pruner-next
   contexts:
-    - description: Application testing for tektoncd-pruner-next-controller
-      name: component_tektoncd-pruner-next-controller
+    - description: Application testing for tektoncd-pruner-next-tektoncd-pruner-controller
+      name: component_tektoncd-pruner-next-tektoncd-pruner-controller
   params:
     - name: POLICY_CONFIGURATION
       value: tekton-ecosystem-tenant/tekton-ecosystem-tenant-containers
