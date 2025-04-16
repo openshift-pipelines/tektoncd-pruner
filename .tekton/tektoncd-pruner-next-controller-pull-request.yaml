@@ -1,4 +1,4 @@
-# Generated for Release next by openshift-pipelines/hack. DO NOT EDIT.
+# Generated for Konflux Application openshift-pipelines-core-next by openshift-pipelines/hack. DO NOT EDIT
 apiVersion: tekton.dev/v1
 kind: PipelineRun
 metadata:
