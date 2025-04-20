@@ -6,7 +6,7 @@ toolchain go1.23.7
 
 require (
 	github.com/tektoncd/pipeline v0.66.0
-	github.com/tektoncd/plumbing v0.0.0-20250402153252-71907f7bd7a0
+	github.com/tektoncd/plumbing f93e51e76dcc
 	go.uber.org/zap v1.27.0
 	k8s.io/api v0.30.1
 	k8s.io/apimachinery v0.30.1
