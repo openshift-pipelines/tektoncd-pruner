@@ -5,11 +5,9 @@ metadata:
   name: tekton-pruner-default-spec
   namespace: tekton-pipelines
 data:
-  periodicCleanupEnabled: "true"
-  periodicCleanupIntervalSeconds: "300" #5 minutes
   global-config: |
     enforcedConfigLevel: global
-    ttlSecondsAfterFinished: 300
-    successfulHistoryLimit: 3
-    failedHistoryLimit: 3
-    historyLimit: 2
+    ttlSecondsAfterFinished: 300    # 5 minutes
+    successfulHistoryLimit: 3        # Keep last 3 successful runs
+    failedHistoryLimit: 3           # Keep last 3 failed runs
+    historyLimit: 5                 # When successfulHistoryLimit and failedHistoryLimit are not set, keep last 5 successful and last 5 failed runs individually

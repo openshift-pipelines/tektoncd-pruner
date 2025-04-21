@@ -272,62 +272,84 @@ func getResourceFieldData(globalSpec PrunerConfig, namespace, name string, selec
 
 	switch enforcedConfigLevel {
 	case EnforcedConfigLevelResource:
-		// get from resource level
+		// First try resource level
 		fieldData, identified_by = getFromPrunerConfigResourceLevelwithSelector(globalSpec.Namespaces, namespace, name, selector, resourceType, fieldType)
-		fallthrough
+		if fieldData != nil {
+			return fieldData, identified_by
+		}
+		// If no resource level config found, try namespace level
+		spec, found := globalSpec.Namespaces[namespace]
+		if found {
+			switch fieldType {
+			case PrunerFieldTypeTTLSecondsAfterFinished:
+				fieldData = spec.TTLSecondsAfterFinished
 
-	case EnforcedConfigLevelNamespace:
-		if fieldData == nil {
-			// get it from global spec, namespace root level
-			spec, found := globalSpec.Namespaces[namespace]
-			if found {
-				switch fieldType {
-				case PrunerFieldTypeTTLSecondsAfterFinished:
-					fieldData = spec.TTLSecondsAfterFinished
+			case PrunerFieldTypeSuccessfulHistoryLimit:
+				if spec.SuccessfulHistoryLimit != nil {
+					fieldData = spec.SuccessfulHistoryLimit
+				} else {
+					fieldData = spec.HistoryLimit
+				}
 
-				case PrunerFieldTypeSuccessfulHistoryLimit:
-					if spec.SuccessfulHistoryLimit != nil {
-						fieldData = spec.SuccessfulHistoryLimit
-					} else {
-						fieldData = spec.HistoryLimit
-					}
-
-				case PrunerFieldTypeFailedHistoryLimit:
-					if spec.FailedHistoryLimit != nil {
-						fieldData = spec.FailedHistoryLimit
-					} else {
-						fieldData = spec.HistoryLimit
-					}
+			case PrunerFieldTypeFailedHistoryLimit:
+				if spec.FailedHistoryLimit != nil {
+					fieldData = spec.FailedHistoryLimit
+				} else {
+					fieldData = spec.HistoryLimit
 				}
 			}
 			identified_by = "identified_by_ns"
 		}
-		fallthrough
+		return fieldData, identified_by
 
-	case EnforcedConfigLevelGlobal:
-		if fieldData == nil {
-			// get it from global spec, root level
+	case EnforcedConfigLevelNamespace:
+		// get it from global spec, namespace root level
+		spec, found := globalSpec.Namespaces[namespace]
+		if found {
 			switch fieldType {
 			case PrunerFieldTypeTTLSecondsAfterFinished:
-				fieldData = globalSpec.TTLSecondsAfterFinished
+				fieldData = spec.TTLSecondsAfterFinished
 
 			case PrunerFieldTypeSuccessfulHistoryLimit:
-				if globalSpec.SuccessfulHistoryLimit != nil {
-					fieldData = globalSpec.SuccessfulHistoryLimit
+				if spec.SuccessfulHistoryLimit != nil {
+					fieldData = spec.SuccessfulHistoryLimit
 				} else {
-					fieldData = globalSpec.HistoryLimit
+					fieldData = spec.HistoryLimit
 				}
 
 			case PrunerFieldTypeFailedHistoryLimit:
-				if globalSpec.FailedHistoryLimit != nil {
-					fieldData = globalSpec.FailedHistoryLimit
+				if spec.FailedHistoryLimit != nil {
+					fieldData = spec.FailedHistoryLimit
 				} else {
-					fieldData = globalSpec.HistoryLimit
+					fieldData = spec.HistoryLimit
 				}
+			}
+			identified_by = "identified_by_ns"
+		}
+		// For namespace level, don't fall through to global
+		return fieldData, identified_by
+
+	case EnforcedConfigLevelGlobal:
+		// get it from global spec, root level
+		switch fieldType {
+		case PrunerFieldTypeTTLSecondsAfterFinished:
+			fieldData = globalSpec.TTLSecondsAfterFinished
+
+		case PrunerFieldTypeSuccessfulHistoryLimit:
+			if globalSpec.SuccessfulHistoryLimit != nil {
+				fieldData = globalSpec.SuccessfulHistoryLimit
+			} else {
+				fieldData = globalSpec.HistoryLimit
+			}
+
+		case PrunerFieldTypeFailedHistoryLimit:
+			if globalSpec.FailedHistoryLimit != nil {
+				fieldData = globalSpec.FailedHistoryLimit
+			} else {
+				fieldData = globalSpec.HistoryLimit
 			}
 		}
 		identified_by = "identified_by_global"
-
 	}
 
 	return fieldData, identified_by
@@ -335,81 +357,78 @@ func getResourceFieldData(globalSpec PrunerConfig, namespace, name string, selec
 
 func (ps *prunerConfigStore) GetEnforcedConfigLevelFromNamespaceSpec(namespacesSpec map[string]NamespaceSpec, namespace, name string, selector SelectorSpec, resourceType PrunerResourceType) *EnforcedConfigLevel {
 	var enforcedConfigLevel *EnforcedConfigLevel
+
+	namespaceSpec, found := ps.globalConfig.Namespaces[namespace]
+	if !found {
+		return nil
+	}
+
+	// Get the appropriate resource specs based on type
 	var resourceSpecs []ResourceSpec
-	var namespaceSpec NamespaceSpec
-	var found bool
+	switch resourceType {
+	case PrunerResourceTypePipelineRun:
+		resourceSpecs = namespaceSpec.PipelineRuns
+	case PrunerResourceTypeTaskRun:
+		resourceSpecs = namespaceSpec.TaskRuns
+	}
 
-	namespaceSpec, found = ps.globalConfig.Namespaces[namespace]
-	if found {
-		switch resourceType {
-		case PrunerResourceTypePipelineRun:
-			resourceSpecs = namespaceSpec.PipelineRuns
-
-		case PrunerResourceTypeTaskRun:
-			resourceSpecs = namespaceSpec.TaskRuns
-		}
-
-		if name != "" {
-			for _, resourceSpec := range resourceSpecs {
-				if resourceSpec.Name == name {
-					// if found on resource level
-					enforcedConfigLevel = resourceSpec.EnforcedConfigLevel
-					if enforcedConfigLevel != nil {
-						return enforcedConfigLevel
-					}
-					break
+	// Try to find resource level config first
+	if name != "" && (len(selector.MatchAnnotations) == 0 && len(selector.MatchLabels) == 0) {
+		// Search by exact name
+		for _, resourceSpec := range resourceSpecs {
+			if resourceSpec.Name == name {
+				enforcedConfigLevel = resourceSpec.EnforcedConfigLevel
+				if enforcedConfigLevel != nil {
+					return enforcedConfigLevel
 				}
+				break
 			}
-		} else if len(selector.MatchAnnotations) > 0 || len(selector.MatchLabels) > 0 {
-			// If name is not provided, we proceed with selector matching
-
-			for _, resourceSpec := range resourceSpecs {
-				// Check if the resourceSpec matches the provided selector by annotations or labels
-				for _, selectorSpec := range resourceSpec.Selector {
-					// Match by annotations if provided in the selector
-					if len(selector.MatchAnnotations) > 0 {
-						match := true
-						for key, value := range selector.MatchAnnotations {
-							if resourceAnnotationValue, exists := selectorSpec.MatchAnnotations[key]; !exists || resourceAnnotationValue != value {
-								match = false
-								break
-							}
-						}
-						if match {
-							enforcedConfigLevel = resourceSpec.EnforcedConfigLevel
-							if enforcedConfigLevel != nil {
-								return enforcedConfigLevel
-							}
+		}
+	} else if len(selector.MatchAnnotations) > 0 || len(selector.MatchLabels) > 0 {
+		// Search by selectors
+		for _, resourceSpec := range resourceSpecs {
+			for _, selectorSpec := range resourceSpec.Selector {
+				// Try annotation matching first
+				if len(selector.MatchAnnotations) > 0 {
+					match := true
+					for key, value := range selector.MatchAnnotations {
+						if resourceAnnotationValue, exists := selectorSpec.MatchAnnotations[key]; !exists || resourceAnnotationValue != value {
+							match = false
 							break
 						}
 					}
-					// Match by labels if provided in the selector
-					if len(selector.MatchLabels) > 0 {
-						match := true
-						for key, value := range selector.MatchLabels {
-							if resourceLabelValue, exists := selectorSpec.MatchLabels[key]; !exists || resourceLabelValue != value {
-								match = false
-								break
-							}
+					if match {
+						enforcedConfigLevel = resourceSpec.EnforcedConfigLevel
+						if enforcedConfigLevel != nil {
+							return enforcedConfigLevel
 						}
-						if match {
-							enforcedConfigLevel = resourceSpec.EnforcedConfigLevel
-							if enforcedConfigLevel != nil {
-								return enforcedConfigLevel
-							}
+						break
+					}
+				}
+
+				// Try label matching if no annotation match
+				if len(selector.MatchLabels) > 0 {
+					match := true
+					for key, value := range selector.MatchLabels {
+						if resourceLabelValue, exists := selectorSpec.MatchLabels[key]; !exists || resourceLabelValue != value {
+							match = false
 							break
 						}
 					}
+					if match {
+						enforcedConfigLevel = resourceSpec.EnforcedConfigLevel
+						if enforcedConfigLevel != nil {
+							return enforcedConfigLevel
+						}
+						break
+					}
 				}
 			}
-		}
-		// get it from namespace root level
-		enforcedConfigLevel = namespaceSpec.EnforcedConfigLevel
-		if enforcedConfigLevel != nil {
-			return enforcedConfigLevel
 		}
 	}
-	return nil //yet to include a default enforced config global option. For now,only if it set in teh config map this would work
+
+	// If no resource level config found or it was nil, return namespace level
+	return namespaceSpec.EnforcedConfigLevel
 }
 
 func (ps *prunerConfigStore) getEnforcedConfigLevel(namespace, name string, selector SelectorSpec, resourceType PrunerResourceType) EnforcedConfigLevel {

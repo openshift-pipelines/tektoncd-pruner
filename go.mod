@@ -1,10 +1,11 @@
 module github.com/openshift-pipelines/tektoncd-pruner
 
-go 1.23.0
+go 1.23.4
 
-toolchain go1.23.7
+toolchain go1.23.6
 
 require (
+	github.com/stretchr/testify v1.10.0
 	github.com/tektoncd/pipeline v0.66.0
 	github.com/tektoncd/plumbing v0.0.0-20250402153252-71907f7bd7a0
 	go.uber.org/zap v1.27.0
@@ -41,6 +42,7 @@ require (
 	github.com/docker/distribution v2.8.3+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.8.2 // indirect
 	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
+	github.com/evanphx/json-patch v4.12.0+incompatible // indirect
 	github.com/evanphx/json-patch/v5 v5.9.0 // indirect
 	github.com/go-kit/log v0.2.1 // indirect
 	github.com/go-logfmt/logfmt v0.5.1 // indirect
@@ -74,6 +76,7 @@ require (
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_golang v1.19.1 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.54.0 // indirect
