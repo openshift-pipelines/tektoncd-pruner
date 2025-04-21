@@ -87,6 +87,12 @@ func (trf *TrFuncs) Type() string {
 	return config.KindTaskRun
 }
 
+// NewTrFuncs creates a new instance of TrFuncs with the provided pipeline client.
+// This client is used to interact with the Tekton pipeline API.
+func NewTrFuncs(client pipelineversioned.Interface) *TrFuncs {
+	return &TrFuncs{client: client}
+}
+
 // List returns a list of TaskRuns in a given namespace with a label selector.
 func (trf *TrFuncs) List(ctx context.Context, namespace, labelSelector string) ([]metav1.Object, error) {
 	// TODO: should we have to implement pagination support?

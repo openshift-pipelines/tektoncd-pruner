@@ -144,6 +144,25 @@ func (ps *prunerConfigStore) LoadGlobalConfig(ctx context.Context, configMap *co
 	return nil
 }
 
+// loads config from configMap (global-config) should be called on startup and if there is a change detected on the ConfigMap
+func (ps *prunerConfigStore) WorkerCount(ctx context.Context, configMap *corev1.ConfigMap) (count int, err error) {
+	logger := logging.FromContext(ctx)
+
+	// Log the current state of globalConfig and namespacedConfig before updating
+	logger.Debugw("get worker count to concurrently cleanup namesapces", "nsCleanupConcurrentWorkerCount", configMap.Data["WorkerCountForNamespaceCleanup"])
+
+	if configMap.Data != nil && configMap.Data["WorkerCountForNamespaceCleanup"] != "" {
+		count, err = GetEnvValueAsInt("WorkerCountForNamespaceCleanup", DefaultWorkerCountForNamespaceCleanup)
+		if err != nil {
+			return 0, err
+		}
+	} else {
+		count = DefaultWorkerCountForNamespaceCleanup
+	}
+	logger.Debugw("get worker count to concurrently cleanup namesapces", "nsCleanupConcurrentWorkerCount", count)
+	return count, nil
+}
+
 func getFromPrunerConfigResourceLevelwithSelector(namespacesSpec map[string]NamespaceSpec, namespace, name string, selector SelectorSpec, resourceType PrunerResourceType, fieldType PrunerFieldType) (*int32, string) {
 	prunerResourceSpec, found := namespacesSpec[namespace]
 	if !found {

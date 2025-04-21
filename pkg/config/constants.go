@@ -96,6 +96,10 @@ const (
 	// DefaultGCInterval represents
 	// interval in seconds for the periodic cleanup i.e garbage collector to run
 	DefaultPeriodicCleanupIntervalSeconds = 600 // 10 minutes
+
+	// DefaultWorkerCountForNamespaceCleanup represents	the number of workers to be used
+	// for cleaning up resources in a namespace concurrently
+	DefaultWorkerCountForNamespaceCleanup = 5
 )
 
 // GetEnvValueAsInt fetches the value of an environment variable and converts it to an integer

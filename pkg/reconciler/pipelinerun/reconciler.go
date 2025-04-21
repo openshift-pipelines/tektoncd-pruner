@@ -7,6 +7,7 @@ import (
 
 	"github.com/openshift-pipelines/tektoncd-pruner/pkg/config"
 	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
+
 	pipelineversioned "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	pipelinerunreconciler "github.com/tektoncd/pipeline/pkg/client/injection/reconciler/pipeline/v1/pipelinerun"
 	"go.uber.org/zap"
@@ -68,6 +69,12 @@ type PrFuncs struct {
 // Type returns the kind of resource represented by the PRFuncs struct, which is "PipelineRun".
 func (prf *PrFuncs) Type() string {
 	return config.KindPipelineRun
+}
+
+// NewPrFuncs creates a new instance of PrFuncs with the provided pipeline client.
+// This client is used to interact with the Tekton Pipeline API.
+func NewPrFuncs(client pipelineversioned.Interface) *PrFuncs {
+	return &PrFuncs{client: client}
 }
 
 // List returns a list of PipelineRuns in a given namespace with a label selector.

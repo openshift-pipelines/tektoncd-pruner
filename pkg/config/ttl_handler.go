@@ -165,19 +165,7 @@ func (th *TTLHandler) updateAnnotationTTLSeconds(ctx context.Context, resource m
 			return nil
 		}
 		newTTL := strconv.Itoa(int(*ttl))
-		previousTTL := annotations[AnnotationTTLSecondsAfterFinished]
-		if newTTL == previousTTL {
-			// there is no change on the TTL, update action not needed
-			return nil
-		}
-		/*
-			resource.SetAnnotations(annotations)
-			logger.Debugw("updating ttl of a resource",
-				"resource", th.resourceFn.Type(), "namespace", resource.GetNamespace(), "name", resource.GetName(), "ttl", ttl,
-			)
-			return th.resourceFn.Update(ctx, resource)
-		*/
-		// Prepare the annotation update
+
 		resourceLatest, err := th.resourceFn.Get(ctx, resource.GetNamespace(), resource.GetName())
 		if err != nil {
 			if errors.IsNotFound(err) {
@@ -188,11 +176,19 @@ func (th *TTLHandler) updateAnnotationTTLSeconds(ctx context.Context, resource m
 			return err
 		}
 		annotations := resourceLatest.GetAnnotations()
-		if annotations == nil {
+		if annotations != nil {
+			previousTTL := annotations[AnnotationTTLSecondsAfterFinished]
+			if previousTTL != "" && newTTL == previousTTL {
+				return nil
+			} else if newTTL != previousTTL {
+				annotations[AnnotationTTLSecondsAfterFinished] = newTTL
+			}
+		} else {
 			annotations = map[string]string{}
+			annotations[AnnotationTTLSecondsAfterFinished] = newTTL
 		}
-		annotations[AnnotationTTLSecondsAfterFinished] = newTTL
-		// Create a patch with the new annotations
+
+		// Update the resource with the new annotation
 		patchData := map[string]interface{}{
 			"metadata": map[string]interface{}{
 				"annotations": annotations,

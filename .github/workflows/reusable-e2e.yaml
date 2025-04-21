@@ -1,4 +1,3 @@
-
 name: Reusable workflow example
 
 on:
@@ -25,13 +24,11 @@ jobs:
       GOPATH: ${{ github.workspace }}
       GO111MODULE: on
       GOFLAGS: -ldflags=-s -ldflags=-w
-      KO_DOCKER_REPO: registry.local:5000/knative
+      KO_DOCKER_REPO: kind.local
       KOCACHE: ~/ko
-      SIGSTORE_SCAFFOLDING_RELEASE_VERSION: "v0.7.12"
       TEKTON_PIPELINES_RELEASE: "https://storage.googleapis.com/tekton-releases/pipeline/previous/${{ inputs.pipelines-release }}/release.yaml"
       # Note that we do not include the v prefix here so we can use it in all
       # the places this is used.
-      TEKTON_CLI_RELEASE: "0.30.0"
 
     steps:
     - name: Set up Go
@@ -43,18 +40,23 @@ jobs:
       with:
         version: tip
 
-    - name: Install tkn cli
-      run: |
-        curl -Lo ./tkn_${{ env.TEKTON_CLI_RELEASE }}_Linux_x86_64.tar.gz https://github.com/tektoncd/cli/releases/download/v${{ env.TEKTON_CLI_RELEASE }}/tkn_${{ env.TEKTON_CLI_RELEASE }}_Linux_x86_64.tar.gz
-        tar xvzf ./tkn_${{ env.TEKTON_CLI_RELEASE }}_Linux_x86_64.tar.gz tkn
-        chmod u+x ./tkn
-
     - name: Check out our repo
       uses: actions/checkout@6d193bf28034eafb982f37bd894289fe649468fc # v4.1.7
       with:
         path: ./src/github.com/openshift-pipelines/tektoncd-pruner
 
+    - name: Create kind cluster
+      working-directory: ./src/github.com/openshift-pipelines/tektoncd-pruner
+      run: |  
+        kind create cluster --config "./test/kind-cluster.yaml" --wait=60s
+        while ! kubectl get nodes 
+        do
+          echo "waiting for kind cluster to be ready"
+          sleep 2
+        done
+
     - name: Install Tekton pipelines
+      working-directory: ./src/github.com/openshift-pipelines/tektoncd-pruner
       run: |
         while ! kubectl apply --filename ${{ env.TEKTON_PIPELINES_RELEASE }}
         do
@@ -69,15 +71,27 @@ jobs:
       working-directory: ./src/github.com/openshift-pipelines/tektoncd-pruner
       timeout-minutes: 10
       run: |
+        export KO_DOCKER_REPO=kind.local
         ko apply -BRf ./config/
         sleep 10
 
-    - name: Run tutorial taskrun
+    - name: Run Integration tests
+      working-directory: ./src/github.com/openshift-pipelines/tektoncd-pruner
       run: |
-        kubectl create -f https://raw.githubusercontent.com/tektoncd/chains/main/examples/taskruns/task-output-image.yaml
+        echo "Running Go e2e tests"
+        set +e
+        # Run tests with verbose output to show per-test results
+        go test -v -timeout 35m ./test/... | tee test_output.log
+        test_exit_code=$?
+        set -e
 
-        # Sleep so the taskrun shows up.
-        sleep 2
+        # Display test results summary
+        echo "=== Test Results Summary ==="
+        grep -E "^=== RUN|^--- PASS|^--- FAIL|^--- SKIP" test_output.log
 
-        echo "Waiting for the taskrun to complete..."
-        kubectl wait --timeout 3m --for=condition=Succeeded taskruns --all || kubectl get taskruns -o yaml
+        if [[ $test_exit_code -ne 0 ]]; then
+          echo "Tests failed!"
+          exit 1
+        else
+          echo "All tests passed!"
+        fi

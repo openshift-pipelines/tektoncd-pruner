@@ -77,7 +77,7 @@ func NewHistoryLimiter(resourceFn HistoryLimiterResourceFuncs) (*HistoryLimiter,
 // or failed resources
 func (hl *HistoryLimiter) ProcessEvent(ctx context.Context, resource metav1.Object) error {
 	logger := logging.FromContext(ctx)
-	logger.Debugw("processing an event", "resource", hl.resourceFn.Type(), "namespace", resource.GetNamespace(), "name", resource.GetName())
+	logger.Debugw("processing an event for limit logic", "resource", hl.resourceFn.Type(), "namespace", resource.GetNamespace(), "name", resource.GetName())
 
 	// if the resource is on deletion state, no action needed
 	if resource.GetDeletionTimestamp() != nil {
