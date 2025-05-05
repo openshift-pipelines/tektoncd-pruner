@@ -1,6 +1,10 @@
 name: Pruner kind E2E Tests
 
 on:
+  push:
+    branches:
+      - main
+      - release-*
   pull_request:
     branches:
       - main
