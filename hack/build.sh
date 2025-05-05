@@ -15,11 +15,10 @@ rm  -rf ${BUILDS_DIR}/*
 export PLATFORMS="linux/amd64,linux/s390x,linux/ppc64le,linux/arm64"
 
 # build and resolve the image details on manifests
-kustomize build config >  ${BUILDS_DIR}/release.txt
 ko resolve \
   --push=${KO_PUSH} \
   --platform=${PLATFORMS} \
-  --filename=${BUILDS_DIR}/release.txt \
+  --filename=config \
   --tags="v${VERSION}" \
   --base-import-paths \
   --sbom=none \
