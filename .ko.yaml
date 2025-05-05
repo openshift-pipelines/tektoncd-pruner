@@ -1,7 +1,7 @@
 defaultBaseImage: gcr.io/distroless/static:nonroot
 baseImageOverrides:
-  github.com/openshift-pipelines/tektoncd-pruner/cmd/controller: registry.access.redhat.com/ubi8/ubi-minimal
-  github.com/openshift-pipelines/tektoncd-pruner/cmd/webhook: registry.access.redhat.com/ubi8/ubi-minimal
+  github.com/openshift-pipelines/tektoncd-pruner/cmd/controller: registry.access.redhat.com/ubi9/ubi-minimal
+  github.com/openshift-pipelines/tektoncd-pruner/cmd/webhook: registry.access.redhat.com/ubi9/ubi-minimal
 
 builds:
   - id: ko
