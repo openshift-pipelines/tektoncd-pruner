@@ -97,7 +97,8 @@ Prerequisites:
 
 - Install Pruner
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/openshift-pipelines/tektoncd-pruner/main/release.yaml
+export VERSION=0.1.0 #update version as required
+kubectl apply -f "https://github.com/openshift-pipelines/tektoncd-pruner/releases/download/v$VERSION/release-v$VERSION.yaml"
 ```
 
 Verify installation:
@@ -109,7 +110,7 @@ Look for the `tekton-pruner-controller` pod running.
 
 ## Configuration
 
-The pruner is configured through a ConfigMap in the `tekton-pipelines` namespace. Here's a basic example:
+The pruner is configured through a ConfigMap in the `tekton-pipelines` namespace. By default config includes minimal configuration as per spec [here](https://raw.githubusercontent.com/openshift-pipelines/tektoncd-pruner/refs/heads/main/config/600-tekton-pruner-default-spec.yaml). This can be modified as required. Here's a basic example:
 
 ```yaml
 apiVersion: v1
@@ -121,9 +122,9 @@ data:
   global-config: |
     enforcedConfigLevel: global
     ttlSecondsAfterFinished: 300    # 5 minutes
-    successfulHistoryLimit: 3        # Keep last 3 successful runs
+    successfulHistoryLimit: 3       # Keep last 3 successful runs
     failedHistoryLimit: 3           # Keep last 3 failed runs
-    historyLimit: 5                 # When successfulHistoryLimit and failedHistoryLimit are not set, keep last 5 successful runs and last 5 failed runs (applied individually)
+    historyLimit: 5                 # When successfulHistoryLimit and failedHistoryLimit are not set
 ```
 
 ### Namespace-specific Configuration
