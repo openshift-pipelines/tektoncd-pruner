@@ -1,4 +1,4 @@
-# Copyright 2021 The Tekton Authors
+# Copyright 2025 The Tekton Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,9 +22,4 @@ metadata:
     app.kubernetes.io/instance: default
     app.kubernetes.io/part-of: tektoncd-pruner
 data:
-  # Contains triggers version which can be queried by external
-  # tools such as CLI. Elevated permissions are already given to
-  # this ConfigMap such that even if we don't have access to
-  # other resources in the namespace we still can have access to
-  # this ConfigMap.
   version: "devel"
