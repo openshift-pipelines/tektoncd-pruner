@@ -50,6 +50,13 @@ func TestPrunerE2E(t *testing.T) {
 		t.Fatalf("Failed to create test namespace: %v", err)
 	}
 
+	// Cleanup after all tests
+	defer func() {
+		if err := kubeClient.CoreV1().Namespaces().Delete(ctx, testNamespace, metav1.DeleteOptions{}); err != nil {
+			t.Logf("Warning: Failed to delete test namespace: %v", err)
+		}
+	}()
+
 	// Run subtests
 
 	// TestTTLBasedPruning
@@ -155,6 +162,24 @@ ttlSecondsAfterFinished: 60`,
 		t.Fatalf("Failed to create test TaskRun: %v", err)
 	}
 
+	// Mark TaskRun as completed
+	tr.Status = v1.TaskRunStatus{
+		TaskRunStatusFields: v1.TaskRunStatusFields{
+			CompletionTime: &metav1.Time{Time: time.Now()},
+		},
+	}
+	tr.Status.SetCondition(&apis.Condition{
+		Type:    apis.ConditionSucceeded,
+		Status:  corev1.ConditionTrue,
+		Reason:  "Completed",
+		Message: "TaskRun completed successfully",
+	})
+
+	_, err = tektonClient.TektonV1().TaskRuns(testNamespace).UpdateStatus(ctx, tr, metav1.UpdateOptions{})
+	if err != nil {
+		t.Fatalf("Failed to update TaskRun status: %v", err)
+	}
+
 	// Wait for deletion
 	if err := waitForTaskRunDeletion(ctx, tektonClient, tr.Name, tr.Namespace); err != nil {
 		t.Errorf("TaskRun was not deleted by TTL: %v", err)
@@ -212,6 +237,24 @@ ttlSecondsAfterFinished: 60`,
 		t.Fatalf("Failed to create test PipelineRun: %v", err)
 	}
 
+	// Mark PipelineRun as completed
+	pr.Status = v1.PipelineRunStatus{
+		PipelineRunStatusFields: v1.PipelineRunStatusFields{
+			CompletionTime: &metav1.Time{Time: time.Now()},
+		},
+	}
+	pr.Status.SetCondition(&apis.Condition{
+		Type:    apis.ConditionSucceeded,
+		Status:  corev1.ConditionTrue,
+		Reason:  "Completed",
+		Message: "PipelineRun completed successfully",
+	})
+
+	_, err = tektonClient.TektonV1().PipelineRuns(testNamespace).UpdateStatus(ctx, pr, metav1.UpdateOptions{})
+	if err != nil {
+		t.Fatalf("Failed to update PipelineRun status: %v", err)
+	}
+
 	// Wait for deletion
 	if err := waitForPipelineRunDeletion(ctx, tektonClient, pr.Name, pr.Namespace); err != nil {
 		t.Errorf("PipelineRun was not deleted by TTL: %v", err)
@@ -237,7 +280,7 @@ failedHistoryLimit: 1`,
 		t.Fatalf("Failed to configure history limits: %v", err)
 	}
 
-	// Create multiple TaskRuns with different statuses
+	// Create multiple successful TaskRuns
 	for i := 0; i < 3; i++ {
 		tr := &v1.TaskRun{
 			ObjectMeta: metav1.ObjectMeta{
@@ -261,6 +304,24 @@ failedHistoryLimit: 1`,
 		tr, err = tektonClient.TektonV1().TaskRuns(testNamespace).Create(ctx, tr, metav1.CreateOptions{})
 		if err != nil {
 			t.Fatalf("Failed to create test TaskRun: %v", err)
+		}
+
+		// Mark as successful
+		tr.Status = v1.TaskRunStatus{
+			TaskRunStatusFields: v1.TaskRunStatusFields{
+				CompletionTime: &metav1.Time{Time: time.Now().Add(time.Duration(-i) * time.Hour)}, // Stagger completion times
+			},
+		}
+		tr.Status.SetCondition(&apis.Condition{
+			Type:    apis.ConditionSucceeded,
+			Status:  corev1.ConditionTrue,
+			Reason:  "Completed",
+			Message: "TaskRun completed successfully",
+		})
+
+		_, err = tektonClient.TektonV1().TaskRuns(testNamespace).UpdateStatus(ctx, tr, metav1.UpdateOptions{})
+		if err != nil {
+			t.Fatalf("Failed to update TaskRun status: %v", err)
 		}
 	}
 
@@ -289,12 +350,30 @@ failedHistoryLimit: 1`,
 		if err != nil {
 			t.Fatalf("Failed to create test TaskRun: %v", err)
 		}
+
+		// Mark as failed
+		tr.Status = v1.TaskRunStatus{
+			TaskRunStatusFields: v1.TaskRunStatusFields{
+				CompletionTime: &metav1.Time{Time: time.Now().Add(time.Duration(-i) * time.Hour)}, // Stagger completion times
+			},
+		}
+		tr.Status.SetCondition(&apis.Condition{
+			Type:    apis.ConditionSucceeded,
+			Status:  corev1.ConditionFalse,
+			Reason:  "Failed",
+			Message: "TaskRun failed",
+		})
+
+		_, err = tektonClient.TektonV1().TaskRuns(testNamespace).UpdateStatus(ctx, tr, metav1.UpdateOptions{})
+		if err != nil {
+			t.Fatalf("Failed to update TaskRun status: %v", err)
+		}
 	}
 
-	// Wait and verify limits
-	time.Sleep(30 * time.Second) // Wait for pruner to process
+	// Wait longer for history-based pruning
+	time.Sleep(60 * time.Second)
 
-	// Check successful TaskRuns
+	// Check TaskRuns
 	trs, err := tektonClient.TektonV1().TaskRuns(testNamespace).List(ctx, metav1.ListOptions{
 		LabelSelector: "tekton.dev/task=test-task",
 	})
@@ -371,6 +450,24 @@ failedHistoryLimit: 1`,
 		if err != nil {
 			t.Fatalf("Failed to create test PipelineRun: %v", err)
 		}
+
+		// Mark as successful with staggered completion times
+		pr.Status = v1.PipelineRunStatus{
+			PipelineRunStatusFields: v1.PipelineRunStatusFields{
+				CompletionTime: &metav1.Time{Time: time.Now().Add(time.Duration(-i) * time.Hour)},
+			},
+		}
+		pr.Status.SetCondition(&apis.Condition{
+			Type:    apis.ConditionSucceeded,
+			Status:  corev1.ConditionTrue,
+			Reason:  "Completed",
+			Message: "PipelineRun completed successfully",
+		})
+
+		_, err = tektonClient.TektonV1().PipelineRuns(testNamespace).UpdateStatus(ctx, pr, metav1.UpdateOptions{})
+		if err != nil {
+			t.Fatalf("Failed to update PipelineRun status: %v", err)
+		}
 	}
 
 	// Create failed PipelineRuns
@@ -404,6 +501,24 @@ failedHistoryLimit: 1`,
 		pr, err = tektonClient.TektonV1().PipelineRuns(testNamespace).Create(ctx, pr, metav1.CreateOptions{})
 		if err != nil {
 			t.Fatalf("Failed to create test PipelineRun: %v", err)
+		}
+
+		// Mark as failed with staggered completion times
+		pr.Status = v1.PipelineRunStatus{
+			PipelineRunStatusFields: v1.PipelineRunStatusFields{
+				CompletionTime: &metav1.Time{Time: time.Now().Add(time.Duration(-i) * time.Hour)},
+			},
+		}
+		pr.Status.SetCondition(&apis.Condition{
+			Type:    apis.ConditionSucceeded,
+			Status:  corev1.ConditionFalse,
+			Reason:  "Failed",
+			Message: "PipelineRun failed",
+		})
+
+		_, err = tektonClient.TektonV1().PipelineRuns(testNamespace).UpdateStatus(ctx, pr, metav1.UpdateOptions{})
+		if err != nil {
+			t.Fatalf("Failed to update PipelineRun status: %v", err)
 		}
 	}
 
@@ -480,6 +595,24 @@ namespaces:
 		if err != nil {
 			t.Fatalf("Failed to create test TaskRun in namespace %s: %v", ns, err)
 		}
+
+		// Mark TaskRun as completed
+		tr.Status = v1.TaskRunStatus{
+			TaskRunStatusFields: v1.TaskRunStatusFields{
+				CompletionTime: &metav1.Time{Time: time.Now()},
+			},
+		}
+		tr.Status.SetCondition(&apis.Condition{
+			Type:    apis.ConditionSucceeded,
+			Status:  corev1.ConditionTrue,
+			Reason:  "Completed",
+			Message: "TaskRun completed successfully",
+		})
+
+		_, err = tektonClient.TektonV1().TaskRuns(ns).UpdateStatus(ctx, tr, metav1.UpdateOptions{})
+		if err != nil {
+			t.Fatalf("Failed to update TaskRun status in namespace %s: %v", ns, err)
+		}
 	}
 
 	// TaskRun in testNamespace should be deleted faster
@@ -543,6 +676,24 @@ namespaces:
 		pr, err = tektonClient.TektonV1().PipelineRuns(ns).Create(ctx, pr, metav1.CreateOptions{})
 		if err != nil {
 			t.Fatalf("Failed to create test PipelineRun in namespace %s: %v", ns, err)
+		}
+
+		// Mark PipelineRun as completed
+		pr.Status = v1.PipelineRunStatus{
+			PipelineRunStatusFields: v1.PipelineRunStatusFields{
+				CompletionTime: &metav1.Time{Time: time.Now()},
+			},
+		}
+		pr.Status.SetCondition(&apis.Condition{
+			Type:    apis.ConditionSucceeded,
+			Status:  corev1.ConditionTrue,
+			Reason:  "Completed",
+			Message: "PipelineRun completed successfully",
+		})
+
+		_, err = tektonClient.TektonV1().PipelineRuns(ns).UpdateStatus(ctx, pr, metav1.UpdateOptions{})
+		if err != nil {
+			t.Fatalf("Failed to update PipelineRun status in namespace %s: %v", ns, err)
 		}
 	}
 
