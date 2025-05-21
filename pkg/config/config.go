@@ -18,6 +18,7 @@ package config
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	corev1 "k8s.io/api/core/v1"
@@ -115,6 +116,14 @@ var (
 	PrunerConfigStore = prunerConfigStore{mutex: sync.RWMutex{}}
 )
 
+// validateConfig ensures that the required fields are set in the config
+func (pc *PrunerConfig) validateConfig() error {
+	if pc.TTLSecondsAfterFinished == nil && pc.SuccessfulHistoryLimit == nil && pc.FailedHistoryLimit == nil && pc.HistoryLimit == nil {
+		return fmt.Errorf("no pruning settings provided - must set at least one of: ttlSecondsAfterFinished, successfulHistoryLimit, failedHistoryLimit, or historyLimit")
+	}
+	return nil
+}
+
 // loads config from configMap (global-config) should be called on startup and if there is a change detected on the ConfigMap
 func (ps *prunerConfigStore) LoadGlobalConfig(ctx context.Context, configMap *corev1.ConfigMap) error {
 	logger := logging.FromContext(ctx)
@@ -128,6 +137,10 @@ func (ps *prunerConfigStore) LoadGlobalConfig(ctx context.Context, configMap *co
 	if configMap.Data != nil && configMap.Data[PrunerGlobalConfigKey] != "" {
 		err := yaml.Unmarshal([]byte(configMap.Data[PrunerGlobalConfigKey]), globalConfig)
 		if err != nil {
+			return err
+		}
+		// Validate config only if there was data
+		if err := globalConfig.validateConfig(); err != nil {
 			return err
 		}
 	}

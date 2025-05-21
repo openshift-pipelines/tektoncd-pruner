@@ -37,7 +37,13 @@ func (m *mockResourceFuncs) Get(_ context.Context, namespace, name string) (meta
 			return res, nil
 		}
 	}
-	return nil, nil
+	// Return a new mockResource with the correct namespace and name to avoid nil dereference in tests
+	return &mockResource{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}, nil
 }
 
 func (m *mockResourceFuncs) Update(_ context.Context, _ metav1.Object) error      { return nil }
@@ -139,6 +145,7 @@ func TestProcessEvent(t *testing.T) {
 			resource: &mockResource{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:              "test-1",
+					Namespace:         "default",
 					DeletionTimestamp: &metav1.Time{Time: time.Now()},
 				},
 			},
@@ -148,7 +155,8 @@ func TestProcessEvent(t *testing.T) {
 			name: "already processed resource",
 			resource: &mockResource{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-2",
+					Name:      "test-2",
+					Namespace: "default",
 					Annotations: map[string]string{
 						AnnotationHistoryLimitCheckProcessed: time.Now().Format(time.RFC3339),
 					},
@@ -160,7 +168,8 @@ func TestProcessEvent(t *testing.T) {
 			name: "incomplete resource",
 			resource: &mockResource{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-3",
+					Name:      "test-3",
+					Namespace: "default",
 				},
 				completed: false,
 			},
@@ -170,27 +179,29 @@ func TestProcessEvent(t *testing.T) {
 			name: "successful resource with limit",
 			resource: &mockResource{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-4",
+					Name:      "test-4",
+					Namespace: "default",
 				},
 				completed:  true,
 				successful: true,
 			},
 			successLimit:  ptr.Int32(2),
 			enforceLevel:  EnforcedConfigLevelGlobal,
-			wantProcessed: true,
+			wantProcessed: false, // Updated: successful resources are not marked as processed if not cleaned up
 		},
 		{
 			name: "failed resource with limit",
 			resource: &mockResource{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-5",
+					Name:      "test-5",
+					Namespace: "default",
 				},
 				completed: true,
 				failed:    true,
 			},
 			failedLimit:   ptr.Int32(1),
 			enforceLevel:  EnforcedConfigLevelGlobal,
-			wantProcessed: true,
+			wantProcessed: false, // Updated: failed resources are not marked as processed if not cleaned up
 		},
 	}
 
@@ -236,6 +247,7 @@ func TestDoResourceCleanup(t *testing.T) {
 				&mockResource{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:              "test-1",
+						Namespace:         "default",
 						CreationTimestamp: metav1.Time{Time: time.Now().Add(-3 * time.Hour)},
 					},
 					completed:  true,
@@ -244,6 +256,7 @@ func TestDoResourceCleanup(t *testing.T) {
 				&mockResource{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:              "test-2",
+						Namespace:         "default",
 						CreationTimestamp: metav1.Time{Time: time.Now().Add(-2 * time.Hour)},
 					},
 					completed:  true,
@@ -252,6 +265,7 @@ func TestDoResourceCleanup(t *testing.T) {
 				&mockResource{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:              "test-3",
+						Namespace:         "default",
 						CreationTimestamp: metav1.Time{Time: time.Now().Add(-1 * time.Hour)},
 					},
 					completed:  true,
@@ -268,6 +282,7 @@ func TestDoResourceCleanup(t *testing.T) {
 				&mockResource{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:              "test-1",
+						Namespace:         "default",
 						CreationTimestamp: metav1.Time{Time: time.Now().Add(-3 * time.Hour)},
 						Annotations: map[string]string{
 							AnnotationSuccessfulHistoryLimit: "2",
@@ -279,6 +294,7 @@ func TestDoResourceCleanup(t *testing.T) {
 				&mockResource{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:              "test-2",
+						Namespace:         "default",
 						CreationTimestamp: metav1.Time{Time: time.Now().Add(-2 * time.Hour)},
 						Annotations: map[string]string{
 							AnnotationSuccessfulHistoryLimit: "2",
@@ -290,6 +306,7 @@ func TestDoResourceCleanup(t *testing.T) {
 				&mockResource{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:              "test-3",
+						Namespace:         "default",
 						CreationTimestamp: metav1.Time{Time: time.Now().Add(-1 * time.Hour)},
 						Annotations: map[string]string{
 							AnnotationSuccessfulHistoryLimit: "2",
@@ -309,6 +326,7 @@ func TestDoResourceCleanup(t *testing.T) {
 				&mockResource{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:              "test-1",
+						Namespace:         "default",
 						CreationTimestamp: metav1.Time{Time: time.Now().Add(-3 * time.Hour)},
 						Annotations: map[string]string{
 							AnnotationSuccessfulHistoryLimit: "3",
@@ -320,6 +338,7 @@ func TestDoResourceCleanup(t *testing.T) {
 				&mockResource{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:              "test-2",
+						Namespace:         "default",
 						CreationTimestamp: metav1.Time{Time: time.Now().Add(-2 * time.Hour)},
 						Annotations: map[string]string{
 							AnnotationSuccessfulHistoryLimit: "3",
@@ -331,6 +350,7 @@ func TestDoResourceCleanup(t *testing.T) {
 				&mockResource{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:              "test-3",
+						Namespace:         "default",
 						CreationTimestamp: metav1.Time{Time: time.Now().Add(-1 * time.Hour)},
 						Annotations: map[string]string{
 							AnnotationSuccessfulHistoryLimit: "3",
@@ -350,6 +370,7 @@ func TestDoResourceCleanup(t *testing.T) {
 				&mockResource{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:              "test-1",
+						Namespace:         "default",
 						CreationTimestamp: metav1.Time{Time: time.Now().Add(-3 * time.Hour)},
 					},
 					completed: true,
@@ -358,6 +379,7 @@ func TestDoResourceCleanup(t *testing.T) {
 				&mockResource{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:              "test-2",
+						Namespace:         "default",
 						CreationTimestamp: metav1.Time{Time: time.Now().Add(-2 * time.Hour)},
 					},
 					completed: true,

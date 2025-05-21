@@ -20,7 +20,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math"
 	"slices"
 	"strconv"
 	"time"
@@ -231,27 +230,23 @@ func (hl *HistoryLimiter) doResourceCleanup(ctx context.Context, resource metav1
 				"name", resource.GetName(),
 				"annotation", historyLimitAnnotation,
 				"value", annotations[historyLimitAnnotation],
-				zap.Error(err))
+				err)
 			return err
 		}
-		// Check bounds before converting to int32
-		if annotationLimit < 0 || annotationLimit > math.MaxInt32 {
-			logger.Errorw("history limit annotation value out of bounds for int32",
-				"resource", hl.resourceFn.Type(),
-				"namespace", resource.GetNamespace(),
-				"name", resource.GetName(),
-				"annotation", historyLimitAnnotation,
-				"value", annotationLimit)
-			return fmt.Errorf("history limit value %d is out of bounds for type int32", annotationLimit)
-		}
-
 		// Only use annotation value if it matches configured value
 		if configHistoryLimit != nil && annotationLimit == int(*configHistoryLimit) {
 			historyLimit = ptr.Int32(int32(annotationLimit))
 			identifiedBy = "identifiedBy_resource_ann"
 		} else {
-			historyLimit = configHistoryLimit
-			identifiedBy = configIdentifiedBy
+			// If annotation does not match config, skip cleanup
+			logger.Debugw("annotation does not match config, skipping cleanup",
+				"resource", hl.resourceFn.Type(),
+				"namespace", resource.GetNamespace(),
+				"name", resource.GetName(),
+				"annotation", historyLimitAnnotation,
+				"annotationValue", annotationLimit,
+				"configValue", configHistoryLimit)
+			return nil
 		}
 	} else {
 		historyLimit = configHistoryLimit

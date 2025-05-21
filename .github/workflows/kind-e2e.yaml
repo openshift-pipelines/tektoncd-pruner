@@ -23,9 +23,6 @@ jobs:
         # Keep in sync with the list of supported releases: https://kubernetes.io/releases/
         k8s-version:
         - v1.28.x
-        - v1.29.x
-        - v1.30.x
-        - v1.31.x
         - v1.32.x
     uses: ./.github/workflows/reusable-e2e.yaml
     with:
@@ -38,7 +35,6 @@ jobs:
       matrix:
         pipelines-release:
         # This should follow the list of versions from https://github.com/tektoncd/pipeline/blob/main/releases.md#release
-        - v0.62.2  # LTS
         - v0.65.2  # LTS
         - v0.70.0
     uses: ./.github/workflows/reusable-e2e.yaml

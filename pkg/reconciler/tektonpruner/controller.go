@@ -60,10 +60,11 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	return impl
 }
 
+// Global mutex to ensure thread safety
+var gcMutex sync.Mutex
+
 // safeRunGarbageCollector is a thread-safe wrapper around the garbage collection process.
 func safeRunGarbageCollector(ctx context.Context, logger *zap.SugaredLogger) {
-	var gcMutex sync.Mutex
-
 	logger.Debug("Waiting to acquire cleanup thread lock")
 	gcMutex.Lock()
 	defer gcMutex.Unlock()

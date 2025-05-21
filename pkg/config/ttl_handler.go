@@ -213,8 +213,31 @@ func (th *TTLHandler) needsCleanup(resource metav1.Object) bool {
 		return false
 	}
 
+	// Get resource TTL value
 	ttlValue := annotations[AnnotationTTLSecondsAfterFinished]
-	return ttlValue != "" && ttlValue != NoTTL
+	if ttlValue == "" || ttlValue == NoTTL {
+		return false
+	}
+
+	// Check if TTL matches config when enforcement is global
+	labelKey := getResourceNameLabelKey(resource, th.resourceFn.GetDefaultLabelKey())
+	resourceName := getResourceName(resource, labelKey)
+	resourceSelectors := th.getResourceSelectors(resource)
+
+	// Get enforcement level and config TTL
+	enforcedLevel := th.resourceFn.GetEnforcedConfigLevel(resource.GetNamespace(), resourceName, resourceSelectors)
+	configTTL, _ := th.resourceFn.GetTTLSecondsAfterFinished(resource.GetNamespace(), resourceName, resourceSelectors)
+
+	// If enforcement is global, TTL must match config
+	if enforcedLevel == EnforcedConfigLevelGlobal && configTTL != nil {
+		resourceTTL, err := strconv.Atoi(ttlValue)
+		if err != nil {
+			return false
+		}
+		return resourceTTL == int(*configTTL)
+	}
+
+	return true
 }
 
 // removeResource checks the TTL and deletes the Resource if it has expired

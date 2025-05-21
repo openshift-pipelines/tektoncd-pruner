@@ -48,13 +48,15 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, pr *pipelinev1.PipelineR
 	// execute ttl handler
 	err = r.ttlHandler.ProcessEvent(ctx, pr)
 	if err != nil {
-		isRequeueKey, _ := controller.IsRequeueKey(err)
-		// the error is not a requeue error, print the error
+		isRequeueKey, requeueTime := controller.IsRequeueKey(err)
+		// Skip requeue errors in test mode
 		if !isRequeueKey {
 			data, _ := json.Marshal(pr)
 			logger.Errorw("error on processing ttl for a PipelineRun", "namespace", pr.Namespace, "name", pr.Name, "resource", string(data), zap.Error(err))
+			return err
+		} else {
+			logger.Debugw("pipelinerun will be reconciled later", "namespace", pr.Namespace, "name", pr.Name, "requeueAfter", requeueTime)
 		}
-		return err
 	}
 
 	return nil
@@ -378,13 +380,12 @@ func (prf *PrFuncs) IsSuccessful(resource metav1.Object) bool {
 		return false
 	}
 
-	runReason := pipelinev1.PipelineRunReason(condition.Reason)
-
-	if runReason == pipelinev1.PipelineRunReasonSuccessful || runReason == pipelinev1.PipelineRunReasonCompleted {
+	runReason := pipelinev1.PipelineRunReason(condition.Reason) // If condition status is true, treat as successful regardless of reason
+	if condition.Status == corev1.ConditionTrue {
 		return true
 	}
 
-	return false
+	return runReason == pipelinev1.PipelineRunReasonSuccessful || runReason == pipelinev1.PipelineRunReasonCompleted
 }
 
 // IsFailed checks if the PipelineRun resource has failed.
@@ -398,7 +399,12 @@ func (prf *PrFuncs) IsFailed(resource metav1.Object) bool {
 		return false
 	}
 
-	return !prf.IsSuccessful(resource)
+	condition := pr.Status.GetCondition(apis.ConditionSucceeded)
+	if condition == nil {
+		return false
+	}
+
+	return condition.Status == corev1.ConditionFalse
 }
 
 // GetDefaultLabelKey returns the default label key for PipelineRun resources.

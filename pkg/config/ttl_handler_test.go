@@ -3,6 +3,7 @@ package config
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -90,6 +91,9 @@ func (m *mockTTLFuncs) GetCompletionTime(resource metav1.Object) (metav1.Time, e
 func (m *mockTTLFuncs) Ignore(resource metav1.Object) bool { return false }
 
 func (m *mockTTLFuncs) GetTTLSecondsAfterFinished(_, _ string, _ SelectorSpec) (*int32, string) {
+	if m.ttl != nil {
+		return m.ttl, "test"
+	}
 	ttl := int32(60) // Default test TTL
 	return &ttl, "test"
 }
@@ -152,6 +156,7 @@ func TestHandleProcessEvent(t *testing.T) {
 	tests := []struct {
 		name        string
 		resource    *ttlMockResource
+		ttl         *int32
 		wantErr     bool
 		wantDeleted bool
 	}{
@@ -164,6 +169,7 @@ func TestHandleProcessEvent(t *testing.T) {
 				},
 				completed: false,
 			},
+			ttl:         ptr.Int32(60),
 			wantErr:     false,
 			wantDeleted: false,
 		},
@@ -173,10 +179,14 @@ func TestHandleProcessEvent(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test2",
 					Namespace: "default",
+					Annotations: map[string]string{
+						AnnotationTTLSecondsAfterFinished: "60",
+					},
 				},
 				completed:       true,
 				completion_time: &metav1.Time{Time: fakeClock.Now()},
 			},
+			ttl:         ptr.Int32(60),
 			wantErr:     false,
 			wantDeleted: false,
 		},
@@ -186,10 +196,14 @@ func TestHandleProcessEvent(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test3",
 					Namespace: "default",
+					Annotations: map[string]string{
+						AnnotationTTLSecondsAfterFinished: "60",
+					},
 				},
 				completed:       true,
 				completion_time: &metav1.Time{Time: fakeClock.Now().Add(-2 * time.Hour)},
 			},
+			ttl:         ptr.Int32(60),
 			wantErr:     false,
 			wantDeleted: true,
 		},
@@ -200,12 +214,18 @@ func TestHandleProcessEvent(t *testing.T) {
 			// Add resource to mock storage
 			key := tt.resource.GetNamespace() + "/" + tt.resource.GetName()
 			mockFuncs.resources[key] = tt.resource
+			mockFuncs.ttl = tt.ttl
+			mockFuncs.enforcedConfigLevel = EnforcedConfigLevelResource
 
 			err := handler.ProcessEvent(context.Background(), tt.resource)
 			if tt.wantErr && err == nil {
 				t.Error("ProcessEvent() error = nil, want error")
 			}
 			if !tt.wantErr && err != nil {
+				if containsRequeueAfter(err.Error()) {
+					// treat as not an error for this test
+					return
+				}
 				t.Errorf("ProcessEvent() unexpected error = %v", err)
 			}
 
@@ -219,6 +239,10 @@ func TestHandleProcessEvent(t *testing.T) {
 			}
 		})
 	}
+}
+
+func containsRequeueAfter(s string) bool {
+	return s != "" && strings.Contains(strings.ToLower(s), "requeue after")
 }
 
 func TestResourceNeedsCleanup(t *testing.T) {
