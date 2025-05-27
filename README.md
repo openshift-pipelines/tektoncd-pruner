@@ -42,10 +42,12 @@ Tekton Pruner provides event-driven and configuration-based cleanup of Tekton re
 
 ### 3. Flexible Configuration Hierarchy
 Configurations can be applied at different levels (from highest to lowest priority):
-1. Resource Level: Specific to individual PipelineRuns/TaskRuns
-2. Resource Group level: PipelineRuns and TaskRuns can be grouped based on pipeline/task names, labels, or annotations. 
-3. Namespace Level: Applied to all resources in a namespace
-4. Global Level: Cluster-wide defaults
+1. Resource Level: Specific to individual PipelineRuns/TaskRuns. (Coming in next release)
+2. Resource Group level: PipelineRuns and TaskRuns can be grouped based on pipeline/task names, labels, or annotations. (Coming in next release)
+3. Namespace Level: Applied to all resources in a namespace (Tech Preview)
+4. Global Level: Cluster-wide defaults (Tech Preview)
+
+> **Note**: Currently, only Namespace and Global level configurations are available as Tech Preview features. Resource Level and Resource Group level configurations will be available in the next version for review.
 
 ### Resource Groups Configuration
 
