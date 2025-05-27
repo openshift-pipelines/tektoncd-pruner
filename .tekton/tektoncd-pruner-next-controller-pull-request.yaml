@@ -42,6 +42,8 @@ spec:
       {"type": "rpm", "path": ".konflux/rpms"}
   pipelineRef:
     name: docker-build-ta
+  taskRunTemplate:
+    serviceAccountName: build-pipeline-tektoncd-pruner-next-controller
   workspaces:
   - name: git-auth
     secret:
