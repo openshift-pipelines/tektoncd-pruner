@@ -299,9 +299,29 @@ func getResourceFieldData(globalSpec PrunerConfig, namespace, name string, selec
 				}
 			}
 			identified_by = "identified_by_ns"
+		} else {
+			// If no namespace level config found, try global level
+			switch fieldType {
+			case PrunerFieldTypeTTLSecondsAfterFinished:
+				fieldData = globalSpec.TTLSecondsAfterFinished
+
+			case PrunerFieldTypeSuccessfulHistoryLimit:
+				if globalSpec.SuccessfulHistoryLimit != nil {
+					fieldData = globalSpec.SuccessfulHistoryLimit
+				} else {
+					fieldData = globalSpec.HistoryLimit
+				}
+
+			case PrunerFieldTypeFailedHistoryLimit:
+				if globalSpec.FailedHistoryLimit != nil {
+					fieldData = globalSpec.FailedHistoryLimit
+				} else {
+					fieldData = globalSpec.HistoryLimit
+				}
+			}
+			identified_by = "identified_by_global"
 		}
 		return fieldData, identified_by
-
 	case EnforcedConfigLevelNamespace:
 		// get it from global spec, namespace root level
 		spec, found := globalSpec.Namespaces[namespace]
@@ -325,8 +345,28 @@ func getResourceFieldData(globalSpec PrunerConfig, namespace, name string, selec
 				}
 			}
 			identified_by = "identified_by_ns"
+		} else {
+			// If no namespace level config found, try global level
+			switch fieldType {
+			case PrunerFieldTypeTTLSecondsAfterFinished:
+				fieldData = globalSpec.TTLSecondsAfterFinished
+
+			case PrunerFieldTypeSuccessfulHistoryLimit:
+				if globalSpec.SuccessfulHistoryLimit != nil {
+					fieldData = globalSpec.SuccessfulHistoryLimit
+				} else {
+					fieldData = globalSpec.HistoryLimit
+				}
+
+			case PrunerFieldTypeFailedHistoryLimit:
+				if globalSpec.FailedHistoryLimit != nil {
+					fieldData = globalSpec.FailedHistoryLimit
+				} else {
+					fieldData = globalSpec.HistoryLimit
+				}
+			}
+			identified_by = "identified_by_global"
 		}
-		// For namespace level, don't fall through to global
 		return fieldData, identified_by
 
 	case EnforcedConfigLevelGlobal:
