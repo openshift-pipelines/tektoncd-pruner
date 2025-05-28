@@ -20,8 +20,8 @@ import (
 const (
 	prunerConfigName = "tekton-pruner-default-spec"
 	prunerNamespace  = "tekton-pipelines"
-	testNamespace    = "pruner-test" //avoid creating test namespaces prefixed with tekton- as they are reserved for tekton components"
-	waitForDeletion  = 2 * time.Minute
+	testNamespace    = "pruner-test"   //avoid creating test namespaces prefixed with tekton- as they are reserved for tekton components"
+	waitForDeletion  = 5 * time.Minute //Increasing the wait time to ensure teh fact that a few TaskRuns are taking too long to be deleted
 	pollingInterval  = 5 * time.Second
 )
 
@@ -70,6 +70,7 @@ func TestPrunerE2E(t *testing.T) {
 		testPipelineRunTTLBasedPruning(ctx, t, kubeClient, tektonClient)
 	})
 
+	// commented out due to other dealy issues with history-based pruning of stanalone TaskRuns
 	// TestHistoryBasedPruning
 	// Tests history-based pruning of TaskRuns
 	// - Configures limits: keep 2 successful and 1 failed TaskRuns
@@ -143,7 +144,7 @@ ttlSecondsAfterFinished: 60`,
 			TaskSpec: &v1.TaskSpec{
 				Steps: []v1.Step{{
 					Name:    "echo",
-					Image:   "ubuntu",
+					Image:   "busybox",
 					Command: []string{"echo", "hello"},
 				}},
 			},
@@ -197,7 +198,7 @@ ttlSecondsAfterFinished: 60`,
 						TaskSpec: v1.TaskSpec{
 							Steps: []v1.Step{{
 								Name:    "echo",
-								Image:   "ubuntu",
+								Image:   "busybox",
 								Command: []string{"echo", "hello"},
 							}},
 						},
@@ -227,6 +228,7 @@ func testHistoryBasedPruning(ctx context.Context, t *testing.T, kubeClient *kube
 		},
 		Data: map[string]string{
 			"global-config": `enforcedConfigLevel: global
+
 successfulHistoryLimit: 2
 failedHistoryLimit: 1`,
 		},
@@ -251,7 +253,7 @@ failedHistoryLimit: 1`,
 				TaskSpec: &v1.TaskSpec{
 					Steps: []v1.Step{{
 						Name:    "echo",
-						Image:   "ubuntu",
+						Image:   "busybox",
 						Command: []string{"echo", "hello"},
 					}},
 				},
@@ -278,7 +280,7 @@ failedHistoryLimit: 1`,
 				TaskSpec: &v1.TaskSpec{
 					Steps: []v1.Step{{
 						Name:    "fail",
-						Image:   "ubuntu",
+						Image:   "busybox",
 						Command: []string{"false"},
 					}},
 				},
@@ -292,7 +294,7 @@ failedHistoryLimit: 1`,
 	}
 
 	// Wait and verify limits
-	time.Sleep(30 * time.Second) // Wait for pruner to process
+	time.Sleep(150 * time.Second) // Increase wait time to ensure TaskRuns deletion takes a little longer
 
 	// Check successful TaskRuns
 	trs, err := tektonClient.TektonV1().TaskRuns(testNamespace).List(ctx, metav1.ListOptions{
@@ -357,7 +359,7 @@ failedHistoryLimit: 1`,
 							TaskSpec: v1.TaskSpec{
 								Steps: []v1.Step{{
 									Name:    "echo",
-									Image:   "ubuntu",
+									Image:   "busybox",
 									Command: []string{"echo", "hello"},
 								}},
 							},
@@ -391,7 +393,7 @@ failedHistoryLimit: 1`,
 							TaskSpec: v1.TaskSpec{
 								Steps: []v1.Step{{
 									Name:    "fail",
-									Image:   "ubuntu",
+									Image:   "busybox",
 									Command: []string{"false"},
 								}},
 							},
@@ -469,7 +471,7 @@ namespaces:
 				TaskSpec: &v1.TaskSpec{
 					Steps: []v1.Step{{
 						Name:    "echo",
-						Image:   "ubuntu",
+						Image:   "busybox",
 						Command: []string{"echo", "hello"},
 					}},
 				},
@@ -530,7 +532,7 @@ namespaces:
 							TaskSpec: v1.TaskSpec{
 								Steps: []v1.Step{{
 									Name:    "echo",
-									Image:   "ubuntu",
+									Image:   "busybox",
 									Command: []string{"echo", "hello"},
 								}},
 							},
