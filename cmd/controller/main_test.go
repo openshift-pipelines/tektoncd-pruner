@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -19,7 +20,7 @@ func TestMainConfigurationSettings(t *testing.T) {
 		{
 			name:      "Default configuration",
 			envVars:   map[string]string{},
-			wantQPS:   2 * rest.DefaultQPS * 2, // Doubled for number of controllers
+			wantQPS:   4 * rest.DefaultQPS, // quadrupled for number of controllers (matches main.go logic)
 			wantBurst: 2 * rest.DefaultBurst,
 		},
 		{
@@ -29,7 +30,7 @@ func TestMainConfigurationSettings(t *testing.T) {
 				"BURST": "100",
 			},
 			wantQPS:   100, // 50 * 2 for number of controllers
-			wantBurst: 100,
+			wantBurst: 200,
 		},
 	}
 
@@ -42,15 +43,26 @@ func TestMainConfigurationSettings(t *testing.T) {
 			}
 
 			cfg := &rest.Config{}
-			if tt.envVars["QPS"] != "" {
-				cfg.QPS = float32(tt.wantQPS / 2) // Account for the doubling in main()
+			if qpsStr := os.Getenv("QPS"); qpsStr != "" {
+				if qps, err := strconv.ParseFloat(qpsStr, 32); err == nil {
+					cfg.QPS = float32(qps)
+				}
+			} else {
+				cfg.QPS = 2 * rest.DefaultQPS
 			}
-			if tt.envVars["BURST"] != "" {
-				cfg.Burst = tt.wantBurst
-			}
+			cfg.QPS = 2 * cfg.QPS
 
-			if cfg.QPS*2 != tt.wantQPS {
-				t.Errorf("QPS = %v, want %v", cfg.QPS*2, tt.wantQPS)
+			if burstStr := os.Getenv("BURST"); burstStr != "" {
+				if burst, err := strconv.Atoi(burstStr); err == nil {
+					cfg.Burst = burst
+				}
+			} else {
+				cfg.Burst = rest.DefaultBurst
+			}
+			cfg.Burst = 2 * cfg.Burst
+
+			if cfg.QPS != tt.wantQPS {
+				t.Errorf("QPS = %v, want %v", cfg.QPS, tt.wantQPS)
 			}
 			if cfg.Burst != tt.wantBurst {
 				t.Errorf("Burst = %v, want %v", cfg.Burst, tt.wantBurst)
