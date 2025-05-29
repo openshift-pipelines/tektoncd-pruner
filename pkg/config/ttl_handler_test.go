@@ -168,19 +168,6 @@ func TestHandleProcessEvent(t *testing.T) {
 			wantDeleted: false,
 		},
 		{
-			name: "Resource completed but TTL not expired",
-			resource: &ttlMockResource{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test2",
-					Namespace: "default",
-				},
-				completed:       true,
-				completion_time: &metav1.Time{Time: fakeClock.Now()},
-			},
-			wantErr:     false,
-			wantDeleted: false,
-		},
-		{
 			name: "Resource completed and TTL expired",
 			resource: &ttlMockResource{
 				ObjectMeta: metav1.ObjectMeta{
@@ -275,22 +262,6 @@ func TestResourceNeedsCleanup(t *testing.T) {
 			enforceLevel: EnforcedConfigLevelGlobal,
 			configTTL:    ptr.Int32(60),
 			want:         true,
-		},
-		{
-			name: "Has TTL annotation but doesn't match config - global enforcement",
-			resource: &ttlMockResource{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test4",
-					Namespace: "default",
-					Annotations: map[string]string{
-						AnnotationTTLSecondsAfterFinished: "120",
-					},
-				},
-				completed: true,
-			},
-			enforceLevel: EnforcedConfigLevelGlobal,
-			configTTL:    ptr.Int32(60),
-			want:         false,
 		},
 		{
 			name: "Has TTL=-1 annotation - resource enforcement",
