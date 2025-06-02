@@ -6,7 +6,7 @@ FROM $GO_BUILDER AS builder
 WORKDIR /go/src/github.com/openshift-pipelines/tektoncd-pruner
 COPY . .
 
-RUN go build -v -o /tmp/webhook  ./cmd/webhook
+RUN go build -tags strictfipsruntime -v -o /tmp/webhook  ./cmd/webhook
 
 FROM $RUNTIME
 ARG VERSION=tektoncd-pruner
