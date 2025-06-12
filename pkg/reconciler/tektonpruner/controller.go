@@ -3,6 +3,7 @@ package tektonpruner
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -22,6 +23,7 @@ import (
 	clockUtil "k8s.io/utils/clock"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
@@ -213,26 +215,18 @@ func cleanupPRs(ctx context.Context, namespace string, configMapUpdateTime strin
 					}
 
 					if updateTime.After(annotationTime) {
-						// If the configmap update time is after the annotation time, remove the annotation and patch the PipelineRun
-						annotations := pr.GetAnnotations()
-						delete(annotations, config.AnnotationHistoryLimitCheckProcessed)
-						// Create a patch with the new annotations
-						patchData := map[string]interface{}{
-							"metadata": map[string]interface{}{
-								"annotations": annotations,
-							},
-						}
-
-						// Convert patchData to JSON
-						patchBytes, err := json.Marshal(patchData)
-						if err != nil {
-							logger.Errorw("error marshaling patch data", zap.Error(err))
-							return err
-						}
+						// Use JSON Patch to remove only the specific annotation without affecting others
+						jsonPatch := fmt.Sprintf(`[{"op": "remove", "path": "/metadata/annotations/%s"}]`,
+							strings.ReplaceAll(config.AnnotationHistoryLimitCheckProcessed, "/", "~1"))
 
 						// Patch the PipelineRun to remove the annotation
-						_, err = pipelineClient.TektonV1().PipelineRuns(pr.Namespace).Patch(ctx, pr.Name, types.MergePatchType, patchBytes, metav1.PatchOptions{})
+						_, err = pipelineClient.TektonV1().PipelineRuns(pr.Namespace).Patch(ctx, pr.Name, types.JSONPatchType, []byte(jsonPatch), metav1.PatchOptions{})
 						if err != nil {
+							// If the PipelineRun is not found, it may have been deleted already, so we can continue
+							if errors.IsNotFound(err) {
+								logger.Debugw("PipelineRun not found during annotation patch - may have been deleted already", "namespace", pr.Namespace, "name", pr.Name)
+								continue
+							}
 							logger.Errorw("error patching PipelineRun to remove history limit check processed annotation", "namespace", pr.Namespace, "name", pr.Name, zap.Error(err))
 							return err
 						}
@@ -310,27 +304,19 @@ func cleanupTRs(ctx context.Context, namespace string, configMapUpdateTime strin
 					// If the configmap update time is after the annotation time, remove the annotation and patch the TaskRun
 
 					if updateTime.After(annotationTime) {
-						// If the configmap update time is after the annotation time, remove the annotation and patch the TaskRun
-						annotations := tr.GetAnnotations()
-						delete(annotations, config.AnnotationHistoryLimitCheckProcessed)
-						// Create a patch with the new annotations
-						patchData := map[string]interface{}{
-							"metadata": map[string]interface{}{
-								"annotations": annotations,
-							},
-						}
+						// Use JSON Patch to remove only the specific annotation without affecting others
+						jsonPatch := fmt.Sprintf(`[{"op": "remove", "path": "/metadata/annotations/%s"}]`,
+							strings.ReplaceAll(config.AnnotationHistoryLimitCheckProcessed, "/", "~1"))
 
-						// Convert patchData to JSON
-						patchBytes, err := json.Marshal(patchData)
+						// Patch the TaskRun to remove the annotation
+						_, err = pipelineClient.TektonV1().TaskRuns(tr.Namespace).Patch(ctx, tr.Name, types.JSONPatchType, []byte(jsonPatch), metav1.PatchOptions{})
 						if err != nil {
-							logger.Errorw("error marshaling patch data", zap.Error(err))
-							return err
-						}
-
-						// Patch the PipelineRun to remove the annotation
-						_, err = pipelineClient.TektonV1().TaskRuns(tr.Namespace).Patch(ctx, tr.Name, types.MergePatchType, patchBytes, metav1.PatchOptions{})
-						if err != nil {
-							logger.Errorw("error patching PipelineRun to remove history limit check processed annotation", "namespace", tr.Namespace, "name", tr.Name, zap.Error(err))
+							// If the TaskRun is not found, it may have been deleted already, so we can continue
+							if errors.IsNotFound(err) {
+								logger.Debugw("TaskRun not found during annotation patch - may have been deleted already", "namespace", tr.Namespace, "name", tr.Name)
+								continue
+							}
+							logger.Errorw("error patching TaskRun to remove history limit check processed annotation", "namespace", tr.Namespace, "name", tr.Name, zap.Error(err))
 							return err
 						}
 					}
