@@ -1,4 +1,4 @@
-ARG GO_BUILDER=brew.registry.redhat.io/rh-osbs/openshift-golang-builder:v1.23
+ARG GO_BUILDER=brew.registry.redhat.io/rh-osbs/openshift-golang-builder:v1.24
 ARG RUNTIME=registry.access.redhat.com/ubi9/ubi-minimal:latest@sha256:92b1d5747a93608b6adb64dfd54515c3c5a360802db4706765ff3d8470df6290
 
 FROM $GO_BUILDER AS builder
@@ -11,7 +11,7 @@ RUN go build -ldflags="-X 'knative.dev/pkg/changeset.rev=$(cat HEAD)'" -mod=vend
     ./cmd/controller
 
 FROM $RUNTIME
-ARG VERSION=tektoncd-pruner-1-18
+ARG VERSION=tektoncd-pruner-next
 
 ENV KO_APP=/ko-app \
     CONTROLLER=${KO_APP}/controller
