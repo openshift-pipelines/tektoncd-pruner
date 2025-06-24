@@ -147,7 +147,7 @@ data:
 
 - See [DEVELOPMENT.md](DEVELOPMENT.md) for development setup
 - Submit issues and pull requests
-- Follow coding standards and test coverage requirements
+- Follow coding standards and test coverage requirements.
 
 ## License
 
