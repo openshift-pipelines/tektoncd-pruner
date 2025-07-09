@@ -64,14 +64,9 @@ const (
 
 // ResourceSpec is used to hold the config of a specific resource
 type ResourceSpec struct {
-	// EnforcedConfigLevel allowed values: global, namespace, resource (default: resource)
-	Name                    string               `yaml:"name"`               // Exact name of the parent Pipeline or Task
-	Selector                []SelectorSpec       `yaml:"selector,omitempty"` // Supports selection based on labels and annotations. If Name is given, Name taskes precedence
-	EnforcedConfigLevel     *EnforcedConfigLevel `yaml:"enforcedConfigLevel"`
-	TTLSecondsAfterFinished *int32               `yaml:"ttlSecondsAfterFinished"`
-	SuccessfulHistoryLimit  *int32               `yaml:"successfulHistoryLimit"`
-	FailedHistoryLimit      *int32               `yaml:"failedHistoryLimit"`
-	HistoryLimit            *int32               `yaml:"historyLimit"`
+	Name         string         `yaml:"name"`               // Exact name of the parent Pipeline or Task
+	Selector     []SelectorSpec `yaml:"selector,omitempty"` // Supports selection based on labels and annotations. If Name is given, Name taskes precedence
+	PrunerConfig `yaml:",inline"`
 }
 
 // SelectorSpec allows specifying selectors for matching resources like PipelineRun or TaskRun
@@ -83,31 +78,30 @@ type SelectorSpec struct {
 
 // NamespaceSpec is used to hold the pruning config of a specific namespace and its resources
 type NamespaceSpec struct {
+	PrunerConfig `yaml:",inline"`
+	PipelineRuns []ResourceSpec `yaml:"pipelineRuns"`
+	TaskRuns     []ResourceSpec `yaml:"taskRuns"`
+}
+
+type GlobalConfig struct {
+	PrunerConfig `yaml:",inline"`
+	Namespaces   map[string]NamespaceSpec `yaml:"namespaces"`
+}
+
+// PrunerConfig used to hold the cluster-wide pruning config as well as namespace specific pruning config
+type PrunerConfig struct {
 	// EnforcedConfigLevel allowed values: global, namespace, resource (default: resource)
 	EnforcedConfigLevel     *EnforcedConfigLevel `yaml:"enforcedConfigLevel"`
 	TTLSecondsAfterFinished *int32               `yaml:"ttlSecondsAfterFinished"`
 	SuccessfulHistoryLimit  *int32               `yaml:"successfulHistoryLimit"`
 	FailedHistoryLimit      *int32               `yaml:"failedHistoryLimit"`
 	HistoryLimit            *int32               `yaml:"historyLimit"`
-	PipelineRuns            []ResourceSpec       `yaml:"pipelineRuns"`
-	TaskRuns                []ResourceSpec       `yaml:"taskRuns"`
-}
-
-// PrunerConfig used to hold the cluster-wide pruning config as well as namespace specific pruning config
-type PrunerConfig struct {
-	// EnforcedConfigLevel allowed values: global, namespace, resource (default: resource)
-	EnforcedConfigLevel     *EnforcedConfigLevel     `yaml:"enforcedConfigLevel"`
-	TTLSecondsAfterFinished *int32                   `yaml:"ttlSecondsAfterFinished"`
-	SuccessfulHistoryLimit  *int32                   `yaml:"successfulHistoryLimit"`
-	FailedHistoryLimit      *int32                   `yaml:"failedHistoryLimit"`
-	HistoryLimit            *int32                   `yaml:"historyLimit"`
-	Namespaces              map[string]NamespaceSpec `yaml:"namespaces"`
 }
 
 // prunerConfigStore defines the store structure to hold config from ConfigMap
 type prunerConfigStore struct {
 	mutex        sync.RWMutex
-	globalConfig PrunerConfig
+	globalConfig GlobalConfig
 }
 
 var (
@@ -124,7 +118,7 @@ func (ps *prunerConfigStore) LoadGlobalConfig(ctx context.Context, configMap *co
 	// Log the current state of globalConfig and namespacedConfig before updating
 	logger.Debugw("Loading global config", "oldGlobalConfig", ps.globalConfig)
 
-	globalConfig := &PrunerConfig{}
+	globalConfig := &GlobalConfig{}
 	if configMap.Data != nil && configMap.Data[PrunerGlobalConfigKey] != "" {
 		err := yaml.Unmarshal([]byte(configMap.Data[PrunerGlobalConfigKey]), globalConfig)
 		if err != nil {
@@ -266,7 +260,7 @@ func getFromPrunerConfigResourceLevelwithSelector(namespacesSpec map[string]Name
 	return nil, ""
 }
 
-func getResourceFieldData(globalSpec PrunerConfig, namespace, name string, selector SelectorSpec, resourceType PrunerResourceType, fieldType PrunerFieldType, enforcedConfigLevel EnforcedConfigLevel) (*int32, string) {
+func getResourceFieldData(globalSpec GlobalConfig, namespace, name string, selector SelectorSpec, resourceType PrunerResourceType, fieldType PrunerFieldType, enforcedConfigLevel EnforcedConfigLevel) (*int32, string) {
 	var fieldData *int32
 	var identified_by string
 

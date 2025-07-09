@@ -100,6 +100,9 @@ const (
 	// DefaultWorkerCountForNamespaceCleanup represents	the number of workers to be used
 	// for cleaning up resources in a namespace concurrently
 	DefaultWorkerCountForNamespaceCleanup = 5
+
+	// DefaultHistoryLimit represents the default history limit for successful and failed resources
+	DefaultHistoryLimit = 100
 )
 
 // GetEnvValueAsInt fetches the value of an environment variable and converts it to an integer
