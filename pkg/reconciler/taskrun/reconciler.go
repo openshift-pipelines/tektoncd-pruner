@@ -4,15 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/openshift-pipelines/tektoncd-pruner/pkg/config"
+	prunermetrics "github.com/openshift-pipelines/tektoncd-pruner/pkg/metrics"
 	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	pipelineversioned "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	taskrunreconciler "github.com/tektoncd/pipeline/pkg/client/injection/reconciler/pipeline/v1/taskrun"
+	"go.opentelemetry.io/otel/trace"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"knative.dev/pkg/apis"
@@ -27,6 +30,9 @@ type Reconciler struct {
 	kubeclient     kubernetes.Interface
 	ttlHandler     *config.TTLHandler
 	historyLimiter *config.HistoryLimiter
+
+	// Use hybrid metrics for complete observability
+	hybridReporter *prunermetrics.HybridReporter
 }
 
 // Check that our Reconciler implements Interface
@@ -34,15 +40,71 @@ var _ taskrunreconciler.Interface = (*Reconciler)(nil)
 
 // ReconcileKind implements Interface.ReconcileKind.
 func (r *Reconciler) ReconcileKind(ctx context.Context, tr *pipelinev1.TaskRun) reconciler.Event {
+	startTime := time.Now()
 	logger := logging.FromContext(ctx)
+	key := types.NamespacedName{Namespace: tr.Namespace, Name: tr.Name}
+
+	// Initialize hybrid reporter if not already done
+	if r.hybridReporter == nil {
+		var err error
+		config := prunermetrics.NewDefaultConfig()
+		r.hybridReporter, err = prunermetrics.NewHybridReporter("taskrun-controller", logger, config)
+		if err != nil {
+			logger.Errorw("Failed to initialize hybrid metrics reporter", "error", err)
+			// Fallback to direct OpenTelemetry
+			reporter := prunermetrics.GetReporter()
+			if reporter != nil {
+				defer func() {
+					duration := time.Since(startTime)
+					reporter.ReportReconciliationDuration(tr.Namespace, "taskrun", duration)
+				}()
+			}
+		}
+	}
+
+	// Get tracer for detailed tracing
+	tracer := prunermetrics.GetTracer()
+
+	// Start tracing span
+	var span trace.Span
+	if tracer != nil {
+		ctx, span = tracer.TraceReconcile(ctx, "taskrun", tr.Namespace, tr.Name)
+		defer tracer.EndSpan(span)
+	}
+
+	// Record that we're processing this resource - reports to BOTH:
+	// - Knative controller metrics: reconcile_count, reconcile_latency
+	// - OpenTelemetry metrics: resources_processed_total, reconciliation_duration_seconds
+	defer func() {
+		duration := time.Since(startTime)
+		success := true // Will be overridden if there's an error
+		if r.hybridReporter != nil {
+			r.hybridReporter.ReportReconcile(duration, success, key, "taskrun")
+		}
+	}()
+
 	logger.Debugw("received a TaskRun event",
 		"namespace", tr.Namespace, "name", tr.Name,
 	)
 
 	// if the TaskRun is not a standalone, no action needed
-	// if so, will be handled by it is parent resource(PipelineRun)
+	// if so, will be handled by its parent resource(PipelineRun)
 	if !isStandaloneTaskRun(tr) {
+		if r.hybridReporter != nil {
+			r.hybridReporter.ReportResourceSkipped(tr.Namespace, "taskrun", "not_standalone")
+		}
+		if tracer != nil {
+			tracer.AddAnnotation(ctx, "TaskRun skipped - not standalone", map[string]interface{}{
+				"standalone": false,
+			})
+		}
 		return nil
+	}
+
+	// Report queue metrics and processing start
+	if r.hybridReporter != nil {
+		r.hybridReporter.ReportResourceQueued(tr.Namespace, "taskrun")
+		r.hybridReporter.ReportActiveResourcesCount(tr.Namespace, "taskrun", 1)
 	}
 
 	// execute the history limiter earlier than the ttl handler
@@ -54,6 +116,21 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, tr *pipelinev1.TaskRun) 
 			"namespace", tr.Namespace, "name", tr.Name,
 			zap.Error(err),
 		)
+
+		// Report comprehensive error metrics to both systems
+		if r.hybridReporter != nil {
+			r.hybridReporter.ReportResourceError(tr.Namespace, "taskrun", "history_processing_failed")
+			r.hybridReporter.ReportActiveResourcesCount(tr.Namespace, "taskrun", 0)
+			// Update the deferred reconcile report for failure
+			defer func() {
+				duration := time.Since(startTime)
+				r.hybridReporter.ReportReconcile(duration, false, key, "taskrun")
+			}()
+		}
+		if tracer != nil {
+			tracer.TraceError(ctx, err, "History cleanup failed")
+		}
+
 		return err
 	}
 
@@ -69,8 +146,32 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, tr *pipelinev1.TaskRun) 
 				"resource", string(data),
 				zap.Error(err),
 			)
+
+			// Report comprehensive error metrics
+			if r.hybridReporter != nil {
+				r.hybridReporter.ReportResourceError(tr.Namespace, "taskrun", "ttl_processing_failed")
+				r.hybridReporter.ReportActiveResourcesCount(tr.Namespace, "taskrun", 0)
+				// Update the deferred reconcile report for failure
+				defer func() {
+					duration := time.Since(startTime)
+					r.hybridReporter.ReportReconcile(duration, false, key, "taskrun")
+				}()
+			}
+			if tracer != nil {
+				tracer.TraceError(ctx, err, "TTL cleanup failed")
+			}
+		} else {
+			// This is a requeue error, report as such
+			if r.hybridReporter != nil {
+				r.hybridReporter.ReportActiveResourcesCount(tr.Namespace, "taskrun", 0)
+			}
 		}
 		return err
+	}
+
+	// Report successful processing
+	if r.hybridReporter != nil {
+		r.hybridReporter.ReportActiveResourcesCount(tr.Namespace, "taskrun", 0)
 	}
 
 	return nil

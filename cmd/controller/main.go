@@ -2,11 +2,17 @@ package main
 
 import (
 	"flag"
+	"net/http"
 	"strings"
 
 	"github.com/openshift-pipelines/tektoncd-pruner/pkg/reconciler/pipelinerun"
 	"github.com/openshift-pipelines/tektoncd-pruner/pkg/reconciler/taskrun"
 	"github.com/openshift-pipelines/tektoncd-pruner/pkg/reconciler/tektonpruner"
+
+	// Observability
+	prunermetrics "github.com/openshift-pipelines/tektoncd-pruner/pkg/metrics"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
 	"knative.dev/pkg/controller"
@@ -22,6 +28,7 @@ func main() {
 	flag.IntVar(&controller.DefaultThreadsPerController, "threads-per-controller", controller.DefaultThreadsPerController, "Threads (goroutines) to create per controller")
 	namespace := flag.String("namespace", corev1.NamespaceAll, "Namespace to restrict informer to. Optional, defaults to all namespaces.")
 	disableHighAvailability := flag.Bool("disable-ha", true, "Whether to disable high-availability functionality for this component.")
+	metricsPort := flag.String("metrics-port", "9090", "Port for Prometheus metrics endpoint")
 	flag.Parse()
 
 	// Parse and get REST config
@@ -42,6 +49,22 @@ func main() {
 	// Set up logging
 	ctx := signals.NewContext()
 	logger := logging.FromContext(ctx)
+
+	// Initialize OpenTelemetry observability
+	if err := prunermetrics.Setup(ctx, logger); err != nil {
+		logger.Fatalw("Failed to setup observability", "error", err)
+	}
+
+	// Start Prometheus metrics server
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", promhttp.Handler())
+
+	go func() {
+		logger.Infow("Starting Prometheus metrics server", "port", *metricsPort)
+		if err := http.ListenAndServe(":"+*metricsPort, mux); err != nil {
+			logger.Errorw("Failed to start metrics server", "error", err)
+		}
+	}()
 
 	// Add namespaces
 	var namespaces []string

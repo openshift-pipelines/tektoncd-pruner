@@ -72,6 +72,8 @@ clean: ; $(info $(M) cleaning…)	@ ## Cleanup everything
 help:
 	@grep -hE '^[ a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-17s\033[0m %s\n", $$1, $$2}'
+	@echo ""
+	@echo "🚀 For observability setup: make observability-help"
 
 .PHONY: version
 version:
@@ -103,4 +105,48 @@ RELEASE_DIR ?= /tmp/tektoncd-pruner-${RELEASE_VERSION}
 .PHONY: github-release
 github-release:
 	./hack/release.sh ${RELEASE_VERSION}
+
+# =============================================================================
+# Observability Commands
+# =============================================================================
+
+.PHONY: observability-setup-simple observability-test observability-clean observability-local
+
+observability-setup-simple: ## Setup Kind cluster with simple observability stack (basic Prometheus)
+	@./hack/setup-observability-simple.sh
+
+observability-test: ## Test the observability setup with sample TaskRuns
+	@./hack/test-observability.sh
+
+observability-clean: ## Clean up the observability test cluster
+	@kind delete cluster --name tekton-obs || true
+	@rm -f kind-config.yaml
+
+observability-local: ## Start local port forwards for observability endpoints
+	@echo "🚀 Starting local port forwards..."
+	@kubectl port-forward -n tekton-pipelines svc/tekton-pruner-controller 9090:9090 &
+	@kubectl port-forward -n tekton-pipelines svc/prometheus-operated 9091:9090 &
+	@kubectl port-forward -n observability-system svc/tekton-pruner-jaeger-query 16686:16686 &
+	@echo "✅ Port forwards started:"
+	@echo "   📊 Metrics: http://localhost:9090/metrics"
+	@echo "   📈 Prometheus: http://localhost:9091"
+	@echo "   🔍 Jaeger: http://localhost:16686"
+	@echo ""
+	@echo "💡 To stop port forwards: pkill -f 'port-forward'"
+
+observability-help: ## Show observability setup help
+	@echo "🚀 Tekton Pruner Observability Commands:"
+	@echo ""
+	@echo "  make observability-setup   - Setup Kind cluster with full observability stack"
+	@echo "  make observability-test    - Test the setup with sample TaskRuns"  
+	@echo "  make observability-local   - Start local port forwards for dashboards"
+	@echo "  make observability-clean   - Clean up test cluster"
+	@echo ""
+	@echo "📊 Complete setup process:"
+	@echo "  1. make observability-setup    # ~5-10 minutes"
+	@echo "  2. make observability-test     # ~2 minutes"
+	@echo "  3. make observability-local    # Start dashboards"
+	@echo "  4. Open http://localhost:9090/metrics to see metrics"
+	@echo "  5. Open http://localhost:9091 for Prometheus"
+	@echo "  6. Open http://localhost:16686 for Jaeger tracing"
 
