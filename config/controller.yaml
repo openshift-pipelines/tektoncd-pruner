@@ -20,6 +20,7 @@ metadata:
   namespace: tekton-pipelines
   labels:
     pruner.tekton.dev/release: "devel"
+    app.kubernetes.io/name: tekton-pruner-controller
 spec:
   replicas: 1
   selector:
@@ -30,6 +31,11 @@ spec:
       labels:
         app: controller
         pruner.tekton.dev/release: "devel"
+        app.kubernetes.io/name: tekton-pruner-controller
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
     spec:
       # To avoid node becoming SPOF, spread our replicas to different nodes.
       affinity:
@@ -71,6 +77,8 @@ spec:
               value: pruner.tekton.dev
             - name: CONFIG_LEADERELECTION_NAME
               value: config-leader-election-tekton-pruner-controller
+            - name: KUBERNETES_MIN_VERSION
+              value: "1.0.0"
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -78,8 +86,8 @@ spec:
               drop:
                 - "ALL"
             # User 65532 is the distroless nonroot user ID
-            runAsUser: 65532
-            runAsGroup: 65532
+            #runAsUser: 65532
+            #runAsGroup: 65532
             runAsNonRoot: true
             seccompProfile:
               type: RuntimeDefault

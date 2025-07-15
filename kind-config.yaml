@@ -1,0 +1,15 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+  image: kindest/node:v1.32.0
+  extraPortMappings:
+  - containerPort: 30090  # Prometheus NodePort
+    hostPort: 9091
+    protocol: TCP
+  - containerPort: 30900  # Tekton Pruner metrics NodePort  
+    hostPort: 9090
+    protocol: TCP
+  - containerPort: 30686  # Jaeger NodePort
+    hostPort: 16686
+    protocol: TCP

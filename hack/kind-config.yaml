@@ -1,0 +1,12 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+  image: kindest/node:v1.32.0
+  extraPortMappings:
+  - containerPort: 9090
+    hostPort: 9090
+    protocol: TCP
+  - containerPort: 16686  
+    hostPort: 16686
+    protocol: TCP

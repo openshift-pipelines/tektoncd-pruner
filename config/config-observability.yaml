@@ -21,6 +21,12 @@ metadata:
   labels:
     pruner.tekton.dev/release: "devel"
 data:
+  # Enable Prometheus backend for Knative controller metrics
+  metrics.backend-destination: "prometheus"
+  # Optional: change Knative exporter port via env if desired; we use 9095 in code
+  # metrics.reporting-period-seconds: "5"
+  # metrics.opencensus-address: ""
+  # metrics.opencensus-require-tls: "false"
   _example: |
     ################################
     #                              #
