@@ -4,12 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/openshift-pipelines/tektoncd-pruner/pkg/config"
+	prunermetrics "github.com/openshift-pipelines/tektoncd-pruner/pkg/metrics"
 	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 
 	pipelineversioned "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
 	pipelinerunreconciler "github.com/tektoncd/pipeline/pkg/client/injection/reconciler/pipeline/v1/pipelinerun"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,6 +30,9 @@ type Reconciler struct {
 	kubeclient     kubernetes.Interface
 	ttlHandler     *config.TTLHandler
 	historyLimiter *config.HistoryLimiter
+
+	// Use hybrid metrics for complete observability
+	hybridReporter *prunermetrics.HybridReporter
 }
 
 // Check that our Reconciler implements Interface
@@ -33,28 +40,160 @@ var _ pipelinerunreconciler.Interface = (*Reconciler)(nil)
 
 // ReconcileKind implements Interface.ReconcileKind.
 func (r *Reconciler) ReconcileKind(ctx context.Context, pr *pipelinev1.PipelineRun) reconciler.Event {
+	startTime := time.Now()
 	logger := logging.FromContext(ctx)
-	logger.Debugw("received a PipelineRun event", "namespace", pr.Namespace, "name", pr.Name, "status", pr.Status)
+	key := types.NamespacedName{Namespace: pr.Namespace, Name: pr.Name}
+
+	// Initialize hybrid reporter if not already done
+	if r.hybridReporter == nil {
+		var err error
+		config := prunermetrics.NewDefaultConfig()
+		r.hybridReporter, err = prunermetrics.NewHybridReporter("pipelinerun-controller", logger, config)
+		if err != nil {
+			logger.Errorw("Failed to initialize hybrid metrics reporter", "error", err)
+			// Fallback to direct OpenTelemetry
+			reporter := prunermetrics.GetReporter()
+			if reporter != nil {
+				defer func() {
+					duration := time.Since(startTime)
+					reporter.ReportReconciliationDuration(pr.Namespace, "pipelinerun", duration)
+				}()
+			}
+		}
+	}
+
+	// Get tracer for detailed tracing
+	tracer := prunermetrics.GetTracer()
+
+	// Start tracing span
+	var span trace.Span
+	if tracer != nil {
+		ctx, span = tracer.TraceReconcile(ctx, "pipelinerun", pr.Namespace, pr.Name)
+		defer tracer.EndSpan(span)
+	}
+
+	// Record that we're processing this resource - reports to BOTH:
+	// - Knative controller metrics: reconcile_count, reconcile_latency
+	// - OpenTelemetry metrics: resources_processed_total, reconciliation_duration_seconds
+	defer func() {
+		duration := time.Since(startTime)
+		success := true // Will be overridden if there's an error
+		if r.hybridReporter != nil {
+			r.hybridReporter.ReportReconcile(duration, success, key, "pipelinerun")
+		}
+	}()
+
+	logger.Debugw("received a PipelineRun event",
+		"namespace", pr.Namespace, "name", pr.Name,
+	)
+
+	// Report queue metrics and processing start
+	if r.hybridReporter != nil {
+		r.hybridReporter.ReportResourceQueued(pr.Namespace, "pipelinerun")
+		r.hybridReporter.ReportActiveResourcesCount(pr.Namespace, "pipelinerun", 1)
+	}
 
 	// execute the history limiter earlier than the ttl handler
+	historyStartTime := time.Now()
 
 	// execute history limit action
 	err := r.historyLimiter.ProcessEvent(ctx, pr)
 	if err != nil {
-		logger.Errorw("error on processing history limiting for a PipelineRun", "namespace", pr.Namespace, "name", pr.Name, zap.Error(err))
+		logger.Errorw("error on processing history limiting for a PipelineRun",
+			"namespace", pr.Namespace, "name", pr.Name,
+			zap.Error(err),
+		)
+
+		// Report comprehensive error metrics to both systems
+		if r.hybridReporter != nil {
+			r.hybridReporter.ReportResourceError(pr.Namespace, "pipelinerun", "history_processing_failed")
+			r.hybridReporter.ReportActiveResourcesCount(pr.Namespace, "pipelinerun", 0)
+			// Update the deferred reconcile report for failure
+			defer func() {
+				duration := time.Since(startTime)
+				r.hybridReporter.ReportReconcile(duration, false, key, "pipelinerun")
+			}()
+		}
+
+		// Set error status in tracing
+		if tracer != nil {
+			tracer.SetStatus(ctx, codes.Error, "History cleanup failed")
+			tracer.AddAnnotation(ctx, "History cleanup error", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+
 		return err
 	}
 
+	// Report successful history processing
+	if r.hybridReporter != nil {
+		historyDuration := time.Since(historyStartTime)
+		r.hybridReporter.ReportHistoryProcessingDuration(pr.Namespace, "pipelinerun", historyDuration)
+		r.hybridReporter.ReportHistoryLimitEvent(pr.Namespace, "pipelinerun")
+	}
+
 	// execute ttl handler
+	ttlStartTime := time.Now()
 	err = r.ttlHandler.ProcessEvent(ctx, pr)
 	if err != nil {
 		isRequeueKey, _ := controller.IsRequeueKey(err)
 		// the error is not a requeue error, print the error
 		if !isRequeueKey {
 			data, _ := json.Marshal(pr)
-			logger.Errorw("error on processing ttl for a PipelineRun", "namespace", pr.Namespace, "name", pr.Name, "resource", string(data), zap.Error(err))
+			logger.Errorw("error on processing ttl for a PipelineRun",
+				"namespace", pr.Namespace, "name", pr.Name,
+				"resource", string(data),
+				zap.Error(err),
+			)
+
+			// Report comprehensive error metrics
+			if r.hybridReporter != nil {
+				r.hybridReporter.ReportResourceError(pr.Namespace, "pipelinerun", "ttl_processing_failed")
+				r.hybridReporter.ReportActiveResourcesCount(pr.Namespace, "pipelinerun", 0)
+				// Update the deferred reconcile report for failure
+				defer func() {
+					duration := time.Since(startTime)
+					r.hybridReporter.ReportReconcile(duration, false, key, "pipelinerun")
+				}()
+			}
+
+			// Set error status in tracing
+			if tracer != nil {
+				tracer.SetStatus(ctx, codes.Error, "TTL cleanup failed")
+				tracer.AddAnnotation(ctx, "TTL cleanup error", map[string]interface{}{
+					"error": err.Error(),
+				})
+			}
+		} else {
+			// This is a requeue error, report as such
+			if r.hybridReporter != nil {
+				r.hybridReporter.ReportActiveResourcesCount(pr.Namespace, "pipelinerun", 0)
+			}
+
+			if tracer != nil {
+				tracer.AddAnnotation(ctx, "PipelineRun requeued", map[string]interface{}{
+					"requeue": true,
+				})
+			}
 		}
+
 		return err
+	}
+
+	// Report successful TTL processing
+	if r.hybridReporter != nil {
+		ttlDuration := time.Since(ttlStartTime)
+		r.hybridReporter.ReportTTLProcessingDuration(pr.Namespace, "pipelinerun", ttlDuration)
+		r.hybridReporter.ReportTTLExpirationEvent(pr.Namespace, "pipelinerun")
+		r.hybridReporter.ReportActiveResourcesCount(pr.Namespace, "pipelinerun", 0)
+	}
+
+	if tracer != nil {
+		tracer.SetStatus(ctx, codes.Ok, "Reconcile completed successfully")
+		tracer.AddAnnotation(ctx, "PipelineRun reconcile completed", map[string]interface{}{
+			"success": true,
+		})
 	}
 
 	return nil

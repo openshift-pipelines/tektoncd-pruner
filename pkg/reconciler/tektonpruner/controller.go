@@ -15,6 +15,7 @@ import (
 	"knative.dev/pkg/system"
 
 	"github.com/openshift-pipelines/tektoncd-pruner/pkg/config"
+	prunermetrics "github.com/openshift-pipelines/tektoncd-pruner/pkg/metrics"
 	"github.com/openshift-pipelines/tektoncd-pruner/pkg/reconciler/pipelinerun"
 	"github.com/openshift-pipelines/tektoncd-pruner/pkg/reconciler/taskrun"
 	"github.com/openshift-pipelines/tektoncd-pruner/pkg/version"
@@ -76,8 +77,34 @@ func safeRunGarbageCollector(ctx context.Context, logger *zap.SugaredLogger) {
 }
 
 func runGarbageCollector(ctx context.Context) {
+	startTime := time.Now()
 	logger := logging.FromContext(ctx)
 	kubeClient := kubeclient.Get(ctx)
+
+	// Initialize hybrid reporter for garbage collection metrics
+	observabilityConfig := prunermetrics.NewDefaultConfig()
+	hybridReporter, err := prunermetrics.NewHybridReporter("tektonpruner-controller", logger, observabilityConfig)
+	if err != nil {
+		logger.Errorw("Failed to initialize hybrid metrics reporter for GC", "error", err)
+		// Fallback to direct OpenTelemetry
+		reporter := prunermetrics.GetReporter()
+		if reporter != nil {
+			defer func() {
+				duration := time.Since(startTime)
+				reporter.ReportGarbageCollectionDuration(duration, 0)
+			}()
+		}
+		return
+	}
+
+	// Record GC completion time at the end - reports to both Knative and OpenTelemetry
+	defer func() {
+		duration := time.Since(startTime)
+		if hybridReporter != nil {
+			// This will be updated with actual namespace count
+			hybridReporter.ReportGarbageCollectionDuration(duration, 0)
+		}
+	}()
 
 	namespace := system.Namespace()
 
@@ -85,12 +112,27 @@ func runGarbageCollector(ctx context.Context) {
 	configMap, err := kubeClient.CoreV1().ConfigMaps(namespace).Get(ctx, config.PrunerConfigMapName, metav1.GetOptions{})
 	if err != nil {
 		logger.Error("Failed to load ConfigMap for GC", zap.Error(err))
+
+		// Report error to both systems
+		if hybridReporter != nil {
+			hybridReporter.ReportConfigurationError("configmap")
+		}
 		return
 	}
 
 	if err := config.PrunerConfigStore.LoadGlobalConfig(ctx, configMap); err != nil {
 		logger.Error("Error loading pruner global config", zap.Error(err))
+
+		// Report error to both systems
+		if hybridReporter != nil {
+			hybridReporter.ReportConfigurationError("global_config")
+		}
 		return
+	}
+
+	// Report successful config reload to both systems
+	if hybridReporter != nil {
+		hybridReporter.ReportConfigurationReload("global")
 	}
 
 	configMapUpdateTime := time.Now().Format(time.RFC3339)
@@ -99,6 +141,11 @@ func runGarbageCollector(ctx context.Context) {
 	namespaces, err := getFilteredNamespaces(ctx, kubeClient)
 	if err != nil {
 		logger.Error("Failed to filter namespaces for GC", zap.Error(err))
+
+		// Report error to both systems
+		if hybridReporter != nil {
+			hybridReporter.ReportConfigurationError("namespace_filter")
+		}
 		return
 	}
 
@@ -111,6 +158,13 @@ func runGarbageCollector(ctx context.Context) {
 		workerCount = config.DefaultWorkerCountForNamespaceCleanup
 	}
 
+	// Report queue depth to Knative controller metrics (work_queue_depth)
+	// and worker metrics to OpenTelemetry
+	if hybridReporter != nil {
+		hybridReporter.ReportQueueDepth(int64(len(namespaces)))
+		hybridReporter.ReportActiveResourcesCount("", "namespace", int64(workerCount))
+	}
+
 	// Setup channels
 	nsChan := make(chan string)
 	var wg sync.WaitGroup
@@ -121,15 +175,42 @@ func runGarbageCollector(ctx context.Context) {
 		go func(workerID int) {
 			defer wg.Done()
 			for ns := range nsChan {
+				nsStartTime := time.Now()
 				logger.Infow("Worker processing namespace", "worker", workerID, "namespace", ns)
 
+				// Report worker activity - processing started
+				if hybridReporter != nil {
+					hybridReporter.ReportActiveResourcesCount(ns, "namespace", 1)
+				}
+
+				// Process PipelineRuns
 				if err := cleanupPRs(ctx, ns, configMapUpdateTime); err != nil {
 					logger.Errorw("Error collecting PipelineRuns", zap.String("namespace", ns), zap.Error(err))
-					continue
+
+					// Report error to both systems
+					if hybridReporter != nil {
+						hybridReporter.ReportResourceError(ns, "pipelinerun", "gc_cleanup")
+					}
+
+					// Still continue with TaskRuns
 				}
+
+				// Process TaskRuns
 				if err := cleanupTRs(ctx, ns, configMapUpdateTime); err != nil {
 					logger.Errorw("Error collecting TaskRuns", zap.String("namespace", ns), zap.Error(err))
-					continue
+
+					// Report error to both systems
+					if hybridReporter != nil {
+						hybridReporter.ReportResourceError(ns, "taskrun", "gc_cleanup")
+					}
+				}
+
+				// Report namespace processing completion
+				if hybridReporter != nil {
+					nsDuration := time.Since(nsStartTime)
+					// This reports to both Knative and OpenTelemetry metrics
+					hybridReporter.ReportReconcile(nsDuration, true, types.NamespacedName{Namespace: ns, Name: "gc-worker"}, "namespace")
+					hybridReporter.ReportActiveResourcesCount(ns, "namespace", 0) // End processing
 				}
 			}
 		}(i)
@@ -142,6 +223,16 @@ func runGarbageCollector(ctx context.Context) {
 	close(nsChan)
 
 	wg.Wait()
+
+	// Final metrics updates - reports to both systems
+	if hybridReporter != nil {
+		duration := time.Since(startTime)
+		hybridReporter.ReportGarbageCollectionDuration(duration, len(namespaces))
+		// Reset queue depth to 0
+		hybridReporter.ReportQueueDepth(0)
+		hybridReporter.ReportActiveResourcesCount("", "namespace", 0)
+	}
+
 	logger.Info("Garbage collection completed")
 }
 
