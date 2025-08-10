@@ -7,7 +7,7 @@ toolchain go1.24.4
 require (
 	github.com/stretchr/testify v1.10.0
 	github.com/tektoncd/pipeline v0.66.0
-	github.com/tektoncd/plumbing v0.0.0-20250630062957-f863d38f433a
+	github.com/tektoncd/plumbing v0.0.0-20250805154627-25448098dea2
 	go.uber.org/zap v1.27.0
 	k8s.io/api v0.30.1
 	k8s.io/apimachinery v0.30.1
