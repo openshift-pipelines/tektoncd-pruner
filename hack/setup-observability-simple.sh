@@ -3,6 +3,20 @@
 
 set -euo pipefail
 
+wait_for_deploy() {
+  local ns="$1"
+  local name="$2"
+  echo "⏳ Waiting for deployment $name in namespace $ns to appear..."
+  for i in {1..120}; do
+    if kubectl -n "$ns" get deploy "$name" >/dev/null 2>&1; then
+      break
+    fi
+    sleep 2
+  done
+  echo "⏳ Waiting for deployment $name rollout..."
+  kubectl -n "$ns" rollout status deploy/"$name" --timeout=600s
+}
+
 echo "🚀 Setting up Tekton Pruner with simple observability stack..."
 
 # 1. Create Kind cluster with port mappings
@@ -15,6 +29,9 @@ nodes:
   - containerPort: 9090
     hostPort: 9090
     protocol: TCP
+  - containerPort: 9092
+    hostPort: 9092
+    protocol: TCP
   - containerPort: 16686  
     hostPort: 16686
     protocol: TCP
@@ -26,7 +43,7 @@ kind create cluster --config kind-config.yaml --name tekton-obs
 # 2. Install Tekton Pipeline
 echo "📦 Installing Tekton Pipeline..."
 kubectl apply -f https://storage.googleapis.com/tekton-releases/pipeline/latest/release.yaml
-kubectl wait --for=condition=ready pod -l app=tekton-pipelines-controller -n tekton-pipelines --timeout=300s
+wait_for_deploy tekton-pipelines tekton-pipelines-controller
 
 # 3. Install basic Prometheus (without operator)
 echo "📦 Installing basic Prometheus..."
@@ -47,9 +64,11 @@ data:
       scrape_interval: 15s
     scrape_configs:
     - job_name: 'tekton-pruner'
-      static_configs:
-      - targets: ['tekton-pruner-controller.tekton-pipelines.svc.cluster.local:9090']
       metrics_path: '/metrics'
+      static_configs:
+      - targets:
+        - tekton-pruner-controller.tekton-pipelines.svc.cluster.local:9090  # Knative metrics
+        - tekton-pruner-controller.tekton-pipelines.svc.cluster.local:9092  # OTEL metrics
       scrape_interval: 30s
 ---
 apiVersion: apps/v1
@@ -99,6 +118,8 @@ spec:
     nodePort: 30090
   type: NodePort
 EOF
+
+wait_for_deploy monitoring prometheus
 
 # 4. Install Jaeger (simple deployment)
 echo "📦 Installing Jaeger..."
@@ -152,6 +173,8 @@ spec:
   type: NodePort
 EOF
 
+wait_for_deploy observability-system jaeger
+
 # 5. Deploy observability configuration
 echo "⚙️ Deploying observability configuration..."
 kubectl apply -f - << EOF
@@ -171,7 +194,7 @@ data:
   metrics.debug: "true"
 EOF
 
-# 6. Create service for Tekton Pruner metrics
+# 6. Create service for Tekton Pruner metrics (both ports)
 echo "📊 Creating metrics service..."
 kubectl apply -f - << EOF
 apiVersion: v1
@@ -180,14 +203,17 @@ metadata:
   name: tekton-pruner-controller
   namespace: tekton-pipelines
   labels:
-    app: tekton-pruner-controller
+    app: controller
 spec:
+  selector:
+    app: controller
   ports:
   - name: metrics
     port: 9090
     targetPort: 9090
-  selector:
-    app: tekton-pruner-controller
+  - name: otel-metrics
+    port: 9092
+    targetPort: 9092
 EOF
 
 # 7. Deploy Tekton Pruner
@@ -197,16 +223,18 @@ ko apply -f config/
 
 # Wait for deployments to be ready
 echo "⏳ Waiting for services to be ready..."
-kubectl wait --for=condition=ready pod -l app=prometheus -n monitoring --timeout=300s
-kubectl wait --for=condition=ready pod -l app=jaeger -n observability-system --timeout=300s
+wait_for_deploy monitoring prometheus
+wait_for_deploy observability-system jaeger
 
 echo "✅ Simple observability setup complete!"
 echo ""
 echo "🔗 Access the observability stack:"
 echo "   Prometheus: kubectl port-forward -n monitoring svc/prometheus 9091:9090"
 echo "   Jaeger: kubectl port-forward -n observability-system svc/jaeger 16686:16686"
-echo "   Metrics: kubectl port-forward -n tekton-pipelines svc/tekton-pruner-controller 9090:9090"
+echo "   Metrics: kubectl port-forward -n tekton-pipelines svc/tekton-pruner-controller 9090:9090 9092:9092"
 echo ""
-echo "📊 Test with: curl http://localhost:9090/metrics | grep tektoncd_pruner"
+echo "📊 Test with:"
+echo "   curl http://localhost:9090/metrics | grep -E 'reconcile_count|workqueue_|client_'"
+echo "   curl http://localhost:9092/metrics | grep 'tektoncd_pruner_'"
 echo ""
 echo "🆘 If you still have issues, use this simpler setup instead of the operator-based one." 

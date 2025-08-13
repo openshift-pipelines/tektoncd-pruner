@@ -18,6 +18,7 @@ package metrics
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"go.uber.org/zap"
@@ -86,24 +87,32 @@ func parseKnativeConfig(configMap *corev1.ConfigMap) *KnativeObservabilityConfig
 	return config
 }
 
-// InitializeKnativeCompatibleMetrics sets up metrics with Knative-style configuration
-// This provides compatibility with Knative's observability system while using OpenTelemetry
+// InitializeKnativeCompatibleMetrics sets up OpenCensus Prometheus exporter for Knative metrics
+// This ensures Knative controller metrics (reconcile_count, work_queue_depth, etc.) are exposed
 func InitializeKnativeCompatibleMetrics(ctx context.Context) error {
 	logger := zap.S()
 
-	// Use the same exporter options that Knative would expect
+	// Initialize OpenCensus Prometheus exporter for Knative metrics
+	// This will export the Knative controller metrics (work_queue_depth, reconcile_count, etc.)
 	exporterOpts := knativemetrics.ExporterOptions{
 		Domain:    Domain,
 		Component: Component,
 		ConfigMap: nil, // Will be set by config watcher
 	}
 
-	logger.Infow("Initializing Knative-compatible metrics with OpenTelemetry",
+	logger.Infow("Initializing OpenCensus Prometheus exporter for Knative controller metrics",
 		"domain", exporterOpts.Domain,
 		"component", exporterOpts.Component)
 
-	// Setup our OpenTelemetry implementation
-	return Setup(ctx, logger)
+	// This sets up the OpenCensus Prometheus exporter which will expose Knative metrics
+	// alongside our OpenTelemetry metrics on the same /metrics endpoint
+	err := knativemetrics.UpdateExporter(ctx, exporterOpts, logger)
+	if err != nil {
+		return fmt.Errorf("failed to initialize Knative OpenCensus Prometheus exporter: %w", err)
+	}
+
+	logger.Info("Successfully initialized OpenCensus Prometheus exporter for Knative metrics")
+	return nil
 }
 
 // ReportWithKnativeContext reports metrics using Knative-style context but OpenTelemetry underneath

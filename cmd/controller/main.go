@@ -50,17 +50,18 @@ func main() {
 	ctx := signals.NewContext()
 	logger := logging.FromContext(ctx)
 
-	// Initialize OpenTelemetry observability
+	// Initialize OpenTelemetry observability first
 	if err := prunermetrics.Setup(ctx, logger); err != nil {
 		logger.Fatalw("Failed to setup observability", "error", err)
 	}
 
-	// Start Prometheus metrics server
+	// Start combined Prometheus metrics server
+	// Both OpenTelemetry and Knative metrics will be available on this endpoint
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.Handler())
 
 	go func() {
-		logger.Infow("Starting Prometheus metrics server", "port", *metricsPort)
+		logger.Infow("Starting combined metrics server (Knative + OpenTelemetry)", "port", *metricsPort)
 		if err := http.ListenAndServe(":"+*metricsPort, mux); err != nil {
 			logger.Errorw("Failed to start metrics server", "error", err)
 		}

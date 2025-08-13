@@ -48,6 +48,8 @@ spec:
           # This is the Go import path for the binary that is containerized
           # and substituted here.
           image: ko://github.com/openshift-pipelines/tektoncd-pruner/cmd/controller
+          args:
+            - "--metrics-port=9092"
           resources:
             requests:
               cpu: 100m
@@ -58,6 +60,8 @@ spec:
           ports:
             - name: metrics
               containerPort: 9090
+            - name: otel-metrics
+              containerPort: 9092
           env:
             - name: SYSTEM_NAMESPACE
               valueFrom:
@@ -69,6 +73,8 @@ spec:
               value: config-observability-tekton-pruner
             - name: METRICS_DOMAIN
               value: pruner.tekton.dev
+            - name: METRICS_PROMETHEUS_PORT
+              value: "9090"
             - name: CONFIG_LEADERELECTION_NAME
               value: config-leader-election-tekton-pruner-controller
           securityContext:
