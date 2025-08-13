@@ -99,6 +99,10 @@ Prerequisites:
 
 - Install Pruner
 ```bash
+# Install latest version
+kubectl apply -f https://github.com/openshift-pipelines/tektoncd-pruner/releases/latest/download/release.yaml
+
+# Or install specific version
 export VERSION=0.1.0 #update version as required
 kubectl apply -f "https://github.com/openshift-pipelines/tektoncd-pruner/releases/download/v$VERSION/release-v$VERSION.yaml"
 ```
