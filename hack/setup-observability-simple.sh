@@ -201,8 +201,11 @@ metadata:
   namespace: tekton-pipelines
 data:
   metrics.backend-destination: "prometheus"
+  metrics.request-metrics-backend-destination: "prometheus"
+  metrics.allow-stackdriver-custom-metrics: "false"
   tracing.backend: "jaeger"
   tracing.endpoint: "http://jaeger.observability-system.svc.cluster.local:14268/api/traces"
+  tracing.zipkin-endpoint: "http://jaeger.observability-system.svc.cluster.local:9411/api/v2/spans"
 EOF
 
 # Deploy Tekton Pruner (includes observability service)
@@ -232,6 +235,8 @@ echo ""
 echo "Troubleshooting:"
 echo "  kubectl logs -n tekton-pipelines -l app.kubernetes.io/name=controller"
 echo "  kubectl get endpoints -n tekton-pipelines tekton-pruner-controller"
+echo "  kubectl get configmap -n tekton-pipelines config-observability-tekton-pruner -o yaml"
+echo "  kubectl exec -n tekton-pipelines deployment/tekton-pruner-controller -- printenv | grep -E '(METRICS|OBSERV)'"
 echo ""
 echo "Note: Port forwards are running in background. To stop them:"
 echo "  pkill -f 'kubectl.*port-forward'"
