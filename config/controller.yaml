@@ -19,16 +19,38 @@ metadata:
   name: tekton-pruner-controller
   namespace: tekton-pipelines
   labels:
+    app.kubernetes.io/name: controller
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: default
+    app.kubernetes.io/version: "devel"
+    app.kubernetes.io/part-of: tekton-pruner
     pruner.tekton.dev/release: "devel"
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: controller
+      app: tekton-pruner-controller
+      app.kubernetes.io/name: controller
+      app.kubernetes.io/component: controller
+      app.kubernetes.io/instance: default
+      app.kubernetes.io/part-of: tekton-pruner
   template:
     metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090" 
+        prometheus.io/path: "/metrics"
       labels:
-        app: controller
+        app: tekton-pruner-controller
+        app.kubernetes.io/name: controller
+        app.kubernetes.io/component: controller
+        app.kubernetes.io/instance: default
+        app.kubernetes.io/version: "devel"
+        app.kubernetes.io/part-of: tekton-pruner
+        # tekton.dev/release value replaced with inputs.params.versionTag in pipeline/tekton/publish.yaml
+        pipeline.tekton.dev/release: "devel"
+        # labels below are related to istio and should not be used for resource lookup
+        version: "devel"
         pruner.tekton.dev/release: "devel"
     spec:
       # To avoid node becoming SPOF, spread our replicas to different nodes.
@@ -39,6 +61,10 @@ spec:
                 labelSelector:
                   matchLabels:
                     app: controller
+                    app.kubernetes.io/name: controller
+                    app.kubernetes.io/component: controller
+                    app.kubernetes.io/instance: default
+                    app.kubernetes.io/part-of: tekton-pruner
                 topologyKey: kubernetes.io/hostname
               weight: 100
 
@@ -83,3 +109,36 @@ spec:
             runAsNonRoot: true
             seccompProfile:
               type: RuntimeDefault
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/name: controller
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: default
+    app.kubernetes.io/version: "devel"
+    app.kubernetes.io/part-of: tekton-pruner
+    # tekton.dev/release value replaced with inputs.params.versionTag in pipeline/tekton/publish.yaml
+    pruner.tekton.dev/release: "devel"
+    # labels below are related to istio and should not be used for resource lookup
+    app: tekton-pruner-controller
+    version: "devel"
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+    prometheus.io/path: "/metrics"
+  name: tekton-pruner-controller
+  namespace: tekton-pipelines
+spec:
+  ports:
+  - name: http-metrics
+    port: 9090
+    protocol: TCP
+    targetPort: 9090
+  selector:
+    app.kubernetes.io/name: controller
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: default
+    app.kubernetes.io/part-of: tekton-pruner

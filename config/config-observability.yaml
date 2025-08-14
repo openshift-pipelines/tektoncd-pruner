@@ -21,6 +21,16 @@ metadata:
   labels:
     pruner.tekton.dev/release: "devel"
 data:
+  # New Knative observability config format (required for v0.0.0-20250811181739-e06d4c9af190+)
+  metrics-protocol: "prometheus" 
+  metrics-endpoint: ":9090"
+  tracing-protocol: "none"
+  
+  # Legacy format for backward compatibility - TODO: Remove these after confirming new format works everywhere
+  metrics.backend-destination: "prometheus"
+  metrics.request-metrics-backend-destination: "prometheus"
+  metrics.allow-stackdriver-custom-metrics: "false"
+  tracing.backend: "none"
   _example: |
     ################################
     #                              #
