@@ -202,7 +202,7 @@ func cleanupPRs(ctx context.Context, namespace string, configMapUpdateTime strin
 					annotationTime, err := time.Parse(time.RFC3339, prInstance.Annotations[config.AnnotationHistoryLimitCheckProcessed])
 					if err != nil {
 						logger.Errorw("error parsing history limit check processed time", "namespace", pr.Namespace, "name", pr.Name, zap.Error(err))
-						return err
+						continue // Continue to next PR instead of returning error
 					}
 					// Compare the annotation time with the configmap update time
 					// If the configmap update time is after the annotation time, remove the annotation and patch the PipelineRun
@@ -211,7 +211,7 @@ func cleanupPRs(ctx context.Context, namespace string, configMapUpdateTime strin
 					updateTime, err := time.Parse(time.RFC3339, configMapUpdateTime)
 					if err != nil {
 						logger.Errorw("error parsing configmap update time", "namespace", pr.Namespace, "name", pr.Name, zap.Error(err))
-						return err
+						continue // Continue to next PR instead of returning error
 					}
 
 					if updateTime.After(annotationTime) {
@@ -228,26 +228,36 @@ func cleanupPRs(ctx context.Context, namespace string, configMapUpdateTime strin
 								continue
 							}
 							logger.Errorw("error patching PipelineRun to remove history limit check processed annotation", "namespace", pr.Namespace, "name", pr.Name, zap.Error(err))
-							return err
+							continue // Continue to next PR instead of returning error
 						}
 					}
 				}
 
 				err := prHistoryLimiter.ProcessEvent(ctx, pr)
 				if err != nil {
+					// If the PipelineRun is not found, it may have been processed/deleted by another worker, continue to next PR
+					if errors.IsNotFound(err) {
+						logger.Debugw("PipelineRun not found during history limiting - may have been processed by another worker", "namespace", pr.Namespace, "name", pr.Name)
+						continue
+					}
 					logger.Errorw("error processing history limiting for a PipelineRun", "namespace", pr.Namespace, "name", pr.Name, zap.Error(err))
-					return err
+					continue // Continue to next PR instead of returning error
 				}
 				// execute ttl handler
 				err = prTTLHandler.ProcessEvent(ctx, pr)
 				if err != nil {
+					// If the PipelineRun is not found, it may have been processed/deleted by another worker, continue to next PR
+					if errors.IsNotFound(err) {
+						logger.Debugw("PipelineRun not found during TTL processing - may have been processed by another worker", "namespace", pr.Namespace, "name", pr.Name)
+						continue
+					}
 					isRequeueKey, _ := controller.IsRequeueKey(err)
 					// the error is not a requeue error, print the error
 					if !isRequeueKey {
 						data, _ := json.Marshal(pr)
 						logger.Errorw("error processing ttl for a PipelineRun", "namespace", pr.Namespace, "name", pr.Name, "resource", string(data), zap.Error(err))
 					}
-					return err
+					continue // Continue to next PR instead of returning error
 				}
 			}
 
@@ -294,13 +304,17 @@ func cleanupTRs(ctx context.Context, namespace string, configMapUpdateTime strin
 					annotationTime, err := time.Parse(time.RFC3339, trInstance.Annotations[config.AnnotationHistoryLimitCheckProcessed])
 					if err != nil {
 						logger.Errorw("error parsing history limit check processed time", "namespace", tr.Namespace, "name", tr.Name, zap.Error(err))
-						return err
+						continue // Continue to next TR instead of returning error
 					}
 					// Compare the annotation time with the configmap update time
 					// If the configmap update time is after the annotation time, remove the annotation and patch the TaskRun
 					// to trigger the history limit check again
 
 					updateTime, err := time.Parse(time.RFC3339, configMapUpdateTime)
+					if err != nil {
+						logger.Errorw("error parsing configmap update time", "namespace", tr.Namespace, "name", tr.Name, zap.Error(err))
+						continue // Continue to next TR instead of returning error
+					}
 					// If the configmap update time is after the annotation time, remove the annotation and patch the TaskRun
 
 					if updateTime.After(annotationTime) {
@@ -317,26 +331,36 @@ func cleanupTRs(ctx context.Context, namespace string, configMapUpdateTime strin
 								continue
 							}
 							logger.Errorw("error patching TaskRun to remove history limit check processed annotation", "namespace", tr.Namespace, "name", tr.Name, zap.Error(err))
-							return err
+							continue // Continue to next TR instead of returning error
 						}
 					}
 				}
 
 				err := trHistoryLimiter.ProcessEvent(ctx, tr)
 				if err != nil {
+					// If the TaskRun is not found, it may have been processed/deleted by another worker, continue to next TR
+					if errors.IsNotFound(err) {
+						logger.Debugw("TaskRun not found during history limiting - may have been processed by another worker", "namespace", tr.Namespace, "name", tr.Name)
+						continue
+					}
 					logger.Errorw("error processing history limiting for a TaskRun", "namespace", tr.Namespace, "name", tr.Name, zap.Error(err))
-					return err
+					continue // Continue to next TR instead of returning error
 				}
 				// execute ttl handler
 				err = trTTLHandler.ProcessEvent(ctx, tr)
 				if err != nil {
+					// If the TaskRun is not found, it may have been processed/deleted by another worker, continue to next TR
+					if errors.IsNotFound(err) {
+						logger.Debugw("TaskRun not found during TTL processing - may have been processed by another worker", "namespace", tr.Namespace, "name", tr.Name)
+						continue
+					}
 					isRequeueKey, _ := controller.IsRequeueKey(err)
 					// the error is not a requeue error, print the error
 					if !isRequeueKey {
 						data, _ := json.Marshal(tr)
 						logger.Errorw("error processing ttl for a TaskRun", "namespace", tr.Namespace, "name", tr.Name, "resource", string(data), zap.Error(err))
 					}
-					return err
+					continue // Continue to next TR instead of returning error
 				}
 			}
 
