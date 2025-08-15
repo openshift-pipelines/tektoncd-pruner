@@ -26,3 +26,6 @@ ko resolve \
 
 # replace version tags in the manifests
 sed -i "s|pruner.tekton.dev/release: \"devel\"|pruner.tekton.dev/release: \"v${VERSION}\"|g" ${BUILDS_DIR}/release-v${VERSION}.yaml
+
+# create a copy with standard name for latest release URLs
+cp ${BUILDS_DIR}/release-v${VERSION}.yaml ${BUILDS_DIR}/release.yaml

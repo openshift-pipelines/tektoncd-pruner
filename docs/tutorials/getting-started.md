@@ -20,7 +20,7 @@ A Kubernetes cluster with the following installed:
 1. Install Tekton Pruner using kubectl:
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/openshift-pipelines/tektoncd-pruner/main/release.yaml
+kubectl apply -f https://github.com/openshift-pipelines/tektoncd-pruner/releases/latest/download/release.yaml
 ```
 
 2. Verify the installation:
