@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/openshift-pipelines/tektoncd-pruner/pkg/config"
+	"github.com/openshift-pipelines/tektoncd-pruner/pkg/metrics"
 	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 
 	pipelineversioned "github.com/tektoncd/pipeline/pkg/client/clientset/versioned"
@@ -36,21 +37,44 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, pr *pipelinev1.PipelineR
 	logger := logging.FromContext(ctx)
 	logger.Debugw("received a PipelineRun event", "namespace", pr.Namespace, "name", pr.Name, "status", pr.Status)
 
+	// Start timing the reconciliation
+	metricsRecorder := metrics.GetRecorder()
+	reconcileTimer := metricsRecorder.NewTimer(metrics.ResourceAttributes(metrics.ResourceTypePipelineRun, pr.Namespace)...)
+	defer reconcileTimer.RecordReconciliationDuration(ctx)
+
+	// Record that we processed a resource
+	status := metrics.StatusSuccess
+	defer func() {
+		metricsRecorder.RecordResourceProcessed(ctx, metrics.ResourceTypePipelineRun, pr.Namespace, status)
+	}()
+
 	// execute the history limiter earlier than the ttl handler
 
 	// execute history limit action
+	historyTimer := metricsRecorder.NewTimer(metrics.OperationAttributes(metrics.ResourceTypePipelineRun, pr.Namespace, metrics.OperationHistory)...)
 	err := r.historyLimiter.ProcessEvent(ctx, pr)
+	historyTimer.RecordHistoryProcessingDuration(ctx)
+
 	if err != nil {
+		status = metrics.StatusError
+		errorType := metrics.ClassifyError(err)
+		metricsRecorder.RecordResourceError(ctx, metrics.ResourceTypePipelineRun, pr.Namespace, errorType, "history_processing_failed")
 		logger.Errorw("error on processing history limiting for a PipelineRun", "namespace", pr.Namespace, "name", pr.Name, zap.Error(err))
 		return err
 	}
 
 	// execute ttl handler
+	ttlTimer := metricsRecorder.NewTimer(metrics.OperationAttributes(metrics.ResourceTypePipelineRun, pr.Namespace, metrics.OperationTTL)...)
 	err = r.ttlHandler.ProcessEvent(ctx, pr)
+	ttlTimer.RecordTTLProcessingDuration(ctx)
+
 	if err != nil {
 		isRequeueKey, _ := controller.IsRequeueKey(err)
 		// the error is not a requeue error, print the error
 		if !isRequeueKey {
+			status = metrics.StatusError
+			errorType := metrics.ClassifyError(err)
+			metricsRecorder.RecordResourceError(ctx, metrics.ResourceTypePipelineRun, pr.Namespace, errorType, "ttl_processing_failed")
 			data, _ := json.Marshal(pr)
 			logger.Errorw("error on processing ttl for a PipelineRun", "namespace", pr.Namespace, "name", pr.Name, "resource", string(data), zap.Error(err))
 		}
