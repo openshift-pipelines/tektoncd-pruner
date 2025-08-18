@@ -38,7 +38,7 @@ spec:
     metadata:
       annotations:
         prometheus.io/scrape: "true"
-        prometheus.io/port: "9090" 
+        prometheus.io/port: "9090"
         prometheus.io/path: "/metrics"
       labels:
         app: tekton-pruner-controller
@@ -47,7 +47,6 @@ spec:
         app.kubernetes.io/instance: default
         app.kubernetes.io/version: "devel"
         app.kubernetes.io/part-of: tekton-pruner
-        # labels below are related to istio and should not be used for resource lookup
         version: "devel"
         pruner.tekton.dev/release: "devel"
     spec:
@@ -94,6 +93,8 @@ spec:
               value: pruner.tekton.dev
             - name: CONFIG_LEADERELECTION_NAME
               value: config-leader-election-tekton-pruner-controller
+            - name: KUBERNETES_MIN_VERSION
+              value: "1.0.0"
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -117,9 +118,7 @@ metadata:
     app.kubernetes.io/instance: default
     app.kubernetes.io/version: "devel"
     app.kubernetes.io/part-of: tekton-pruner
-    # tekton.dev/release value replaced with inputs.params.versionTag in pipeline/tekton/publish.yaml
     pruner.tekton.dev/release: "devel"
-    # labels below are related to istio and should not be used for resource lookup
     app: tekton-pruner-controller
     version: "devel"
   annotations:
@@ -130,10 +129,10 @@ metadata:
   namespace: tekton-pipelines
 spec:
   ports:
-  - name: http-metrics
-    port: 9090
-    protocol: TCP
-    targetPort: 9090
+    - name: http-metrics
+      protocol: TCP
+      targetPort: 9090
+      port: 9090
   selector:
     app.kubernetes.io/name: controller
     app.kubernetes.io/component: controller
