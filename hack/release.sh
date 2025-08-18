@@ -42,6 +42,11 @@ buildImageAndGenerateReleaseYaml() {
     done
     info "Update Release version to $RELEASE_VERSION in $RELEASE_YAML_FILE"
     sed -i. "s/version: devel/version: \"$RELEASE_VERSION\"/g" $RELEASE_YAML_FILE
+    
+    # create a copy with standard name for latest release URLs
+    STANDARD_RELEASE_FILE="release.yaml"
+    cp "$RELEASE_YAML_FILE" "$STANDARD_RELEASE_FILE"
+    info "Created standard release file: $STANDARD_RELEASE_FILE"
     echo "------------------------------------------"
 }
 
@@ -107,7 +112,11 @@ main() {
   RELEASE_YAML_FILE=release-${RELEASE_VERSION}.yaml
 
   buildImageAndGenerateReleaseYaml $RELEASE_YAML_FILE
-  createNewPreRelease $RELEASE_YAML_FILE
+  
+  # Upload both versioned and standard release files
+  STANDARD_RELEASE_FILE="release.yaml"
+  ASSETS=("$RELEASE_YAML_FILE" "$STANDARD_RELEASE_FILE")
+  createNewPreRelease "${ASSETS[@]}"
 #  createNewBranchAndPush
 
   echo "************************************************************"
