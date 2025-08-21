@@ -29,15 +29,15 @@ import (
 
 const (
 	// Metric names
-	MetricResourcesProcessed        = "tektoncd_pruner_resources_processed_total"
-	MetricResourcesDeleted          = "tektoncd_pruner_resources_deleted_total"
-	MetricResourcesErrors           = "tektoncd_pruner_resources_errors_total"
-	MetricReconciliationDuration    = "tektoncd_pruner_reconciliation_duration_seconds"
-	MetricTTLProcessingDuration     = "tektoncd_pruner_ttl_processing_duration_seconds"
-	MetricHistoryProcessingDuration = "tektoncd_pruner_history_processing_duration_seconds"
-	MetricActiveResourcesCount      = "tektoncd_pruner_active_resources_count"
-	MetricPendingDeletionsCount     = "tektoncd_pruner_pending_deletions_count"
-	MetricResourceAgeAtDeletion     = "tektoncd_pruner_resource_age_at_deletion_seconds"
+	MetricResourcesProcessed        = "tekton_pruner_controller_resources_processed"
+	MetricResourcesDeleted          = "tekton_pruner_controller_resources_deleted"
+	MetricResourcesErrors           = "tekton_pruner_controller_resources_errors"
+	MetricReconciliationDuration    = "tekton_pruner_controller_reconciliation_duration"
+	MetricTTLProcessingDuration     = "tekton_pruner_controller_ttl_processing_duration"
+	MetricHistoryProcessingDuration = "tekton_pruner_controller_history_processing_duration"
+	MetricActiveResourcesCount      = "tekton_pruner_controller_active_resources"
+	MetricPendingDeletionsCount     = "tekton_pruner_controller_pending_deletions"
+	MetricResourceAgeAtDeletion     = "tekton_pruner_controller_resource_age_at_deletion"
 
 	// Label keys
 	LabelNamespace    = "namespace"
@@ -102,7 +102,7 @@ func GetRecorder() *Recorder {
 
 // newRecorder creates and initializes a new metrics recorder with all instruments
 func newRecorder() *Recorder {
-	meter := otel.Meter("tektoncd-pruner")
+	meter := otel.Meter("tekton_pruner_controller")
 
 	r := &Recorder{}
 
