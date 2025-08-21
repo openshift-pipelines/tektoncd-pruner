@@ -109,7 +109,7 @@ func GetRecorder() *Recorder {
 
 // newRecorder creates and initializes a new metrics recorder with all instruments
 func newRecorder() *Recorder {
-	meter := otel.Meter("tektoncd-pruner")
+	meter := otel.Meter("tekton_pruner_controller")
 
 	r := &Recorder{}
 
