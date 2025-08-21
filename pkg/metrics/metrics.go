@@ -25,19 +25,21 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 const (
 	// Metric names
-	MetricResourcesProcessed        = "tektoncd_pruner_resources_processed_total"
-	MetricResourcesDeleted          = "tektoncd_pruner_resources_deleted_total"
-	MetricResourcesErrors           = "tektoncd_pruner_resources_errors_total"
-	MetricReconciliationDuration    = "tektoncd_pruner_reconciliation_duration_seconds"
-	MetricTTLProcessingDuration     = "tektoncd_pruner_ttl_processing_duration_seconds"
-	MetricHistoryProcessingDuration = "tektoncd_pruner_history_processing_duration_seconds"
-	MetricActiveResourcesCount      = "tektoncd_pruner_active_resources_count"
-	MetricPendingDeletionsCount     = "tektoncd_pruner_pending_deletions_count"
-	MetricResourceAgeAtDeletion     = "tektoncd_pruner_resource_age_at_deletion_seconds"
+	MetricResourcesProcessed        = "tekton_pruner_controller_resources_processed"
+	MetricReconciliationEvents      = "tekton_pruner_controller_reconciliation_events"
+	MetricResourcesDeleted          = "tekton_pruner_controller_resources_deleted"
+	MetricResourcesErrors           = "tekton_pruner_controller_resources_errors"
+	MetricReconciliationDuration    = "tekton_pruner_controller_reconciliation_duration"
+	MetricTTLProcessingDuration     = "tekton_pruner_controller_ttl_processing_duration"
+	MetricHistoryProcessingDuration = "tekton_pruner_controller_history_processing_duration"
+	MetricActiveResourcesCount      = "tekton_pruner_controller_active_resources"
+	MetricPendingDeletionsCount     = "tekton_pruner_controller_pending_deletions"
+	MetricResourceAgeAtDeletion     = "tekton_pruner_controller_resource_age_at_deletion"
 
 	// Label keys
 	LabelNamespace    = "namespace"
@@ -72,9 +74,10 @@ const (
 // Recorder holds all the OpenTelemetry instruments for recording metrics
 type Recorder struct {
 	// Counters
-	resourcesProcessed metric.Int64Counter
-	resourcesDeleted   metric.Int64Counter
-	resourcesErrors    metric.Int64Counter
+	resourcesProcessed   metric.Int64Counter
+	reconciliationEvents metric.Int64Counter
+	resourcesDeleted     metric.Int64Counter
+	resourcesErrors      metric.Int64Counter
 
 	// Histograms for duration measurements
 	reconciliationDuration    metric.Float64Histogram
@@ -85,6 +88,10 @@ type Recorder struct {
 	// UpDownCounters for gauge-like metrics
 	activeResourcesCount  metric.Int64UpDownCounter
 	pendingDeletionsCount metric.Int64UpDownCounter
+
+	// Cache for tracking unique resources
+	seenResources map[types.UID]bool
+	cacheMutex    sync.RWMutex
 }
 
 var (
@@ -102,14 +109,23 @@ func GetRecorder() *Recorder {
 
 // newRecorder creates and initializes a new metrics recorder with all instruments
 func newRecorder() *Recorder {
-	meter := otel.Meter("tektoncd-pruner")
+	meter := otel.Meter("tekton_pruner_controller")
 
 	r := &Recorder{}
+
+	// Initialize cache for unique resource tracking
+	r.seenResources = make(map[types.UID]bool)
 
 	// Initialize counters
 	r.resourcesProcessed, _ = meter.Int64Counter(
 		MetricResourcesProcessed,
 		metric.WithDescription("Total number of Tekton resources processed by the pruner"),
+		metric.WithUnit("1"),
+	)
+
+	r.reconciliationEvents, _ = meter.Int64Counter(
+		MetricReconciliationEvents,
+		metric.WithDescription("Total number of reconciliation events processed by the pruner"),
 		metric.WithUnit("1"),
 	)
 
@@ -206,14 +222,32 @@ func (t *Timer) RecordHistoryProcessingDuration(ctx context.Context) {
 	t.recorder.historyProcessingDuration.Record(ctx, duration, metric.WithAttributes(t.labels...))
 }
 
-// RecordResourceProcessed increments the resources processed counter
-func (r *Recorder) RecordResourceProcessed(ctx context.Context, resourceType, namespace, status string) {
+// RecordReconciliationEvent increments the reconciliation events counter
+func (r *Recorder) RecordReconciliationEvent(ctx context.Context, resourceType, namespace, status string) {
 	labels := []attribute.KeyValue{
 		attribute.String(LabelResourceType, resourceType),
 		attribute.String(LabelNamespace, namespace),
 		attribute.String(LabelStatus, status),
 	}
-	r.resourcesProcessed.Add(ctx, 1, metric.WithAttributes(labels...))
+	r.reconciliationEvents.Add(ctx, 1, metric.WithAttributes(labels...))
+}
+
+// RecordResourceProcessed increments the unique resources counter if this UID hasn't been seen before
+func (r *Recorder) RecordResourceProcessed(ctx context.Context, resourceUID types.UID, resourceType, namespace, status string) {
+	r.cacheMutex.Lock()
+	defer r.cacheMutex.Unlock()
+
+	// Only count if we haven't seen this UID before
+	if !r.seenResources[resourceUID] {
+		r.seenResources[resourceUID] = true
+
+		labels := []attribute.KeyValue{
+			attribute.String(LabelResourceType, resourceType),
+			attribute.String(LabelNamespace, namespace),
+			attribute.String(LabelStatus, status),
+		}
+		r.resourcesProcessed.Add(ctx, 1, metric.WithAttributes(labels...))
+	}
 }
 
 // RecordResourceDeleted increments the resources deleted counter and records age
