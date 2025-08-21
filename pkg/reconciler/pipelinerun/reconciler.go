@@ -45,7 +45,10 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, pr *pipelinev1.PipelineR
 	// Record that we processed a resource
 	status := metrics.StatusSuccess
 	defer func() {
-		metricsRecorder.RecordResourceProcessed(ctx, metrics.ResourceTypePipelineRun, pr.Namespace, status)
+		// Record reconciliation event (every reconciliation)
+		metricsRecorder.RecordReconciliationEvent(ctx, metrics.ResourceTypePipelineRun, pr.Namespace, status)
+		// Record unique resource (only first time we see this UID)
+		metricsRecorder.RecordResourceProcessed(ctx, pr.UID, metrics.ResourceTypePipelineRun, pr.Namespace, status)
 	}()
 
 	// execute the history limiter earlier than the ttl handler
