@@ -71,7 +71,7 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, tr *pipelinev1.TaskRun) 
 		status = metrics.StatusError
 		errorType := metrics.ClassifyError(err)
 		metricsRecorder.RecordResourceError(ctx, metrics.ResourceTypeTaskRun, tr.Namespace, errorType, "history_processing_failed")
-		logger.Errorw("error on processing history limiting for a TaskRun",
+		logger.Errorw("Error on processing history limiting for a TaskRun",
 			"namespace", tr.Namespace, "name", tr.Name,
 			zap.Error(err),
 		)
@@ -91,7 +91,7 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, tr *pipelinev1.TaskRun) 
 			errorType := metrics.ClassifyError(err)
 			metricsRecorder.RecordResourceError(ctx, metrics.ResourceTypeTaskRun, tr.Namespace, errorType, "ttl_processing_failed")
 			data, _ := json.Marshal(tr)
-			logger.Errorw("error on processing ttl for a TaskRun",
+			logger.Errorw("Error on processing ttl for a TaskRun",
 				"namespace", tr.Namespace, "name", tr.Name,
 				"resource", string(data),
 				zap.Error(err),
@@ -310,7 +310,7 @@ func (trf *TrFuncs) Delete(ctx context.Context, namespace, name string) error {
 func (trf *TrFuncs) Update(ctx context.Context, resource metav1.Object) error {
 	tr, ok := resource.(*pipelinev1.TaskRun)
 	if !ok {
-		return fmt.Errorf("invalid type received. Namespace:%s, Name:%s", resource.GetNamespace(), resource.GetName())
+		return fmt.Errorf("invalid type received. namespace:%s, Name:%s", resource.GetNamespace(), resource.GetName())
 	}
 	_, err := trf.client.TektonV1().TaskRuns(resource.GetNamespace()).Update(ctx, tr, metav1.UpdateOptions{})
 	return err

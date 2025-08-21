@@ -62,7 +62,7 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, pr *pipelinev1.PipelineR
 		status = metrics.StatusError
 		errorType := metrics.ClassifyError(err)
 		metricsRecorder.RecordResourceError(ctx, metrics.ResourceTypePipelineRun, pr.Namespace, errorType, "history_processing_failed")
-		logger.Errorw("error on processing history limiting for a PipelineRun", "namespace", pr.Namespace, "name", pr.Name, zap.Error(err))
+		logger.Errorw("Error on processing history limiting for a PipelineRun", "namespace", pr.Namespace, "name", pr.Name, zap.Error(err))
 		return err
 	}
 
@@ -79,7 +79,7 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, pr *pipelinev1.PipelineR
 			errorType := metrics.ClassifyError(err)
 			metricsRecorder.RecordResourceError(ctx, metrics.ResourceTypePipelineRun, pr.Namespace, errorType, "ttl_processing_failed")
 			data, _ := json.Marshal(pr)
-			logger.Errorw("error on processing ttl for a PipelineRun", "namespace", pr.Namespace, "name", pr.Name, "resource", string(data), zap.Error(err))
+			logger.Errorw("Error on processing ttl for a PipelineRun", "namespace", pr.Namespace, "name", pr.Name, "resource", string(data), zap.Error(err))
 		}
 		return err
 	}
@@ -302,7 +302,7 @@ func (prf *PrFuncs) Delete(ctx context.Context, namespace, name string) error {
 func (prf *PrFuncs) Update(ctx context.Context, resource metav1.Object) error {
 	pr, ok := resource.(*pipelinev1.PipelineRun)
 	if !ok {
-		return fmt.Errorf("invalid type received. Namespace:%s, Name:%s", resource.GetNamespace(), resource.GetName())
+		return fmt.Errorf("invalid type received. namespace:%s, Name:%s", resource.GetNamespace(), resource.GetName())
 	}
 	_, err := prf.client.TektonV1().PipelineRuns(resource.GetNamespace()).Update(ctx, pr, metav1.UpdateOptions{})
 	return err
