@@ -72,7 +72,7 @@ func NewTTLHandler(clock clockUtil.Clock, resourceFn TTLResourceFuncs) (*TTLHand
 		resourceFn: resourceFn,
 	}
 	if tq.resourceFn == nil {
-		return nil, fmt.Errorf("resourceFunc interface can not be nil")
+		return nil, fmt.Errorf("resourceFunc interface cannot be nil")
 	}
 
 	if tq.clock == nil {
