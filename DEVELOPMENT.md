@@ -68,6 +68,19 @@ config current-context`):
 ko apply -f config/
 ```
 
+### Observability Setup
+
+For development with monitoring and metrics, use the observability setup script:
+
+```shell
+./hack/setup-observability-dev.sh
+```
+
+This sets up a Kind cluster with Tekton Pruner, Prometheus, and Jaeger. Access via:
+- Prometheus: http://localhost:9091
+- Jaeger: http://localhost:16686  
+- Pruner Metrics: http://localhost:9090/metrics
+
 ### Redeploy controller
 
 As you make changes to the code, you can redeploy your controller with:
