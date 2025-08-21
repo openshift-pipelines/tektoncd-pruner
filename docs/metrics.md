@@ -17,30 +17,30 @@ The Tekton Pruner exposes metrics in the following categories:
 
 | Metric Name | Type | Description | Labels |
 |-------------|------|-------------|--------|
-| `tektoncd_pruner_resources_processed_total` | Counter | Total number of Tekton resources processed by the pruner | `namespace`, `resource_type`, `status` |
-| `tektoncd_pruner_resources_deleted_total` | Counter | Total number of Tekton resources deleted by the pruner | `namespace`, `resource_type`, `operation` |
-| `tektoncd_pruner_resources_errors_total` | Counter | Total number of errors encountered while processing Tekton resources | `namespace`, `resource_type`, `error_type`, `reason` |
+| `tekton_pruner_controller_resources_processed` | Counter | Total number of Tekton resources processed by the pruner | `namespace`, `resource_type`, `status` |
+| `tekton_pruner_controller_resources_deleted` | Counter | Total number of Tekton resources deleted by the pruner | `namespace`, `resource_type`, `operation` |
+| `tekton_pruner_controller_resources_errors` | Counter | Total number of errors encountered while processing Tekton resources | `namespace`, `resource_type`, `error_type`, `reason` |
 
 ### Performance Timing Metrics
 
 | Metric Name | Type | Description | Labels | Buckets |
 |-------------|------|-------------|--------|---------|
-| `tektoncd_pruner_reconciliation_duration_seconds` | Histogram | Time spent in reconciliation loops | `namespace`, `resource_type` | 0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0 |
-| `tektoncd_pruner_ttl_processing_duration_seconds` | Histogram | Time spent processing TTL-based pruning | `namespace`, `resource_type`, `operation` | 0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0 |
-| `tektoncd_pruner_history_processing_duration_seconds` | Histogram | Time spent processing history-based pruning | `namespace`, `resource_type`, `operation` | 0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0 |
+| `tekton_pruner_controller_reconciliation_duration` | Histogram | Time spent in reconciliation loops | `namespace`, `resource_type` | 0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0 |
+| `tekton_pruner_controller_ttl_processing_duration` | Histogram | Time spent processing TTL-based pruning | `namespace`, `resource_type`, `operation` | 0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0 |
+| `tekton_pruner_controller_history_processing_duration` | Histogram | Time spent processing history-based pruning | `namespace`, `resource_type`, `operation` | 0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0 |
 
 ### State Tracking Metrics
 
 | Metric Name | Type | Description | Labels |
 |-------------|------|-------------|--------|
-| `tektoncd_pruner_active_resources_count` | UpDownCounter | Current number of active Tekton resources being tracked | `namespace`, `resource_type` |
-| `tektoncd_pruner_pending_deletions_count` | UpDownCounter | Current number of resources pending deletion | `namespace`, `resource_type` |
+| `tekton_pruner_controller_active_resources` | UpDownCounter | Current number of active Tekton resources being tracked | `namespace`, `resource_type` |
+| `tekton_pruner_controller_pending_deletions` | UpDownCounter | Current number of resources pending deletion | `namespace`, `resource_type` |
 
 ### Resource Age Analysis Metrics
 
 | Metric Name | Type | Description | Labels | Buckets |
 |-------------|------|-------------|--------|---------|
-| `tektoncd_pruner_resource_age_at_deletion_seconds` | Histogram | Age of resources when they are deleted | `namespace`, `resource_type`, `operation` | 60, 300, 600, 1800, 3600, 7200, 14400, 28800, 86400, 172800, 345600, 604800 |
+| `tekton_pruner_controller_resource_age_at_deletion` | Histogram | Age of resources when they are deleted | `namespace`, `resource_type`, `operation` | 60, 300, 600, 1800, 3600, 7200, 14400, 28800, 86400, 172800, 345600, 604800 |
 
 ## Label Values
 
@@ -72,28 +72,28 @@ The Tekton Pruner exposes metrics in the following categories:
 #### Overall Resource Processing Rate
 ```promql
 # Total resources processed per second across all namespaces
-rate(tektoncd_pruner_resources_processed_total[5m])
+rate(tekton_pruner_controller_resources_processed[5m])
 
 # Resources processed by type
-sum(rate(tektoncd_pruner_resources_processed_total[5m])) by (resource_type)
+sum(rate(tekton_pruner_controller_resources_processed[5m])) by (resource_type)
 
 # Resources processed by namespace
-sum(rate(tektoncd_pruner_resources_processed_total[5m])) by (namespace)
+sum(rate(tekton_pruner_controller_resources_processed[5m])) by (namespace)
 ```
 
 #### Resource Deletion Rates
 ```promql
 # Total deletion rate across all operations
-rate(tektoncd_pruner_resources_deleted_total[5m])
+rate(tekton_pruner_controller_resources_deleted[5m])
 
 # Deletion rate by operation type (TTL vs History)
-sum(rate(tektoncd_pruner_resources_deleted_total[5m])) by (operation)
+sum(rate(tekton_pruner_controller_resources_deleted[5m])) by (operation)
 
 # Deletion rate by resource type
-sum(rate(tektoncd_pruner_resources_deleted_total[5m])) by (resource_type)
+sum(rate(tekton_pruner_controller_resources_deleted[5m])) by (resource_type)
 
 # Namespace-specific deletion patterns
-sum(rate(tektoncd_pruner_resources_deleted_total[5m])) by (namespace, resource_type)
+sum(rate(tekton_pruner_controller_resources_deleted[5m])) by (namespace, resource_type)
 ```
 
 ### Performance Monitoring
@@ -101,25 +101,25 @@ sum(rate(tektoncd_pruner_resources_deleted_total[5m])) by (namespace, resource_t
 #### Reconciliation Performance
 ```promql
 # Average reconciliation duration by resource type
-histogram_quantile(0.95, rate(tektoncd_pruner_reconciliation_duration_seconds_bucket[5m])) by (resource_type)
+histogram_quantile(0.95, rate(tekton_pruner_controller_reconciliation_duration_bucket[5m])) by (resource_type)
 
 # Slow reconciliation loops (> 1 second)
-histogram_quantile(0.99, rate(tektoncd_pruner_reconciliation_duration_seconds_bucket[5m])) > 1
+histogram_quantile(0.99, rate(tekton_pruner_controller_reconciliation_duration_bucket[5m])) > 1
 
 # Reconciliation duration trends
-increase(tektoncd_pruner_reconciliation_duration_seconds_sum[5m]) / increase(tektoncd_pruner_reconciliation_duration_seconds_count[5m])
+increase(tekton_pruner_controller_reconciliation_duration_sum[5m]) / increase(tekton_pruner_controller_reconciliation_duration_count[5m])
 ```
 
 #### Processing Duration Analysis
 ```promql
 # TTL processing performance
-histogram_quantile(0.95, rate(tektoncd_pruner_ttl_processing_duration_seconds_bucket[5m])) by (namespace)
+histogram_quantile(0.95, rate(tekton_pruner_controller_ttl_processing_duration_bucket[5m])) by (namespace)
 
 # History processing performance
-histogram_quantile(0.95, rate(tektoncd_pruner_history_processing_duration_seconds_bucket[5m])) by (namespace)
+histogram_quantile(0.95, rate(tekton_pruner_controller_history_processing_duration_bucket[5m])) by (namespace)
 
 # Compare TTL vs History processing efficiency
-histogram_quantile(0.95, rate(tektoncd_pruner_ttl_processing_duration_seconds_bucket[5m])) by (operation)
+histogram_quantile(0.95, rate(tekton_pruner_controller_ttl_processing_duration_bucket[5m])) by (operation)
 ```
 
 ### Error Monitoring
@@ -127,28 +127,28 @@ histogram_quantile(0.95, rate(tektoncd_pruner_ttl_processing_duration_seconds_bu
 #### Error Rate Analysis
 ```promql
 # Overall error rate
-rate(tektoncd_pruner_resources_errors_total[5m])
+rate(tekton_pruner_controller_resources_errors[5m])
 
 # Error rate by type
-sum(rate(tektoncd_pruner_resources_errors_total[5m])) by (error_type)
+sum(rate(tekton_pruner_controller_resources_errors[5m])) by (error_type)
 
 # Critical errors requiring attention
-rate(tektoncd_pruner_resources_errors_total{error_type=~"api_error|permission"}[5m])
+rate(tekton_pruner_controller_resources_errors{error_type=~"api_error|permission"}[5m])
 
 # Error ratio compared to successful operations
-rate(tektoncd_pruner_resources_errors_total[5m]) / rate(tektoncd_pruner_resources_processed_total[5m])
+rate(tekton_pruner_controller_resources_errors[5m]) / rate(tekton_pruner_controller_resources_processed[5m])
 ```
 
 #### Error Troubleshooting
 ```promql
 # Errors by namespace (identify problematic namespaces)
-sum(rate(tektoncd_pruner_resources_errors_total[5m])) by (namespace)
+sum(rate(tekton_pruner_controller_resources_errors[5m])) by (namespace)
 
 # Errors by reason (identify common failure patterns)
-sum(rate(tektoncd_pruner_resources_errors_total[5m])) by (reason)
+sum(rate(tekton_pruner_controller_resources_errors[5m])) by (reason)
 
 # Recent error spikes
-increase(tektoncd_pruner_resources_errors_total[1h]) > 10
+increase(tekton_pruner_controller_resources_errors[1h]) > 10
 ```
 
 ### Resource Age and Lifecycle Analysis
@@ -156,22 +156,22 @@ increase(tektoncd_pruner_resources_errors_total[1h]) > 10
 #### Resource Age Patterns
 ```promql
 # Average age of deleted resources
-histogram_quantile(0.50, rate(tektoncd_pruner_resource_age_at_deletion_seconds_bucket[5m]))
+histogram_quantile(0.50, rate(tekton_pruner_controller_resource_age_at_deletion_bucket[5m]))
 
 # Resources deleted within 1 hour vs older resources
-sum(rate(tektoncd_pruner_resource_age_at_deletion_seconds_bucket{le="3600"}[5m])) / sum(rate(tektoncd_pruner_resource_age_at_deletion_seconds_count[5m]))
+sum(rate(tekton_pruner_controller_resource_age_at_deletion_bucket{le="3600"}[5m])) / sum(rate(tekton_pruner_controller_resource_age_at_deletion_count[5m]))
 
 # Very old resources being cleaned up (> 1 week)
-histogram_quantile(0.95, rate(tektoncd_pruner_resource_age_at_deletion_seconds_bucket[5m])) > 604800
+histogram_quantile(0.95, rate(tekton_pruner_controller_resource_age_at_deletion_bucket[5m])) > 604800
 ```
 
 #### TTL vs History Cleanup Patterns
 ```promql
 # Compare resource age at deletion between TTL and history operations
-histogram_quantile(0.95, rate(tektoncd_pruner_resource_age_at_deletion_seconds_bucket[5m])) by (operation)
+histogram_quantile(0.95, rate(tekton_pruner_controller_resource_age_at_deletion_bucket[5m])) by (operation)
 
 # TTL effectiveness (resources deleted close to their TTL expiry)
-histogram_quantile(0.50, rate(tektoncd_pruner_resource_age_at_deletion_seconds_bucket{operation="ttl"}[5m]))
+histogram_quantile(0.50, rate(tekton_pruner_controller_resource_age_at_deletion_bucket{operation="ttl"}[5m]))
 ```
 
 ### State and Capacity Monitoring
@@ -179,25 +179,25 @@ histogram_quantile(0.50, rate(tektoncd_pruner_resource_age_at_deletion_seconds_b
 #### Current Resource State
 ```promql
 # Current active resources by type
-tektoncd_pruner_active_resources_count by (resource_type)
+tekton_pruner_controller_active_resources by (resource_type)
 
 # Resources pending deletion
-tektoncd_pruner_pending_deletions_count
+tekton_pruner_controller_pending_deletions
 
 # Resource accumulation rate (if positive, resources are accumulating faster than being cleaned)
-rate(tektoncd_pruner_active_resources_count[5m])
+rate(tekton_pruner_controller_active_resources[5m])
 ```
 
 #### Capacity Planning
 ```promql
 # Growth trend of active resources
-deriv(tektoncd_pruner_active_resources_count[1h])
+deriv(tekton_pruner_controller_active_resources[1h])
 
 # Backlog of resources pending deletion
-sum(tektoncd_pruner_pending_deletions_count) by (namespace)
+sum(tekton_pruner_controller_pending_deletions) by (namespace)
 
 # Processing vs accumulation rate
-rate(tektoncd_pruner_resources_processed_total[5m]) - rate(tektoncd_pruner_active_resources_count[5m])
+rate(tekton_pruner_controller_resources_processed[5m]) - rate(tekton_pruner_controller_active_resources[5m])
 ```
 
 ## Alerting Rules Examples
@@ -208,7 +208,7 @@ groups:
 - name: tekton-pruner-critical
   rules:
   - alert: TektonPrunerHighErrorRate
-    expr: rate(tektoncd_pruner_resources_errors_total[5m]) / rate(tektoncd_pruner_resources_processed_total[5m]) > 0.1
+    expr: rate(tekton_pruner_controller_resources_errors[5m]) / rate(tekton_pruner_controller_resources_processed[5m]) > 0.1
     for: 5m
     labels:
       severity: critical
@@ -217,7 +217,7 @@ groups:
       description: "Error rate is {{ $value | humanizePercentage }} for namespace {{ $labels.namespace }}"
 
   - alert: TektonPrunerProcessingStalled
-    expr: rate(tektoncd_pruner_resources_processed_total[10m]) == 0 and tektoncd_pruner_active_resources_count > 0
+    expr: rate(tekton_pruner_controller_resources_processed[10m]) == 0 and tekton_pruner_controller_active_resources > 0
     for: 10m
     labels:
       severity: critical
@@ -229,7 +229,7 @@ groups:
 ### Warning Alerts
 ```yaml
   - alert: TektonPrunerSlowReconciliation
-    expr: histogram_quantile(0.95, rate(tektoncd_pruner_reconciliation_duration_seconds_bucket[5m])) > 5
+    expr: histogram_quantile(0.95, rate(tekton_pruner_controller_reconciliation_duration_bucket[5m])) > 5
     for: 10m
     labels:
       severity: warning
@@ -238,7 +238,7 @@ groups:
       description: "95th percentile reconciliation duration is {{ $value }}s"
 
   - alert: TektonPrunerResourceAccumulation
-    expr: deriv(tektoncd_pruner_active_resources_count[1h]) > 100
+    expr: deriv(tekton_pruner_controller_active_resources[1h]) > 100
     for: 30m
     labels:
       severity: warning
