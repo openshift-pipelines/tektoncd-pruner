@@ -201,7 +201,7 @@ func cleanupPRs(ctx context.Context, namespace string, configMapUpdateTime strin
 					// Parse the annotation value to a time.Time object
 					annotationTime, err := time.Parse(time.RFC3339, prInstance.Annotations[config.AnnotationHistoryLimitCheckProcessed])
 					if err != nil {
-						logger.Errorw("error parsing history limit check processed time", "namespace", pr.Namespace, "name", pr.Name, zap.Error(err))
+						logger.Errorw("Error parsing history limit check processed time", "namespace", pr.Namespace, "name", pr.Name, zap.Error(err))
 						continue // Continue to next PR instead of returning error
 					}
 					// Compare the annotation time with the configmap update time
@@ -210,7 +210,7 @@ func cleanupPRs(ctx context.Context, namespace string, configMapUpdateTime strin
 
 					updateTime, err := time.Parse(time.RFC3339, configMapUpdateTime)
 					if err != nil {
-						logger.Errorw("error parsing configmap update time", "namespace", pr.Namespace, "name", pr.Name, zap.Error(err))
+						logger.Errorw("Error parsing configmap update time", "namespace", pr.Namespace, "name", pr.Name, zap.Error(err))
 						continue // Continue to next PR instead of returning error
 					}
 

@@ -66,7 +66,7 @@ func NewHistoryLimiter(resourceFn HistoryLimiterResourceFuncs) (*HistoryLimiter,
 		resourceFn: resourceFn,
 	}
 	if hl.resourceFn == nil {
-		return nil, fmt.Errorf("resourceFunc interface can not be nil")
+		return nil, fmt.Errorf("resourceFunc interface cannot be nil")
 	}
 
 	return hl, nil
@@ -150,14 +150,14 @@ func (hl *HistoryLimiter) markAsProcessed(ctx context.Context, resource metav1.O
 	// Convert patchData to JSON
 	patchBytes, err := json.Marshal(patchData)
 	if err != nil {
-		logger.Errorw("error marshaling patch data", zap.Error(err))
+		logger.Errorw("Error marshaling patch data", zap.Error(err))
 		return
 	}
 
 	// Apply the patch
 	err = hl.resourceFn.Patch(ctx, resourceLatest.GetNamespace(), resourceLatest.GetName(), patchBytes)
 	if err != nil {
-		logger.Errorw("error patching resource with 'mark as processed' annotation",
+		logger.Errorw("Error patching resource with 'mark as processed' annotation",
 			"resource", hl.resourceFn.Type(), "namespace", resourceLatest.GetNamespace(), "name", resourceLatest.GetName(), zap.Error(err))
 	}
 }
