@@ -6,7 +6,7 @@ packages:
   - openssh-clients
   - git
   - git-lfs
-  - expat
+  - expat 
 arches:
   # The list of architectures
   - aarch64
