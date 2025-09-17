@@ -1,0 +1,2 @@
+# keep the next release version
+pruner=0.2.0

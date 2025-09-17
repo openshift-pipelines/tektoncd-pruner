@@ -1,0 +1,20 @@
+# The OWNERS file is used by prow to automatically merge approved PRs.
+
+approvers:
+- anithapriyanatarajan
+- pramodbindal
+- savitaashture
+- vdemeester
+- waveywaves
+
+reviewers:
+- anithapriyanatarajan
+- divyansh42
+- jkhelil
+- jkandasa
+- pramodbindal
+- savitaashture
+- vdemeester
+- waveywaves
+
+# Alumni ❤️
