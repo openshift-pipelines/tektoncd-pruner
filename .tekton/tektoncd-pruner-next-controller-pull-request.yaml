@@ -11,8 +11,8 @@ metadata:
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
-      == "main" &&
-      ("***".pathChanged() ||
+      == "next" &&
+      ("upstream/***".pathChanged() || ".konflux/patches/***".pathChanged() || ".konflux/rpms/***".pathChanged() ||
       ".konflux/dockerfiles/controller.Dockerfile".pathChanged() ||
       ".tekton/tektoncd-pruner-next-controller-pull-request.yaml".pathChanged())
   creationTimestamp: null
