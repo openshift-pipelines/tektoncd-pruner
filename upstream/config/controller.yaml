@@ -1,0 +1,140 @@
+# Copyright 2025 The Tekton Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tekton-pruner-controller
+  namespace: tekton-pipelines
+  labels:
+    app.kubernetes.io/name: controller
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: default
+    app.kubernetes.io/version: "devel"
+    app.kubernetes.io/part-of: tekton-pruner
+    pruner.tekton.dev/release: "devel"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tekton-pruner-controller
+      app.kubernetes.io/name: controller
+      app.kubernetes.io/component: controller
+      app.kubernetes.io/instance: default
+      app.kubernetes.io/part-of: tekton-pruner
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+      labels:
+        app: tekton-pruner-controller
+        app.kubernetes.io/name: controller
+        app.kubernetes.io/component: controller
+        app.kubernetes.io/instance: default
+        app.kubernetes.io/version: "devel"
+        app.kubernetes.io/part-of: tekton-pruner
+        version: "devel"
+        pruner.tekton.dev/release: "devel"
+    spec:
+      # To avoid node becoming SPOF, spread our replicas to different nodes.
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: controller
+                    app.kubernetes.io/name: controller
+                    app.kubernetes.io/component: controller
+                    app.kubernetes.io/instance: default
+                    app.kubernetes.io/part-of: tekton-pruner
+                topologyKey: kubernetes.io/hostname
+              weight: 100
+      serviceAccountName: tekton-pruner-controller
+      containers:
+        - name: controller
+          # This is the Go import path for the binary that is containerized
+          # and substituted here.
+          image: ko://github.com/tektoncd/pruner/cmd/controller
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+            limits:
+              cpu: 1000m
+              memory: 1000Mi
+          ports:
+            - name: metrics
+              containerPort: 9090
+          env:
+            - name: SYSTEM_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: CONFIG_LOGGING_NAME
+              value: config-logging-tekton-pruner
+            - name: CONFIG_OBSERVABILITY_NAME
+              value: config-observability-tekton-pruner
+            - name: METRICS_DOMAIN
+              value: pruner.tekton.dev
+            - name: CONFIG_LEADERELECTION_NAME
+              value: config-leader-election-tekton-pruner-controller
+            - name: KUBERNETES_MIN_VERSION
+              value: "1.0.0"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - "ALL"
+            # User 65532 is the distroless nonroot user ID
+            runAsUser: 65532
+            runAsGroup: 65532
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/name: controller
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: default
+    app.kubernetes.io/version: "devel"
+    app.kubernetes.io/part-of: tekton-pruner
+    pruner.tekton.dev/release: "devel"
+    app: tekton-pruner-controller
+    version: "devel"
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+    prometheus.io/path: "/metrics"
+  name: tekton-pruner-controller
+  namespace: tekton-pipelines
+spec:
+  ports:
+    - name: http-metrics
+      protocol: TCP
+      targetPort: 9090
+      port: 9090
+  selector:
+    app.kubernetes.io/name: controller
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: default
+    app.kubernetes.io/part-of: tekton-pruner
