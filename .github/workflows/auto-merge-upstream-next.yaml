@@ -1,5 +1,4 @@
-# Generated for Konflux Application openshift-pipelines-core-next by openshift-pipelines/hack. DO NOT EDIT
-name: auto-merge-upstream-next
+# Generated for Konflux Application openshift-pipelines-core-next by openshift-pipelines/hack. DO NOT EDITname: auto-merge-upstream-next
 
 on:
   workflow_dispatch: {}

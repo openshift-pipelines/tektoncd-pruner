@@ -1,5 +1,4 @@
-# Generated for Konflux Application openshift-pipelines-core-next by openshift-pipelines/hack. DO NOT EDIT
-name: update-sources-next
+# Generated for Konflux Application openshift-pipelines-core-next by openshift-pipelines/hack. DO NOT EDITname: update-sources-next
 
 on:
   workflow_dispatch: {}
