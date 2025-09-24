@@ -20,7 +20,8 @@ COPY --from=builder /tmp/controller ${CONTROLLER}
 
 LABEL \
       com.redhat.component="openshift-pipelines-tektoncd-pruner-controller-rhel9-container" \
-      name="openshift-pipelines/pipelines-tektoncd-pruner-controller-rhel9" \
+      name="openshift-pipelines/pipelines-pruner-controller-rhel9" \
+      cpe="cpe:/a:redhat:openshift_pipelines:1.19::el9" \
       version=$VERSION \
       summary="Red Hat OpenShift Pipelines tektoncd-pruner Controller" \
       maintainer="pipelines-extcomm@redhat.com" \
