@@ -7,7 +7,7 @@ packages:
   - git
   - git-lfs
   - expat
-arches:
+arches: 
   # The list of architectures
   - aarch64
   - x86_64
