@@ -2,7 +2,7 @@ module github.com/openshift-pipelines/tektoncd-pruner
 
 go 1.23.4
 
-toolchain go1.23.6
+toolchain go1.25.1
 
 require (
 	github.com/stretchr/testify v1.10.0
