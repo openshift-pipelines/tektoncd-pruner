@@ -2,7 +2,7 @@ module github.com/tektoncd/pruner
 
 go 1.24.0
 
-toolchain go1.24.6
+toolchain go1.25.3
 
 require (
 	github.com/stretchr/testify v1.11.1
