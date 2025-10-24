@@ -215,7 +215,7 @@ func getFromPrunerConfigResourceLevelwithSelector(namespacesSpec map[string]Name
 								return resourceSpec.HistoryLimit, "identifiedBy_resource_ann"
 							}
 						case PrunerFieldTypeFailedHistoryLimit:
-							if resourceSpec.SuccessfulHistoryLimit != nil {
+							if resourceSpec.FailedHistoryLimit != nil {
 								return resourceSpec.FailedHistoryLimit, "identifiedBy_resource_ann"
 							} else {
 								return resourceSpec.HistoryLimit, "identifiedBy_resource_ann"
@@ -244,7 +244,7 @@ func getFromPrunerConfigResourceLevelwithSelector(namespacesSpec map[string]Name
 								return resourceSpec.HistoryLimit, "identifiedBy_resource_label"
 							}
 						case PrunerFieldTypeFailedHistoryLimit:
-							if resourceSpec.SuccessfulHistoryLimit != nil {
+							if resourceSpec.FailedHistoryLimit != nil {
 								return resourceSpec.FailedHistoryLimit, "identifiedBy_resource_label"
 							} else {
 								return resourceSpec.HistoryLimit, "identifiedBy_resource_label"
