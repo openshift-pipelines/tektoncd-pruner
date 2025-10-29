@@ -81,9 +81,17 @@ const (
 	// that holds the cluster-wide pruner configuration data
 	PrunerConfigMapName = "tekton-pruner-default-spec"
 
+	// PrunerNamespaceConfigMapName represents the name of the config map
+	// that holds the namespace-level pruner configuration data
+	PrunerNamespaceConfigMapName = "tekton-pruner-namespace-spec"
+
 	// PrunerGlobalConfigKey represents the key name
 	// used to fetch the cluster-wide pruner configuration data
 	PrunerGlobalConfigKey = "global-config"
+
+	// PrunerNamespaceConfigKey represents the key name
+	// used to fetch the namespace-level pruner configuration data
+	PrunerNamespaceConfigKey = "ns-config"
 
 	// DefaultTTLConcurrentWorkersPipelineRun represents
 	// number of workers in the PipelineRun controller

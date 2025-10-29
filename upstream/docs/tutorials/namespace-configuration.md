@@ -13,10 +13,14 @@ This tutorial demonstrates how to configure Tekton Pruner with different setting
 
 Tekton Pruner supports a hierarchical configuration model where settings can be:
 - Global (cluster-wide defaults)
-- Namespace-specific
+- Namespace-specific (via global ConfigMap or namespace-level ConfigMap)
 - Resource group-specific within namespaces
 
-## Basic Namespace Configuration
+## Configuration Methods
+
+### Method 1: Global ConfigMap with Namespace Specs
+
+Define namespace configurations in the global ConfigMap (`tekton-pruner-default-spec`):
 
 Here's a basic configuration with different settings for different namespaces:
 
@@ -43,6 +47,83 @@ data:
         ttlSecondsAfterFinished: 604800        # 1 week
         successfulHistoryLimit: 10
         failedHistoryLimit: 10
+```
+
+### Method 2: Namespace-Level ConfigMap (Recommended)
+
+For better namespace isolation and self-service configuration, you can use namespace-level ConfigMaps. This method allows namespace owners to manage their own pruning configuration.
+
+> **Important**: Namespace-level ConfigMaps should **only** be created in user namespaces where PipelineRuns or TaskRuns are scheduled. Do **not** create these ConfigMaps in:
+> - System namespaces (e.g., `kube-system`, `kube-public`, `kube-node-lease`)
+> - OpenShift system namespaces (e.g., `openshift-*`)
+> - Tekton controller namespaces (e.g., `tekton-pipelines`, `tekton-*`)
+
+
+**Step 1:** Set the enforced config level to `namespace` in the global config:
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tekton-pruner-default-spec
+  namespace: tekton-pipelines
+data:
+  global-config: |
+    enforcedConfigLevel: namespace    # Enable namespace-level configuration priority
+    ttlSecondsAfterFinished: 3600     # Default fallback
+```
+
+**Step 2:** Create a namespace-level ConfigMap in your user namespace:
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tekton-pruner-namespace-spec
+  namespace: my-app-namespace # Your user namespace
+data:
+  ns-config: |
+    historyLimit: 100
+    successfulHistoryLimit: 50
+    failedHistoryLimit: 100
+    ttlSecondsAfterFinished: 300
+```
+
+Apply it to your namespace:
+```bash
+kubectl apply -f namespace-config.yaml -n my-app-namespace
+```
+
+**Benefits of Namespace-Level ConfigMaps:**
+- **Self-Service**: Namespace owners can manage their own pruning policies
+- **Isolation**: Each namespace's configuration is independent
+- **Priority**: Namespace-level ConfigMap takes priority when `enforcedConfigLevel: namespace`
+- **Fallback**: Falls back to global config if namespace ConfigMap doesn't exist
+
+**Example for Multiple Namespaces:**
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tekton-pruner-namespace-spec
+  namespace: my-app-dev # User namespace
+data:
+  ns-config: |
+    ttlSecondsAfterFinished: 300
+    successfulHistoryLimit: 3
+    failedHistoryLimit: 5
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tekton-pruner-namespace-spec
+  namespace: my-app-prod # User namespace
+data:
+  ns-config: |
+    ttlSecondsAfterFinished: 604800      # 7 days
+    successfulHistoryLimit: 10
+    failedHistoryLimit: 10
 ```
 
 ## Configuration Inheritance
@@ -139,14 +220,35 @@ data:
 
 ## Verifying Namespace Configuration
 
+### For Global ConfigMap Method
+
 1. Check configuration for a specific namespace:
 ```bash
 kubectl get configmap tekton-pruner-default-spec -n tekton-pipelines -o jsonpath='{.data.global-config}' | grep -A 5 "namespaces:"
 ```
 
-2. Monitor pruning behavior:
+### For Namespace-Level ConfigMap Method
+
+1. Check if a namespace has its own configuration:
+```bash
+kubectl get configmap tekton-pruner-namespace-spec -n <your-namespace> -o yaml
+```
+
+2. View the namespace-specific config:
+```bash
+kubectl get configmap tekton-pruner-namespace-spec -n <your-namespace> -o jsonpath='{.data.ns-config}'
+```
+
+### Monitor Pruning Behavior
+
+Monitor controller logs to see which configuration is being used:
 ```bash
 kubectl logs -n tekton-pipelines -l app=tekton-pruner-controller | grep "namespace: your-namespace"
+```
+
+Check for namespace config loading:
+```bash
+kubectl logs -n tekton-pipelines -l app=tekton-pruner-controller | grep "Loading namespace config"
 ```
 
 ## Next Steps

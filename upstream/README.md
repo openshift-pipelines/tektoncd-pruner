@@ -18,8 +18,9 @@ Tekton Pruner is a Kubernetes controller that automatically manages the lifecycl
 
 ## Overview
 
-Tekton Pruner provides event-driven and configuration-based cleanup of Tekton resources. It consists of three controllers:
+Tekton Pruner provides event-driven and configuration-based cleanup of Tekton resources. It consists of four controllers:
 - Main Pruner controller that periodically processes cleanup based on ConfigMap settings
+- Namespace Pruner Config controller that watches namespace-level ConfigMaps across all namespaces
 - PipelineRun controller that handles PipelineRun events
 - TaskRun controller that handles standalone TaskRun events
 
@@ -131,7 +132,9 @@ data:
 
 ### Namespace-specific Configuration
 
-Override global settings for specific namespaces:
+#### Method 1: Global ConfigMap with Namespace Specs
+
+Override global settings for specific namespaces in the global ConfigMap:
 
 ```yaml
 data:
@@ -142,6 +145,44 @@ data:
       my-namespace:
         ttlSecondsAfterFinished: 60  # Override for specific namespace
 ```
+
+#### Method 2: Namespace-Level ConfigMap (for User Namespaces)
+
+> **Important**: Only create this ConfigMap in user namespaces, **not** in system or Tekton controller namespaces (e.g., `tekton-pipelines`, `kube-*`, `openshift-*`).
+
+**Step 1:** Set enforced config level to `namespace`:
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tekton-pruner-default-spec
+  namespace: tekton-pipelines
+data:
+  global-config: |
+    enforcedConfigLevel: namespace
+```
+
+**Step 2:** Create namespace-level ConfigMap in your user namespace:
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tekton-pruner-namespace-spec  # Fixed name
+  namespace: my-app-namespace          # Your user namespace (NOT system namespaces!)
+data:
+  ns-config: |
+    historyLimit: 100
+    successfulHistoryLimit: 50
+    failedHistoryLimit: 100
+    ttlSecondsAfterFinished: 300
+```
+
+Apply it:
+```bash
+kubectl apply -f namespace-config.yaml -n my-app-namespace
+```
+
+The namespace-level ConfigMap takes priority when `enforcedConfigLevel: namespace` is set in the global config. See [Namespace Configuration Tutorial](docs/tutorials/namespace-configuration.md) for more details.
 
 ## Contributing
 

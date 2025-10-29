@@ -4,6 +4,7 @@ import (
 	"flag"
 	"strings"
 
+	"github.com/tektoncd/pruner/pkg/reconciler/namespaceprunerconfig"
 	"github.com/tektoncd/pruner/pkg/reconciler/pipelinerun"
 	"github.com/tektoncd/pruner/pkg/reconciler/taskrun"
 	"github.com/tektoncd/pruner/pkg/reconciler/tektonpruner"
@@ -58,6 +59,7 @@ func main() {
 	// Use sharedmain to handle controller lifecycle
 	sharedmain.MainWithConfig(ctx, "tekton-pruner-controller", cfg,
 		tektonpruner.NewController,
+		namespaceprunerconfig.NewController,
 		pipelinerun.NewController,
 		taskrun.NewController,
 	)
