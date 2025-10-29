@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
@@ -82,3 +81,21 @@ rules:
       - namespaces/finalizers
     verbs:
       - update
+
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - list
+
+  # permissions restricted to specific ConfigMap 
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    resourceNames:
+      - tekton-pruner-namespace-spec
+    verbs:
+      - get
+      - watch
