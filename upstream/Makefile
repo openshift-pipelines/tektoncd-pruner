@@ -25,6 +25,25 @@ BINARIES=$(addprefix bin/,$(COMMANDS))
 .PHONY: all
 all: fmt $(BINARIES) | $(BIN) ; $(info $(M) building executable…) @ ## Build program binary
 
+.PHONY: fmt
+fmt: ; $(info $(M) formatting Go code…) @ ## Format Go code
+	$Q $(GO) fmt ./...
+
+.PHONY: test
+test: test-unit ; $(info $(M) running all tests…) @ ## Run all tests
+
+.PHONY: test-unit
+test-unit: ; $(info $(M) running unit tests…) @ ## Run unit tests
+	$Q $(GO) test -timeout $(TIMEOUT_UNIT) -race -cover $(TESTPKGS)
+
+.PHONY: test-unit-verbose
+test-unit-verbose: ; $(info $(M) running unit tests (verbose)…) @ ## Run unit tests (verbose)
+	$Q $(GO) test -timeout $(TIMEOUT_UNIT) -race -cover -v $(TESTPKGS)
+
+.PHONY: yamllint
+yamllint: ; $(info $(M) running yamllint…) @ ## Run yamllint on config and workflow files
+	$Q yamllint -c .yamllint config/ .github/workflows/ || echo "yamllint not installed or errors found"
+
 $(BIN):
 	@mkdir -p $@
 $(BIN)/%: | $(BIN) ; $(info $(M) building $(PACKAGE)…)

@@ -1,0 +1,104 @@
+name: ci
+
+on:
+  - pull_request
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+  checks: write # Used to annotate code in the PR
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
+    - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00  # v6.0.0
+      with:
+        go-version-file: "go.mod"
+    - name: Build binaries
+      run: |
+        go build -v ./...
+
+  unit-tests:
+    name: Unit Tests
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
+    - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00  # v6.0.0
+      with:
+        go-version-file: "go.mod"
+    - name: Run unit tests
+      run: |
+        go test -v -race ./pkg/... ./cmd/...
+
+  linting:
+    name: Linting
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
+    - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00  # v6.0.0
+      with:
+        go-version-file: "go.mod"
+    - name: Check Go formatting
+      run: |
+        gofmt_out=$(gofmt -d $(find * -name '*.go' ! -path 'vendor/*' ! -path 'third_party/*'))
+        if [[ -n "$gofmt_out" ]]; then
+            echo "$gofmt_out"
+            echo "ERROR: Go files are not formatted. Run 'go fmt ./...' to fix."
+            exit 1
+        fi
+        echo "All Go files are properly formatted."
+    - name: golangci-lint
+      uses: golangci/golangci-lint-action@4afd733a84b1f43292c63897423277bb7f4313a9 # v8.0.0
+      with:
+        only-new-issues: true
+        args: --timeout=10m
+    - name: YAML Lint
+      run: |
+        sudo apt-get update && sudo apt-get install -y yamllint
+        yamllint -c .yamllint config/ .github/workflows/
+      continue-on-error: true
+
+  check-licenses:
+    name: License Check
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
+    - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00  # v6.0.0
+      with:
+        go-version-file: "go.mod"
+    - name: Check licenses
+      run: |
+        go install github.com/google/go-licenses@v1.6.0
+        go-licenses check ./...
+
+  ko-resolve:
+    name: Ko Resolve (Multi-arch)
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8  # v5.0.0
+    - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00  # v6.0.0
+      with:
+        go-version-file: "go.mod"
+    - uses: ko-build/setup-ko@d006021bd0c28d1ce33a07e7943d48b079944c8d # v0.9
+    - name: Validate ko resolve for multi-arch
+      run: |
+        cat <<EOF > .ko.yaml
+        defaultBaseImage: cgr.dev/chainguard/static
+        EOF
+        # Test that ko can resolve the config for multiple architectures
+        KO_DOCKER_REPO=example.com ko resolve --platform=linux/amd64,linux/arm64 --push=false -R -f config 1>/dev/null
+        echo "Ko resolve succeeded for multi-arch build."

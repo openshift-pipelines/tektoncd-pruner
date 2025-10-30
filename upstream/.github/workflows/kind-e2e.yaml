@@ -27,7 +27,7 @@ jobs:
     uses: ./.github/workflows/reusable-e2e.yaml
     with:
       k8s-version: ${{ matrix.k8s-version }}
-      pipelines-release: v0.65.2
+      pipelines-release: v0.65.0
   # This job is for testing the latest LTS version of Tekton Pipelines
   pipelines-lts:
     strategy:
