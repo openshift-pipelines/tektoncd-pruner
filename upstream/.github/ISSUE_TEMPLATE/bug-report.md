@@ -26,6 +26,14 @@ labels: kind/bug
 
 - Tekton Pipeline version:
 
+  **Output of `tkn version` or `kubectl get pods -n tekton-pipelines -l app=tekton-pipelines-controller -o=jsonpath='{.items[0].metadata.labels.version}'`**
+
+```
+(paste your output here)
+```
+
+- Tekton Pruner version:
+
   **Output of `tkn version` or `kubectl get pods -n tekton-pipelines -l app=tekton-pruner-controller -o=jsonpath='{.items[0].metadata.labels.version}'`**
 
 ```

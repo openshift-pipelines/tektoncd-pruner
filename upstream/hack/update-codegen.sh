@@ -22,10 +22,14 @@ source $(git rev-parse --show-toplevel)/vendor/github.com/tektoncd/plumbing/scri
 
 boilerplate="$(git rev-parse --show-toplevel)/hack/boilerplate/boilerplate.go.txt"
 
-go install k8s.io/code-generator/cmd/deepcopy-gen
+# Pin code-generator version to match go.mod
+go install k8s.io/code-generator/cmd/deepcopy-gen@v0.33.1
 
-${GOPATH}/bin/deepcopy-gen \
-  -O zz_generated.deepcopy \
+# Use GOBIN if set, otherwise fall back to GOPATH/bin
+CODEGEN_BIN="${GOBIN:-${GOPATH}/bin}/deepcopy-gen"
+
+${CODEGEN_BIN} \
+  --output-file zz_generated.deepcopy.go \
   --go-header-file "${boilerplate}" \
   -i github.com/tektoncd/pruner/pkg/config
 

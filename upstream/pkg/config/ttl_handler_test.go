@@ -119,7 +119,7 @@ func TestNewTTLHandlerFunc(t *testing.T) {
 			name:       "Nil resource functions",
 			resourceFn: nil,
 			wantErr:    true,
-			errMessage: "resourceFunc interface can not be nil",
+			errMessage: "resourceFunc interface cannot be nil",
 		},
 	}
 

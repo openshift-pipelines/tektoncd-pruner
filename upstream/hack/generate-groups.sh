@@ -48,7 +48,12 @@ shift 4
   # To support running this script from anywhere, we have to first cd into this directory
   # so we can install the tools.
   cd "$(dirname "${0}")"
-  go install k8s.io/code-generator/cmd/{defaulter-gen,client-gen,lister-gen,informer-gen,deepcopy-gen}
+  # Pin code-generator version to match go.mod
+  go install k8s.io/code-generator/cmd/defaulter-gen@v0.33.1
+  go install k8s.io/code-generator/cmd/client-gen@v0.33.1
+  go install k8s.io/code-generator/cmd/lister-gen@v0.33.1
+  go install k8s.io/code-generator/cmd/informer-gen@v0.33.1
+  go install k8s.io/code-generator/cmd/deepcopy-gen@v0.33.1
 )
 
 PREFIX=${GOBIN:-${GOPATH}/bin}
@@ -68,7 +73,7 @@ done
 
 if [ "${GENS}" = "all" ] || grep -qw "deepcopy" <<<"${GENS}"; then
   echo "Generating deepcopy funcs for ${GROUPS_WITH_VERSIONS}"
-  "${PREFIX}/deepcopy-gen" --input-dirs "$(codegen::join , "${FQ_APIS[@]}")" -O zz_generated.deepcopy --bounding-dirs "${APIS_PKG}" "$@"
+  "${PREFIX}/deepcopy-gen" --input-dirs "$(codegen::join , "${FQ_APIS[@]}")" --output-file zz_generated.deepcopy.go --bounding-dirs "${APIS_PKG}" "$@"
 fi
 
 if [ "${GENS}" = "all" ] || grep -qw "client" <<<"${GENS}"; then
