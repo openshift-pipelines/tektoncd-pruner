@@ -19,6 +19,7 @@ metadata:
   name: config-logging-tekton-pruner
   namespace: tekton-pipelines
   labels:
+    app.kubernetes.io/part-of: tekton-pruner
     pruner.tekton.dev/release: "devel"
 data:
   _example: |
