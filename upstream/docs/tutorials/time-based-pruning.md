@@ -5,17 +5,15 @@ weight: 300
 ---
 -->
 
-# Time-based Pruning Tutorial
+# Time-based Pruning (TTL)
 
-This tutorial demonstrates how to configure time-based pruning (TTL - Time To Live) in Tekton Pruner to automatically delete PipelineRuns and TaskRuns after they've been completed for a specified duration.
+Delete completed resources after a specified duration using `ttlSecondsAfterFinished`.
 
-## Understanding TTL-based Pruning
+## How It Works
 
-The `ttlSecondsAfterFinished` setting determines how long a completed PipelineRun or TaskRun should be kept before being deleted. This applies to both successful and failed runs.
+TTL applies to **all completed runs** (successful and failed). The timer starts when the run finishes.
 
-## Basic TTL Configuration
-
-Here's a basic configuration that deletes resources 1 hour after completion:
+## Basic Configuration
 
 ```yaml
 apiVersion: v1
@@ -23,123 +21,90 @@ kind: ConfigMap
 metadata:
   name: tekton-pruner-default-spec
   namespace: tekton-pipelines
+  labels:
+    app.kubernetes.io/part-of: tekton-pruner
+    pruner.tekton.dev/config-type: global
 data:
   global-config: |
-    ttlSecondsAfterFinished: 3600    # Delete after 1 hour
+    ttlSecondsAfterFinished: 3600  # Delete after 1 hour
 ```
-
-## Common TTL Configurations
-
-### Short-lived Development Resources
-
-```yaml
-data:
-  global-config: |
-    namespaces:
-      development:
-        ttlSecondsAfterFinished: 300    # 5 minutes
-```
-
-### Production Audit Requirements
-
-```yaml
-data:
-  global-config: |
-    namespaces:
-      production:
-        ttlSecondsAfterFinished: 2592000    # 30 days
-```
-
-## Pipeline-specific TTL
-
-You can set different TTL values for specific pipelines:
-
-```yaml
-data:
-  global-config: |
-    pipelineRuns:
-      - selector:
-          matchLabels:
-            tekton.dev/pipeline: release-pipeline
-        ttlSecondsAfterFinished: 604800    # Keep release runs for 1 week
-```
-
-## Combining TTL with History Limits
-
-TTL and history limits can be used together:
-
-```yaml
-data:
-  global-config: |
-    ttlSecondsAfterFinished: 3600          # Delete after 1 hour
-    successfulHistoryLimit: 5               # But always keep last 5 successful runs
-    failedHistoryLimit: 3                   # And last 3 failed runs
-```
-
-## Best Practices
-
-1. Set shorter TTLs in development environments
-2. Use longer TTLs in production for audit purposes
-3. Consider regulatory requirements when setting TTLs
-4. Balance storage costs with retention needs
-5. Use labels to identify critical pipelines that need longer retention
 
 ## Common TTL Values
 
 | Duration | Seconds | Use Case |
 |----------|---------|----------|
-| 5 minutes | 300 | Development/testing |
-| 1 hour | 3600 | CI pipelines |
-| 1 day | 86400 | General workloads |
-| 1 week | 604800 | Release pipelines |
-| 30 days | 2592000 | Production/audit |
+| 5 minutes | `300` | Dev/test rapid iteration |
+| 1 hour | `3600` | CI pipelines |
+| 1 day | `86400` | General workloads |
+| 7 days | `604800` | Staging/release |
+| 30 days | `2592000` | Production/audit/compliance |
 
-## Verifying TTL-based Pruning
-
-1. Check the age of your PipelineRuns:
-```bash
-kubectl get pipelineruns --sort-by=.status.completionTime
-```
-
-2. Monitor pruning activities:
-```bash
-kubectl logs -n tekton-pipelines -l app=tekton-pruner-controller
-```
-
-## Example Scenarios
-
-### CI/CD Pipeline Configuration
+## Environment-specific TTLs
 
 ```yaml
 data:
   global-config: |
-    pipelineRuns:
-      - selector:
-          matchLabels:
-            purpose: ci
-        ttlSecondsAfterFinished: 3600    # CI runs cleaned up after 1 hour
-      - selector:
-          matchLabels:
-            purpose: cd
-        ttlSecondsAfterFinished: 604800   # CD runs kept for 1 week
-```
-
-### Environment-based Configuration
-
-```yaml
-data:
-  global-config: |
+    enforcedConfigLevel: namespace
+    ttlSecondsAfterFinished: 3600  # Default
     namespaces:
-      development:
-        ttlSecondsAfterFinished: 300      # 5 minutes
+      dev:
+        ttlSecondsAfterFinished: 300      # 5 min
       staging:
         ttlSecondsAfterFinished: 86400    # 1 day
-      production:
+      prod:
         ttlSecondsAfterFinished: 2592000  # 30 days
 ```
 
-## Next Steps
+## Pipeline-specific TTLs
 
-- Explore [Namespace Configuration](./namespace-configuration.md)
-- Learn about [Resource Groups](./resource-groups.md)
-- Review [History-based Pruning](./history-based-pruning.md)
+```yaml
+data:
+  global-config: |
+    ttlSecondsAfterFinished: 3600  # Default: 1 hour
+    pipelineRuns:
+      - selector:
+          matchLabels:
+            pipeline-type: release
+        ttlSecondsAfterFinished: 604800  # Releases: 7 days
+      - selector:
+          matchLabels:
+            pipeline-type: test
+        ttlSecondsAfterFinished: 300     # Tests: 5 min
+```
+
+## Combining TTL with History Limits
+
+History limits **override** TTL to guarantee minimum retention:
+
+```yaml
+data:
+  global-config: |
+    ttlSecondsAfterFinished: 300      # Delete after 5 min
+    successfulHistoryLimit: 5          # BUT keep last 5 successful
+    failedHistoryLimit: 10             # AND keep last 10 failed
+```
+
+**Result**: Runs are deleted after 5 minutes UNLESS they're in the last 5 successful or last 10 failed.
+
+## Verification
+
+```bash
+# Check run completion times
+kubectl get pipelineruns --sort-by=.status.completionTime
+
+# Monitor pruning
+kubectl logs -n tekton-pipelines -l app=tekton-pruner-controller | grep "Deleting"
+```
+
+## Best Practices
+
+1. **Development**: Short TTLs (5-60 min) for rapid iteration
+2. **Production**: Long TTLs (7-30 days) for audit/compliance
+3. **Critical Pipelines**: Use selectors for extended retention
+4. **Balance**: Consider storage costs vs. retention needs
+
+## Related
+
+- [History-based Pruning](./history-based-pruning.md) - Retain N runs regardless of age
+- [Namespace Configuration](./namespace-configuration.md) - Per-environment TTL settings
+- [Resource Groups](./resource-groups.md) - Pipeline-specific TTLs via selectors

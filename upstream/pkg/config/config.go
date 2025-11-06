@@ -18,6 +18,7 @@ package config
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	corev1 "k8s.io/api/core/v1"
@@ -598,4 +599,162 @@ func (ps *prunerConfigStore) GetTaskFailedHistoryLimitCount(namespace, name stri
 	defer ps.mutex.Unlock()
 	enforcedConfigLevel := ps.GetTaskEnforcedConfigLevel(namespace, name, selector)
 	return getResourceFieldData(ps.globalConfig, ps.namespaceConfig, namespace, name, selector, PrunerResourceTypeTaskRun, PrunerFieldTypeFailedHistoryLimit, enforcedConfigLevel)
+}
+
+func ValidateConfigMap(cm *corev1.ConfigMap) error {
+	return ValidateConfigMapWithGlobal(cm, nil)
+}
+
+// ValidateConfigMapWithGlobal validates a ConfigMap with optional global config for limit enforcement
+// If globalConfigMap is provided and cm is a namespace-level config, it validates that namespace
+// limits do not exceed global limits
+func ValidateConfigMapWithGlobal(cm *corev1.ConfigMap, globalConfigMap *corev1.ConfigMap) error {
+	if cm.Data == nil {
+		return nil
+	}
+
+	// Parse global config if validating a global ConfigMap
+	var globalLimits *PrunerConfig
+	if cm.Data[PrunerGlobalConfigKey] != "" {
+		globalConfig := &GlobalConfig{}
+		if err := yaml.Unmarshal([]byte(cm.Data[PrunerGlobalConfigKey]), globalConfig); err != nil {
+			return fmt.Errorf("failed to parse global-config: %w", err)
+		}
+		if err := validatePrunerConfig(&globalConfig.PrunerConfig, "global-config", nil); err != nil {
+			return err
+		}
+		// Validate nested namespace configs within global config
+		// These are validated against the global limits
+		for ns, nsSpec := range globalConfig.Namespaces {
+			if err := validatePrunerConfig(&nsSpec.PrunerConfig, "global-config.namespaces."+ns, &globalConfig.PrunerConfig); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	// Parse and validate namespace config against global limits
+	if cm.Data[PrunerNamespaceConfigKey] != "" {
+		namespaceConfig := &NamespaceSpec{}
+		if err := yaml.Unmarshal([]byte(cm.Data[PrunerNamespaceConfigKey]), namespaceConfig); err != nil {
+			return fmt.Errorf("failed to parse namespace-config: %w", err)
+		}
+
+		// Extract global limits if global config is provided
+		if globalConfigMap != nil && globalConfigMap.Data != nil && globalConfigMap.Data[PrunerGlobalConfigKey] != "" {
+			globalConfig := &GlobalConfig{}
+			if err := yaml.Unmarshal([]byte(globalConfigMap.Data[PrunerGlobalConfigKey]), globalConfig); err != nil {
+				// If we can't parse global config, just do basic validation
+				return validatePrunerConfig(&namespaceConfig.PrunerConfig, "namespace-config", nil)
+			}
+			globalLimits = &globalConfig.PrunerConfig
+		}
+
+		// Validate namespace config, enforcing global limits if available
+		if err := validatePrunerConfig(&namespaceConfig.PrunerConfig, "namespace-config", globalLimits); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// validatePrunerConfig validates the fields of a PrunerConfig
+// If globalConfig is provided, namespace-level settings are validated to not exceed global limits
+func validatePrunerConfig(config *PrunerConfig, path string, globalConfig *PrunerConfig) error {
+	if config == nil {
+		return nil
+	}
+
+	// Validate EnforcedConfigLevel
+	if config.EnforcedConfigLevel != nil {
+		level := *config.EnforcedConfigLevel
+		if level != EnforcedConfigLevelGlobal &&
+			level != EnforcedConfigLevelNamespace &&
+			level != EnforcedConfigLevelResource {
+			return fmt.Errorf("%s: invalid enforcedConfigLevel '%s', must be one of: global, namespace, resource", path, level)
+		}
+	}
+
+	// Validate TTLSecondsAfterFinished
+	if config.TTLSecondsAfterFinished != nil {
+		if *config.TTLSecondsAfterFinished < 0 {
+			return fmt.Errorf("%s: ttlSecondsAfterFinished cannot be negative, got %d", path, *config.TTLSecondsAfterFinished)
+		}
+		// Namespace config cannot have longer TTL than global config
+		if globalConfig != nil && globalConfig.TTLSecondsAfterFinished != nil {
+			if *config.TTLSecondsAfterFinished > *globalConfig.TTLSecondsAfterFinished {
+				return fmt.Errorf("%s: ttlSecondsAfterFinished (%d) cannot exceed global limit (%d)",
+					path, *config.TTLSecondsAfterFinished, *globalConfig.TTLSecondsAfterFinished)
+			}
+		} else if globalConfig == nil || globalConfig.TTLSecondsAfterFinished == nil {
+			// If no global limit is set, enforce system maximum
+			if *config.TTLSecondsAfterFinished > MaxTTLSecondsAfterFinished {
+				return fmt.Errorf("%s: ttlSecondsAfterFinished (%d) cannot exceed system maximum (%d seconds / 30 days)",
+					path, *config.TTLSecondsAfterFinished, MaxTTLSecondsAfterFinished)
+			}
+		}
+	}
+
+	// Validate SuccessfulHistoryLimit
+	if config.SuccessfulHistoryLimit != nil {
+		if *config.SuccessfulHistoryLimit < 0 {
+			return fmt.Errorf("%s: successfulHistoryLimit cannot be negative, got %d", path, *config.SuccessfulHistoryLimit)
+		}
+		// Namespace config cannot retain more successful runs than global config
+		if globalConfig != nil && globalConfig.SuccessfulHistoryLimit != nil {
+			if *config.SuccessfulHistoryLimit > *globalConfig.SuccessfulHistoryLimit {
+				return fmt.Errorf("%s: successfulHistoryLimit (%d) cannot exceed global limit (%d)",
+					path, *config.SuccessfulHistoryLimit, *globalConfig.SuccessfulHistoryLimit)
+			}
+		} else if globalConfig == nil || globalConfig.SuccessfulHistoryLimit == nil {
+			// If no global limit is set, enforce system maximum
+			if *config.SuccessfulHistoryLimit > MaxHistoryLimit {
+				return fmt.Errorf("%s: successfulHistoryLimit (%d) cannot exceed system maximum (%d)",
+					path, *config.SuccessfulHistoryLimit, MaxHistoryLimit)
+			}
+		}
+	}
+
+	// Validate FailedHistoryLimit
+	if config.FailedHistoryLimit != nil {
+		if *config.FailedHistoryLimit < 0 {
+			return fmt.Errorf("%s: failedHistoryLimit cannot be negative, got %d", path, *config.FailedHistoryLimit)
+		}
+		// Namespace config cannot retain more failed runs than global config
+		if globalConfig != nil && globalConfig.FailedHistoryLimit != nil {
+			if *config.FailedHistoryLimit > *globalConfig.FailedHistoryLimit {
+				return fmt.Errorf("%s: failedHistoryLimit (%d) cannot exceed global limit (%d)",
+					path, *config.FailedHistoryLimit, *globalConfig.FailedHistoryLimit)
+			}
+		} else if globalConfig == nil || globalConfig.FailedHistoryLimit == nil {
+			// If no global limit is set, enforce system maximum
+			if *config.FailedHistoryLimit > MaxHistoryLimit {
+				return fmt.Errorf("%s: failedHistoryLimit (%d) cannot exceed system maximum (%d)",
+					path, *config.FailedHistoryLimit, MaxHistoryLimit)
+			}
+		}
+	}
+
+	// Validate HistoryLimit
+	if config.HistoryLimit != nil {
+		if *config.HistoryLimit < 0 {
+			return fmt.Errorf("%s: historyLimit cannot be negative, got %d", path, *config.HistoryLimit)
+		}
+		// Namespace config cannot retain more runs than global config
+		if globalConfig != nil && globalConfig.HistoryLimit != nil {
+			if *config.HistoryLimit > *globalConfig.HistoryLimit {
+				return fmt.Errorf("%s: historyLimit (%d) cannot exceed global limit (%d)",
+					path, *config.HistoryLimit, *globalConfig.HistoryLimit)
+			}
+		} else if globalConfig == nil || globalConfig.HistoryLimit == nil {
+			// If no global limit is set, enforce system maximum
+			if *config.HistoryLimit > MaxHistoryLimit {
+				return fmt.Errorf("%s: historyLimit (%d) cannot exceed system maximum (%d)",
+					path, *config.HistoryLimit, MaxHistoryLimit)
+			}
+		}
+	}
+
+	return nil
 }

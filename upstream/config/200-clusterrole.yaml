@@ -90,7 +90,7 @@ rules:
       - list
       - watch
 
-  # permissions restricted to specific ConfigMap 
+  # permissions restricted to specific ConfigMap
   - apiGroups:
       - ""
     resources:
@@ -99,3 +99,13 @@ rules:
       - tekton-pruner-namespace-spec
     verbs:
       - get
+
+  # used in webhook for certificate management
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - get
+      - list
+      - watch

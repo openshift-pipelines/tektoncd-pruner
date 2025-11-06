@@ -29,6 +29,14 @@ Welcome to the Tekton Pruner tutorials! These guides will help you understand an
    - Pipeline-specific configurations
    - Advanced grouping strategies
 
+## Additional Documentation
+
+- [ConfigMap Validation](../configmap-validation.md)
+  - How the validation webhook works
+  - Required labels and naming conventions
+  - Common validation errors and solutions
+  - Deletion protection rules
+
 ## Recommended Learning Path
 
 1. Start with the [Getting Started](./getting-started.md) tutorial to set up Tekton Pruner

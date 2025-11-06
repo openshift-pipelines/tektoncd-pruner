@@ -1,0 +1,101 @@
+# Copyright 2025 The Tekton Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: tekton-pruner-webhook-certs
+  namespace: tekton-pipelines
+  labels:
+    app.kubernetes.io/component: webhook
+    app.kubernetes.io/instance: default
+    app.kubernetes.io/part-of: tekton-pruner
+    pruner.tekton.dev/release: "devel"
+# The data is populated at install time.
+
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: validation.webhook.pruner.tekton.dev
+  labels:
+    app.kubernetes.io/component: webhook
+    app.kubernetes.io/instance: default
+    app.kubernetes.io/part-of: tekton-pruner
+    pruner.tekton.dev/release: "devel"
+webhooks:
+  # Webhook 1: Validates global/cluster-level pruner configuration
+  # Triggers: When tekton-pruner-default-spec ConfigMap with proper labels is created or updated
+  # This ConfigMap is mandatory and must exist with valid configuration when pruner is installed
+  - admissionReviewVersions: ["v1"]
+    clientConfig:
+      service:
+        name: tekton-pruner-webhook
+        namespace: tekton-pipelines
+        path: /validate-configmap
+    failurePolicy: Fail
+    sideEffects: None
+    timeoutSeconds: 5
+    name: validation.webhook.pruner.tekton.dev.global
+    rules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE", "DELETE"]
+        resources: ["configmaps"]
+        scope: "Namespaced"
+    namespaceSelector:
+      matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: In
+          values:
+            - tekton-pipelines
+    objectSelector:
+      matchLabels:
+        app.kubernetes.io/part-of: tekton-pruner
+        pruner.tekton.dev/config-type: global
+  # Webhook 2: Validates namespace-level pruner configuration
+  # Triggers: When ConfigMap with proper labels is created or updated in any user namespace
+  # This ConfigMap is OPTIONAL - namespaces can choose to create it for custom pruning policies
+  # If not present, the namespace will use the global configuration
+  - admissionReviewVersions: ["v1"]
+    clientConfig:
+      service:
+        name: tekton-pruner-webhook
+        namespace: tekton-pipelines
+        path: /validate-configmap
+    failurePolicy: Fail
+    sideEffects: None
+    timeoutSeconds: 5
+    name: validation.webhook.pruner.tekton.dev.namespace
+    rules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE", "DELETE"]
+        resources: ["configmaps"]
+        scope: "Namespaced"
+    namespaceSelector:
+      matchExpressions:
+        # Exclude system namespaces - webhook only processes user namespaces
+        - key: kubernetes.io/metadata.name
+          operator: NotIn
+          values:
+            - kube-system
+            - kube-public
+            - kube-node-lease
+            - tekton-pipelines
+            - default
+    objectSelector:
+      matchLabels:
+        app.kubernetes.io/part-of: tekton-pruner
+        pruner.tekton.dev/config-type: namespace

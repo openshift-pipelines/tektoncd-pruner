@@ -5,24 +5,34 @@ weight: 400
 ---
 -->
 
-# Namespace Configuration Tutorial
+# Namespace Configuration
 
-This tutorial demonstrates how to configure Tekton Pruner with different settings for different namespaces, allowing you to have fine-grained control over pruning behavior across your cluster.
+Configure different pruning policies per namespace for environment-specific retention needs.
 
-## Understanding Namespace Configuration
+## Configuration Hierarchy
 
-Tekton Pruner supports a hierarchical configuration model where settings can be:
-- Global (cluster-wide defaults)
-- Namespace-specific (via global ConfigMap or namespace-level ConfigMap)
-- Resource group-specific within namespaces
+Settings flow: **Global** → **Namespace** → **Resource Group**
 
-## Configuration Methods
+Set `enforcedConfigLevel: namespace` in global config to enable namespace-level overrides.
 
-### Method 1: Global ConfigMap with Namespace Specs
+## Validation Boundaries
 
-Define namespace configurations in the global ConfigMap (`tekton-pruner-default-spec`):
+> **CRITICAL - System Boundaries**: Create namespace-level ConfigMaps **ONLY** in user namespaces where PipelineRuns/TaskRuns run.
+> 
+> **FORBIDDEN namespaces** (validation will reject):
+> - System: `kube-*`, `openshift-*`
+> - Tekton controllers: `tekton-pipelines`, `tekton-*`
+>
+> **Required labels** for all configs:
+> ```yaml
+> labels:
+>   app.kubernetes.io/part-of: tekton-pruner
+>   pruner.tekton.dev/config-type: <global|namespace>
+> ```
 
-Here's a basic configuration with different settings for different namespaces:
+## Method 1: Inline Namespace Specs (Centralized)
+
+Define all namespace configs in the global ConfigMap:
 
 ```yaml
 apiVersion: v1
@@ -30,36 +40,30 @@ kind: ConfigMap
 metadata:
   name: tekton-pruner-default-spec
   namespace: tekton-pipelines
+  labels:
+    app.kubernetes.io/part-of: tekton-pruner
+    pruner.tekton.dev/config-type: global
 data:
   global-config: |
-    enforcedConfigLevel: namespace    # Enable namespace-level configuration
-    ttlSecondsAfterFinished: 3600    # Global default: 1 hour
+    enforcedConfigLevel: namespace
+    ttlSecondsAfterFinished: 3600  # Global fallback
     namespaces:
-      development:
-        ttlSecondsAfterFinished: 300           # 5 minutes
+      dev:
+        ttlSecondsAfterFinished: 300
         successfulHistoryLimit: 3
-        failedHistoryLimit: 5
       staging:
-        ttlSecondsAfterFinished: 86400         # 1 day
+        ttlSecondsAfterFinished: 86400
         successfulHistoryLimit: 5
-        failedHistoryLimit: 5
-      production:
-        ttlSecondsAfterFinished: 604800        # 1 week
+      prod:
+        ttlSecondsAfterFinished: 604800
         successfulHistoryLimit: 10
-        failedHistoryLimit: 10
 ```
 
-### Method 2: Namespace-Level ConfigMap (Recommended)
+## Method 2: Per-Namespace ConfigMaps (Self-Service)
 
-For better namespace isolation and self-service configuration, you can use namespace-level ConfigMaps. This method allows namespace owners to manage their own pruning configuration.
+**Recommended** for namespace isolation and team autonomy.
 
-> **Important**: Namespace-level ConfigMaps should **only** be created in user namespaces where PipelineRuns or TaskRuns are scheduled. Do **not** create these ConfigMaps in:
-> - System namespaces (e.g., `kube-system`, `kube-public`, `kube-node-lease`)
-> - OpenShift system namespaces (e.g., `openshift-*`)
-> - Tekton controller namespaces (e.g., `tekton-pipelines`, `tekton-*`)
-
-
-**Step 1:** Set the enforced config level to `namespace` in the global config:
+**Step 1:** Enable namespace-level config in global ConfigMap:
 
 ```yaml
 apiVersion: v1
@@ -67,79 +71,129 @@ kind: ConfigMap
 metadata:
   name: tekton-pruner-default-spec
   namespace: tekton-pipelines
+  labels:
+    app.kubernetes.io/part-of: tekton-pruner
+    pruner.tekton.dev/config-type: global
 data:
   global-config: |
-    enforcedConfigLevel: namespace    # Enable namespace-level configuration priority
-    ttlSecondsAfterFinished: 3600     # Default fallback
+    enforcedConfigLevel: namespace
+    ttlSecondsAfterFinished: 3600  # Fallback for namespaces without config
 ```
 
-**Step 2:** Create a namespace-level ConfigMap in your user namespace:
+**Step 2:** Create namespace-specific ConfigMap (fixed name: `tekton-pruner-namespace-spec`):
 
 ```yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: tekton-pruner-namespace-spec
-  namespace: my-app-namespace # Your user namespace
-data:
-  ns-config: |
-    historyLimit: 100
-    successfulHistoryLimit: 50
-    failedHistoryLimit: 100
-    ttlSecondsAfterFinished: 300
-```
-
-Apply it to your namespace:
-```bash
-kubectl apply -f namespace-config.yaml -n my-app-namespace
-```
-
-**Benefits of Namespace-Level ConfigMaps:**
-- **Self-Service**: Namespace owners can manage their own pruning policies
-- **Isolation**: Each namespace's configuration is independent
-- **Priority**: Namespace-level ConfigMap takes priority when `enforcedConfigLevel: namespace`
-- **Fallback**: Falls back to global config if namespace ConfigMap doesn't exist
-
-**Example for Multiple Namespaces:**
-
-```yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: tekton-pruner-namespace-spec
-  namespace: my-app-dev # User namespace
+  name: tekton-pruner-namespace-spec  # Fixed name
+  namespace: my-app  # User namespace only
+  labels:
+    app.kubernetes.io/part-of: tekton-pruner
+    pruner.tekton.dev/config-type: namespace
 data:
   ns-config: |
     ttlSecondsAfterFinished: 300
-    successfulHistoryLimit: 3
-    failedHistoryLimit: 5
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: tekton-pruner-namespace-spec
-  namespace: my-app-prod # User namespace
-data:
-  ns-config: |
-    ttlSecondsAfterFinished: 604800      # 7 days
-    successfulHistoryLimit: 10
+    successfulHistoryLimit: 5
     failedHistoryLimit: 10
 ```
 
-## Configuration Inheritance
+**Benefits:**
+- Self-service for namespace owners
+- Independent lifecycle management
+- Takes priority over global config
 
-Settings flow from global → namespace → resource group. Any setting not specified at a lower level inherits from the level above:
+## Validation Rules
+
+Namespace configurations are validated against limits to prevent resource exhaustion.
+
+### 1. Explicit Global Limits
+When the global config defines a limit, namespace configs cannot exceed it.
+
+```yaml
+data:
+  global-config: |
+    ttlSecondsAfterFinished: 3600
+    successfulHistoryLimit: 10
+    namespaces:
+      development:
+        ttlSecondsAfterFinished: 7200   # Invalid: exceeds global limit
+        successfulHistoryLimit: 5       # Valid: within global limit
+```
+
+### 2. System Default Limits
+When no global limit is defined, the system enforces these maximums:
+
+| Configuration Field | System Maximum |
+|---------------------|----------------|
+| `ttlSecondsAfterFinished` | 2,592,000 seconds (30 days) |
+| `successfulHistoryLimit` | 100 |
+| `failedHistoryLimit` | 100 |
+| `historyLimit` | 100 |
+
+Example:
 
 ```yaml
 data:
   global-config: |
     enforcedConfigLevel: namespace
-    ttlSecondsAfterFinished: 3600    # Global default
-    successfulHistoryLimit: 5         # Global default
+    # No limits defined - system maximums apply
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tekton-pruner-namespace-spec
+  namespace: my-app
+data:
+  ns-config: |
+    ttlSecondsAfterFinished: 2592001   # Invalid: exceeds system maximum
+    successfulHistoryLimit: 150        # Invalid: exceeds system maximum
+```
+
+### 3. Override Defaults
+Cluster admins can set stricter limits via global config. Global limits override system defaults but cannot exceed system maximums.
+
+```yaml
+data:
+  global-config: |
+    ttlSecondsAfterFinished: 86400     # Admin limit: 1 day
+    successfulHistoryLimit: 20         # Admin limit: 20 runs
     namespaces:
       development:
-        ttlSecondsAfterFinished: 300  # Override TTL only
-        # inherits successfulHistoryLimit from global
+        ttlSecondsAfterFinished: 3600   # Valid: within global limit
+        ttlSecondsAfterFinished: 172800 # Invalid: exceeds global limit
+```
+
+## Configuration Inheritance
+
+Unspecified settings inherit from higher levels:
+
+```yaml
+data:
+  global-config: |
+    enforcedConfigLevel: namespace
+    ttlSecondsAfterFinished: 3600     # Global default
+    successfulHistoryLimit: 5          # Global default
+    namespaces:
+      dev:
+        ttlSecondsAfterFinished: 300   # Override TTL
+        # Inherits successfulHistoryLimit: 5 from global
+```
+
+## Configuration Inheritance
+
+Unspecified settings inherit from higher levels:
+
+```yaml
+data:
+  global-config: |
+    enforcedConfigLevel: namespace
+    ttlSecondsAfterFinished: 3600     # Global default
+    successfulHistoryLimit: 5          # Global default
+    namespaces:
+      dev:
+        ttlSecondsAfterFinished: 300   # Override TTL
+        # Inherits successfulHistoryLimit: 5 from global
 ```
 
 ## Namespace Groups
@@ -175,81 +229,76 @@ data:
             ttlSecondsAfterFinished: 2592000    # Critical pipelines: 30 days
 ```
 
+## Common Patterns
+
+**Environment-based:**
+```yaml
+namespaces:
+  dev:
+    ttlSecondsAfterFinished: 300    # 5 min
+    successfulHistoryLimit: 3
+  staging:
+    ttlSecondsAfterFinished: 86400  # 1 day
+    successfulHistoryLimit: 5
+  prod:
+    ttlSecondsAfterFinished: 604800 # 7 days
+    successfulHistoryLimit: 10
+```
+
+**With Resource Groups:**
+```yaml
+namespaces:
+  prod:
+    ttlSecondsAfterFinished: 604800  # Namespace default
+    pipelineRuns:
+      - selector:
+          matchLabels:
+            critical: "true"
+        ttlSecondsAfterFinished: 2592000  # 30 days for critical
+```
+
+## Verification
+
+**Check namespace config:**
+```bash
+# For inline method
+kubectl get cm tekton-pruner-default-spec -n tekton-pipelines -o jsonpath='{.data.global-config}'
+
+# For per-namespace method
+kubectl get cm tekton-pruner-namespace-spec -n <namespace> -o yaml
+```
+
+**Monitor pruning:**
+```bash
+kubectl logs -n tekton-pipelines -l app=tekton-pruner-controller | grep "namespace:"
+```
+
+**Validate Configuration Against Limits:**
+
+The webhook validates ConfigMaps at creation and update time:
+
+```bash
+kubectl apply -f namespace-config.yaml
+# Error if limits exceeded:
+# admission webhook denied: namespace-config: ttlSecondsAfterFinished (3000000) 
+# cannot exceed system maximum (2592000 seconds / 30 days)
+```
+
+Check current global limits:
+```bash
+kubectl get configmap tekton-pruner-default-spec -n tekton-pipelines -o jsonpath='{.data.global-config}'
+```
+
 ## Best Practices
 
 1. Use clear namespace naming conventions
-2. Start with permissive limits in development
+2. Start with permissive limits in development within system maximums
 3. Implement stricter retention in production
 4. Document namespace configuration decisions
 5. Regularly review and adjust settings
-
-## Common Patterns
-
-### Development Workflow
-
-```yaml
-data:
-  global-config: |
-    namespaces:
-      development:
-        ttlSecondsAfterFinished: 300       # Quick cleanup
-        successfulHistoryLimit: 3           # Minimal history
-      testing:
-        ttlSecondsAfterFinished: 3600      # Keep for analysis
-        successfulHistoryLimit: 5           # More history for testing
-      staging:
-        ttlSecondsAfterFinished: 86400     # 24-hour retention
-        successfulHistoryLimit: 10          # Substantial history
-```
-
-### Team-based Configuration
-
-```yaml
-data:
-  global-config: |
-    namespaces:
-      team1-dev:
-        ttlSecondsAfterFinished: 300
-      team1-prod:
-        ttlSecondsAfterFinished: 604800
-      team2-dev:
-        ttlSecondsAfterFinished: 300
-      team2-prod:
-        ttlSecondsAfterFinished: 604800
-```
-
-## Verifying Namespace Configuration
-
-### For Global ConfigMap Method
-
-1. Check configuration for a specific namespace:
-```bash
-kubectl get configmap tekton-pruner-default-spec -n tekton-pipelines -o jsonpath='{.data.global-config}' | grep -A 5 "namespaces:"
-```
-
-### For Namespace-Level ConfigMap Method
-
-1. Check if a namespace has its own configuration:
-```bash
-kubectl get configmap tekton-pruner-namespace-spec -n <your-namespace> -o yaml
-```
-
-2. View the namespace-specific config:
-```bash
-kubectl get configmap tekton-pruner-namespace-spec -n <your-namespace> -o jsonpath='{.data.ns-config}'
-```
-
-### Monitor Pruning Behavior
-
-Monitor controller logs to see which configuration is being used:
-```bash
-kubectl logs -n tekton-pipelines -l app=tekton-pruner-controller | grep "namespace: your-namespace"
-```
-
-Check for namespace config loading:
-```bash
-kubectl logs -n tekton-pipelines -l app=tekton-pruner-controller | grep "Loading namespace config"
-```
+6. Plan configurations within system limits (30 days / 100 runs)
+7. Use global limits for cluster-wide governance
+8. Test configurations before deployment
 
 ## Next Steps
 
