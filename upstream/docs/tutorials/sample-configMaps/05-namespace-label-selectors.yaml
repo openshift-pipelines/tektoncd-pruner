@@ -1,0 +1,56 @@
+# Namespace-Specific ConfigMap with Label Selectors
+# Demonstrates resource groups within a single namespace using labels
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tekton-pruner-namespace-spec
+  namespace: development                 # User namespace
+  labels:
+    app.kubernetes.io/part-of: tekton-pruner
+    pruner.tekton.dev/config-type: namespace
+data:
+  ns-config: |
+    ttlSecondsAfterFinished: 600
+    successfulHistoryLimit: 3
+    failedHistoryLimit: 3
+    
+    pipelineRuns:
+      - selector:
+        - matchLabels:
+            priority: high
+        ttlSecondsAfterFinished: 3600
+        successfulHistoryLimit: 10
+        failedHistoryLimit: 5
+      
+      - selector:
+        - matchLabels:
+            priority: low
+        ttlSecondsAfterFinished: 300
+        successfulHistoryLimit: 1
+        failedHistoryLimit: 2
+      
+      - selector:
+        - matchLabels:
+            pipeline-type: ci
+        ttlSecondsAfterFinished: 600
+        successfulHistoryLimit: 3
+      
+      - selector:
+        - matchLabels:
+            pipeline-type: cd
+        ttlSecondsAfterFinished: 1800
+        successfulHistoryLimit: 5
+    
+    taskRuns:
+      - selector:
+        - matchLabels:
+            task-type: test
+        ttlSecondsAfterFinished: 300
+        successfulHistoryLimit: 2
+      
+      - selector:
+        - matchLabels:
+            task-type: build
+        ttlSecondsAfterFinished: 600
+        successfulHistoryLimit: 3

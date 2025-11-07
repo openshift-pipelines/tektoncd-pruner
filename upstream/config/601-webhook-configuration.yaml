@@ -93,8 +93,6 @@ webhooks:
             - kube-system
             - kube-public
             - kube-node-lease
-            - tekton-pipelines
-            - default
     objectSelector:
       matchLabels:
         app.kubernetes.io/part-of: tekton-pruner

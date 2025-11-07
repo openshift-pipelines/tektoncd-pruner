@@ -139,20 +139,72 @@ func updateOrCreateConfigMap(ctx context.Context, kubeClient *kubernetes.Clients
 	return err
 }
 
-// waitForWebhookReady waits for the webhook to process and cache a config update
-func waitForWebhookReady(ctx context.Context, kubeClient *kubernetes.Clientset, timeout time.Duration) error {
-	// Verify the global config exists
-	_, err := kubeClient.CoreV1().ConfigMaps(prunerNamespace).Get(ctx, prunerConfigName, metav1.GetOptions{})
-	if err != nil {
-		return fmt.Errorf("global config not found: %w", err)
-	}
+// ensureClusterReady verifies that all required components are ready before running tests
+func ensureClusterReady(ctx context.Context, t *testing.T, kubeClient *kubernetes.Clientset) {
+	t.Log("=== Verifying cluster readiness ===")
 
-	// Wait for webhook to sync (accounting for API caching, informer sync, and webhook client caching)
-	return wait.PollImmediate(2*time.Second, timeout, func() (bool, error) {
-		// Simple time-based wait since we can't directly observe webhook cache state
-		time.Sleep(3 * time.Second)
-		return true, nil
+	// 1. Check Tekton Pipeline Controller
+	t.Log("Checking Tekton Pipeline controller...")
+	if err := waitForDeploymentReady(ctx, kubeClient, "tekton-pipelines", "tekton-pipelines-controller", 60*time.Second); err != nil {
+		t.Fatalf("Tekton Pipeline controller not ready: %v", err)
+	}
+	t.Log("Tekton Pipeline controller is ready")
+
+	// 2. Check Tekton Pipeline Webhook
+	t.Log("Checking Tekton Pipeline webhook...")
+	if err := waitForDeploymentReady(ctx, kubeClient, "tekton-pipelines", "tekton-pipelines-webhook", 60*time.Second); err != nil {
+		t.Fatalf("Tekton Pipeline webhook not ready: %v", err)
+	}
+	t.Log("Tekton Pipeline webhook is ready")
+
+	// 3. Check Pruner Controller
+	t.Log("Checking Pruner controller...")
+	if err := waitForDeploymentReady(ctx, kubeClient, prunerNamespace, "tekton-pruner-controller", 60*time.Second); err != nil {
+		t.Fatalf("Pruner controller not ready: %v", err)
+	}
+	t.Log("Pruner controller is ready")
+
+	// 4. Check Pruner Webhook
+	t.Log("Checking Pruner webhook...")
+	if err := waitForDeploymentReady(ctx, kubeClient, prunerNamespace, "tekton-pruner-webhook", 60*time.Second); err != nil {
+		t.Fatalf("Pruner webhook not ready: %v", err)
+	}
+	t.Log("Pruner webhook is ready")
+
+	// 5. Additional grace period for all components to be fully operational
+	t.Log("Waiting for components to stabilize...")
+	time.Sleep(5 * time.Second)
+
+	t.Log("=== All cluster components are ready ===")
+}
+
+// waitForDeploymentReady waits for a deployment to have at least one ready replica
+func waitForDeploymentReady(ctx context.Context, kubeClient *kubernetes.Clientset, namespace, deploymentName string, timeout time.Duration) error {
+	return wait.PollImmediate(3*time.Second, timeout, func() (bool, error) {
+		deployment, err := kubeClient.AppsV1().Deployments(namespace).Get(ctx, deploymentName, metav1.GetOptions{})
+		if err != nil {
+			if errors.IsNotFound(err) {
+				return false, nil // Deployment not found yet, keep waiting
+			}
+			return false, err
+		}
+
+		// Check if deployment has ready replicas
+		if deployment.Status.ReadyReplicas > 0 && deployment.Status.ReadyReplicas == deployment.Status.Replicas {
+			return true, nil
+		}
+
+		return false, nil
 	})
+}
+
+// waitForConfigSync waits for the webhook's informer to sync ConfigMap changes
+// This is a simple sleep since ensureClusterReady() already verified webhook is running
+func waitForConfigSync() {
+	// Brief pause to allow webhook informers to sync ConfigMap updates
+	// This is needed because Kubernetes informers may have a slight delay
+	// before reflecting the latest ConfigMap state in their cache
+	time.Sleep(2 * time.Second)
 }
 
 func TestPrunerE2E(t *testing.T) {
@@ -169,6 +221,9 @@ func TestPrunerE2E(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create tekton client: %v", err)
 	}
+
+	// Ensure all required cluster components are ready before running tests
+	ensureClusterReady(ctx, t, kubeClient)
 
 	// Create test namespace
 	_, err = kubeClient.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
@@ -231,6 +286,10 @@ func TestPrunerE2E(t *testing.T) {
 
 	t.Run("TestWebhookValidation_SystemMaximumEnforcement", func(t *testing.T) {
 		testWebhookSystemMaximumEnforcement(ctx, t, kubeClient)
+	})
+
+	t.Run("TestWebhookValidation_ForbiddenNamespaces", func(t *testing.T) {
+		testWebhookForbiddenNamespaces(ctx, t, kubeClient)
 	})
 }
 
@@ -642,10 +701,8 @@ failedHistoryLimit: 5`)
 		t.Fatalf("Failed to set up global config: %v", err)
 	}
 
-	// Wait for webhook to process the global config
-	if err := waitForWebhookReady(ctx, kubeClient, 10*time.Second); err != nil {
-		t.Fatalf("Failed waiting for webhook to be ready: %v", err)
-	}
+	// Wait for webhook's informer to sync the global config
+	waitForConfigSync()
 
 	// Create namespace config within limits
 	namespaceConfig := createNamespaceConfigMap("tekton-pruner-namespace-spec", testNamespace, `enforcedConfigLevel: namespace
@@ -679,10 +736,8 @@ failedHistoryLimit: 5`)
 		t.Fatalf("Failed to set up global config: %v", err)
 	}
 
-	// Wait for webhook to process the global config
-	if err := waitForWebhookReady(ctx, kubeClient, 10*time.Second); err != nil {
-		t.Fatalf("Failed waiting for webhook to be ready: %v", err)
-	}
+	// Wait for webhook's informer to sync the global config
+	waitForConfigSync()
 
 	testCases := []struct {
 		name        string
@@ -770,10 +825,8 @@ successfulHistoryLimit: 10`)
 		t.Fatalf("Failed to set up global config: %v", err)
 	}
 
-	// Wait for webhook to process global config
-	if err := waitForWebhookReady(ctx, kubeClient, 10*time.Second); err != nil {
-		t.Fatalf("Failed waiting for webhook to be ready: %v", err)
-	}
+	// Wait for webhook's informer to sync global config
+	waitForConfigSync()
 
 	// Create valid namespace config
 	validNamespaceConfig := createNamespaceConfigMap("tekton-pruner-namespace-spec", testNamespace, `enforcedConfigLevel: namespace
@@ -820,10 +873,8 @@ func testWebhookSystemMaximumEnforcement(ctx context.Context, t *testing.T, kube
 		t.Fatalf("Failed to set up minimal global config: %v", err)
 	}
 
-	// Wait for webhook to process the global config
-	if err := waitForWebhookReady(ctx, kubeClient, 10*time.Second); err != nil {
-		t.Fatalf("Failed waiting for webhook to be ready: %v", err)
-	}
+	// Wait for webhook's informer to sync the global config
+	waitForConfigSync()
 
 	testCases := []struct {
 		name        string
@@ -961,6 +1012,150 @@ successfulHistoryLimit: 10
 failedHistoryLimit: 10`)
 		updateOrCreateConfigMap(context.Background(), kubeClient, resetConfig)
 	})
+}
+
+func testWebhookForbiddenNamespaces(ctx context.Context, t *testing.T, kubeClient *kubernetes.Clientset) {
+	// ensureClusterReady() already verified webhook is ready, just wait for informer sync
+	waitForConfigSync()
+
+	// Test that namespace-level configs are rejected in forbidden namespaces
+	// Note: The webhook namespaceSelector already excludes kube-system, kube-public,
+	// kube-node-lease, tekton-pipelines, and default from webhook processing.
+	// This test focuses on namespaces that match forbidden patterns but aren't
+	// explicitly excluded by the selector - these should be caught by our code validation.
+	testCases := []struct {
+		name               string
+		namespace          string
+		shouldCreateNS     bool
+		expectedRejection  bool
+		expectedErrMessage string
+	}{
+		{
+			name:               "kube-custom namespace - should be rejected by code validation",
+			namespace:          "kube-custom-test",
+			shouldCreateNS:     true,
+			expectedRejection:  true,
+			expectedErrMessage: "kube-* namespaces",
+		},
+		{
+			name:               "kube-monitoring namespace - should be rejected by code validation",
+			namespace:          "kube-monitoring",
+			shouldCreateNS:     true,
+			expectedRejection:  true,
+			expectedErrMessage: "kube-* namespaces",
+		},
+		{
+			name:               "openshift-pipelines namespace - should be rejected by code validation",
+			namespace:          "openshift-pipelines-test",
+			shouldCreateNS:     true,
+			expectedRejection:  true,
+			expectedErrMessage: "openshift-* namespaces",
+		},
+		{
+			name:               "openshift-operators namespace - should be rejected by code validation",
+			namespace:          "openshift-operators",
+			shouldCreateNS:     true,
+			expectedRejection:  true,
+			expectedErrMessage: "openshift-* namespaces",
+		},
+		{
+			name:               "tekton-custom namespace - should be rejected by code validation",
+			namespace:          "tekton-custom-test",
+			shouldCreateNS:     true,
+			expectedRejection:  true,
+			expectedErrMessage: "tekton-* namespaces",
+		},
+		{
+			name:               "tekton-operator namespace - should be rejected by code validation",
+			namespace:          "tekton-operator",
+			shouldCreateNS:     true,
+			expectedRejection:  true,
+			expectedErrMessage: "tekton-* namespaces",
+		},
+		{
+			name:              "user namespace - should be allowed",
+			namespace:         testNamespace,
+			shouldCreateNS:    false, // testNamespace is already created in setup
+			expectedRejection: false,
+		},
+		{
+			name:              "dev namespace - should be allowed",
+			namespace:         "dev-test-ns",
+			shouldCreateNS:    true,
+			expectedRejection: false,
+		},
+		{
+			name:              "production namespace - should be allowed",
+			namespace:         "production-test-ns",
+			shouldCreateNS:    true,
+			expectedRejection: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Create the namespace if needed
+			if tc.shouldCreateNS {
+				ns := &corev1.Namespace{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: tc.namespace,
+					},
+				}
+				_, err := kubeClient.CoreV1().Namespaces().Create(ctx, ns, metav1.CreateOptions{})
+				if err != nil && !errors.IsAlreadyExists(err) {
+					t.Fatalf("Failed to create test namespace %s: %v", tc.namespace, err)
+				}
+
+				// Cleanup namespace after test
+				t.Cleanup(func() {
+					kubeClient.CoreV1().Namespaces().Delete(context.Background(), tc.namespace, metav1.DeleteOptions{})
+				})
+			}
+
+			// Create a namespace-level config in this namespace
+			namespaceConfig := createNamespaceConfigMap("tekton-pruner-namespace-spec", tc.namespace, `ttlSecondsAfterFinished: 3600
+successfulHistoryLimit: 10`)
+
+			// Add cleanup in case it gets created
+			t.Cleanup(func() {
+				kubeClient.CoreV1().ConfigMaps(tc.namespace).Delete(context.Background(),
+					namespaceConfig.Name, metav1.DeleteOptions{})
+			})
+
+			// Try to create the ConfigMap
+			_, err := kubeClient.CoreV1().ConfigMaps(tc.namespace).Create(ctx, namespaceConfig, metav1.CreateOptions{})
+
+			if tc.expectedRejection {
+				if err == nil {
+					t.Errorf("Namespace config in forbidden namespace %s was accepted by webhook when it should have been rejected", tc.namespace)
+				} else {
+					// Check if the error message contains the expected pattern
+					if tc.expectedErrMessage != "" {
+						errMsg := err.Error()
+						if len(errMsg) > 0 && len(tc.expectedErrMessage) > 0 {
+							found := false
+							for i := 0; i <= len(errMsg)-len(tc.expectedErrMessage); i++ {
+								if errMsg[i:i+len(tc.expectedErrMessage)] == tc.expectedErrMessage {
+									found = true
+									break
+								}
+							}
+							if !found {
+								t.Logf("Warning: Error message '%s' does not contain expected pattern '%s'", errMsg, tc.expectedErrMessage)
+							}
+						}
+					}
+					t.Logf("✓ Webhook correctly rejected namespace config in forbidden namespace %s: %v", tc.namespace, err)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Valid namespace config in allowed namespace %s was rejected by webhook: %v", tc.namespace, err)
+				} else {
+					t.Logf("✓ Webhook correctly accepted namespace config in allowed namespace %s", tc.namespace)
+				}
+			}
+		})
+	}
 }
 
 // Helper functions for waiting on resource deletion

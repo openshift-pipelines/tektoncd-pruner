@@ -61,62 +61,48 @@ data:
         failedHistoryLimit: 5
       prod:
         successfulHistoryLimit: 10
-        failedHistoryLimit: 20    # Keep more failures for analysis
+        failedHistoryLimit: 20
 ```
 
 ## Pipeline-specific Limits
 
+Use selectors in namespace ConfigMaps for pipeline-specific limits:
+
 ```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tekton-pruner-namespace-spec
+  namespace: my-app
+  labels:
+    app.kubernetes.io/part-of: tekton-pruner
+    pruner.tekton.dev/config-type: namespace
 data:
-  global-config: |
-    successfulHistoryLimit: 3  # Default
+  ns-config: |
+    successfulHistoryLimit: 3
     pipelineRuns:
       - selector:
           matchLabels:
             critical: "true"
-        successfulHistoryLimit: 20    # Critical pipelines
+        successfulHistoryLimit: 20
         failedHistoryLimit: 30
       - selector:
           matchLabels:
             pipeline-type: test
-        successfulHistoryLimit: 3     # Test pipelines
+        successfulHistoryLimit: 3
         failedHistoryLimit: 5
-```
-
-### Production Environment
-
-```yaml
-data:
-  global-config: |
-    namespaces:
-      production:
-        successfulHistoryLimit: 10    # Keep more history in production
-        failedHistoryLimit: 10
-```
-
-### CI/CD Pipeline
-
-```yaml
-data:
-  global-config: |
-    pipelineRuns:
-      - selector:
-          matchLabels:
-            type: ci-cd
-        successfulHistoryLimit: 20
-        failedHistoryLimit: 10
 ```
 
 ## Interaction with TTL
 
-History limits **take priority** over TTL:
+History limits take priority over TTL:
 
 ```yaml
 data:
-  global-config: |
-    ttlSecondsAfterFinished: 300      # Delete after 5 min
-    successfulHistoryLimit: 5          # BUT always keep last 5 successful
-    failedHistoryLimit: 10             # AND always keep last 10 failed
+  ns-config: |
+    ttlSecondsAfterFinished: 300
+    successfulHistoryLimit: 5
+    failedHistoryLimit: 10
 ```
 
 **Result**: The 5 most recent successful and 10 most recent failed runs are kept indefinitely, regardless of age.
@@ -126,9 +112,7 @@ data:
 ```bash
 # Check retained runs by status
 kubectl get pr -l tekton.dev/pipeline=<name> --field-selector status.conditions[0].status=True
-kubectl get pr -l tekton.dev/pipeline=<name> --field-selector status.conditions[0].status=False
-
-# Monitor pruning
+kubectl get pr -l tekton.dev/pipeline=<name> --field-selector status.conditions[0].status=False# Monitor pruning
 kubectl logs -n tekton-pipelines -l app=tekton-pruner-controller | grep "history"
 ```
 

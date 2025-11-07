@@ -1,0 +1,146 @@
+# Namespace-Specific ConfigMap - Complete Production Example
+# Demonstrates all selector types in a production namespace
+# Combines name-based, label-based, annotation-based, and mixed selectors
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tekton-pruner-namespace-spec
+  namespace: ecommerce-prod              # Production user namespace
+  labels:
+    app.kubernetes.io/part-of: tekton-pruner
+    pruner.tekton.dev/config-type: namespace
+data:
+  ns-config: |
+    ttlSecondsAfterFinished: 604800
+    successfulHistoryLimit: 20
+    failedHistoryLimit: 10
+    
+    pipelineRuns:
+      - name: production-release-pipeline
+        ttlSecondsAfterFinished: 2592000
+        successfulHistoryLimit: 50
+        failedHistoryLimit: 50
+      
+      - selector:
+        - matchLabels:
+            deployment-type: critical
+            service: payment
+          matchAnnotations:
+            compliance: "pci-dss"
+            audit-required: "true"
+        ttlSecondsAfterFinished: 2592000
+        successfulHistoryLimit: 100
+        failedHistoryLimit: 100
+      
+      - selector:
+        - matchAnnotations:
+            tekton.dev/release: "true"
+        ttlSecondsAfterFinished: 1209600
+        successfulHistoryLimit: 30
+        failedHistoryLimit: 15
+      
+      - selector:
+        - matchLabels:
+            deployment-strategy: canary
+        ttlSecondsAfterFinished: 259200
+        successfulHistoryLimit: 15
+        failedHistoryLimit: 10
+      
+      - selector:
+        - matchLabels:
+            deployment-strategy: blue-green
+        ttlSecondsAfterFinished: 432000
+        successfulHistoryLimit: 20
+      
+      - selector:
+        - matchAnnotations:
+            deployment-type: "hotfix"
+        ttlSecondsAfterFinished: 2592000
+        successfulHistoryLimit: 50
+        failedHistoryLimit: 50
+      
+      - selector:
+        - matchLabels:
+            pipeline-category: maintenance
+          matchAnnotations:
+            approval-required: "true"
+        ttlSecondsAfterFinished: 1209600
+        successfulHistoryLimit: 30
+    
+    taskRuns:
+      - name: security-vulnerability-scan
+        ttlSecondsAfterFinished: 2592000
+        successfulHistoryLimit: 100
+        failedHistoryLimit: 100
+      
+      - selector:
+        - matchLabels:
+            task-category: security
+            scan-type: pci-compliance
+          matchAnnotations:
+            compliance-framework: "pci-dss"
+        ttlSecondsAfterFinished: 2592000
+        successfulHistoryLimit: 100
+        failedHistoryLimit: 100
+      
+      - selector:
+        - matchAnnotations:
+            test-type: "penetration"
+            security-level: "critical"
+        ttlSecondsAfterFinished: 2592000
+        successfulHistoryLimit: 50
+      
+      - selector:
+        - matchLabels:
+            task-category: performance
+        ttlSecondsAfterFinished: 604800
+        successfulHistoryLimit: 20
+        failedHistoryLimit: 10
+      
+      - selector:
+        - matchLabels:
+            test-type: load-test
+        ttlSecondsAfterFinished: 432000
+        successfulHistoryLimit: 15
+      
+      - name: db-migration
+        ttlSecondsAfterFinished: 2592000
+        successfulHistoryLimit: 50
+        failedHistoryLimit: 50
+      
+      - selector:
+        - matchAnnotations:
+            test-category: "smoke-test"
+        ttlSecondsAfterFinished: 86400
+        successfulHistoryLimit: 10
+      
+      - selector:
+        - matchLabels:
+            task-type: health-check
+            service-tier: critical
+          matchAnnotations:
+            monitoring: "enabled"
+        ttlSecondsAfterFinished: 604800
+        successfulHistoryLimit: 30
+      
+      - selector:
+        - matchLabels:
+            task-category: build
+        ttlSecondsAfterFinished: 86400
+        successfulHistoryLimit: 10
+        failedHistoryLimit: 5
+      
+      - selector:
+        - matchAnnotations:
+            quality-gate: "production"
+        ttlSecondsAfterFinished: 1209600
+        successfulHistoryLimit: 30
+
+# NOTES:
+# ------
+# 1. Selectors are evaluated in order - first match wins
+# 2. Name-based matching takes precedence over selectors
+# 3. When both matchLabels and matchAnnotations are specified, ALL must match
+# 4. Namespace config cannot exceed global limits (if global config sets limits)
+# 5. This ConfigMap can only be created in user namespaces (not kube-*, openshift-*, tekton-*)

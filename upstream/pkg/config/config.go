@@ -64,29 +64,36 @@ const (
 )
 
 // ResourceSpec is used to hold the config of a specific resource
+// Only used in namespace-level ConfigMaps (tekton-pruner-namespace-spec), NOT in global ConfigMaps
 type ResourceSpec struct {
 	Name         string         `yaml:"name"`               // Exact name of the parent Pipeline or Task
-	Selector     []SelectorSpec `yaml:"selector,omitempty"` // Supports selection based on labels and annotations. If Name is given, Name taskes precedence
+	Selector     []SelectorSpec `yaml:"selector,omitempty"` // Supports selection based on labels and annotations. If Name is given, Name takes precedence
 	PrunerConfig `yaml:",inline"`
 }
 
 // SelectorSpec allows specifying selectors for matching resources like PipelineRun or TaskRun
+// Only applicable in namespace-level ConfigMaps, NOT in global ConfigMaps
 type SelectorSpec struct {
-	// Match by labels or Annotations. If both are specified, Annotations will take priority.
+	// Match by labels AND annotations. If both are specified, BOTH must match (AND logic)
 	MatchLabels      map[string]string `yaml:"matchLabels,omitempty"`
 	MatchAnnotations map[string]string `yaml:"matchAnnotations,omitempty"`
 }
 
 // NamespaceSpec is used to hold the pruning config of a specific namespace and its resources
+// Used in both global ConfigMap (tekton-pruner-default-spec) and namespace ConfigMap (tekton-pruner-namespace-spec)
+// Selector support (PipelineRuns/TaskRuns arrays) ONLY works in namespace ConfigMaps
 type NamespaceSpec struct {
-	PrunerConfig `yaml:",inline"`
-	PipelineRuns []ResourceSpec `yaml:"pipelineRuns"`
-	TaskRuns     []ResourceSpec `yaml:"taskRuns"`
+	PrunerConfig `yaml:",inline"` // Root-level defaults
+	PipelineRuns []ResourceSpec   `yaml:"pipelineRuns"` // Selector-based configs (namespace ConfigMap only)
+	TaskRuns     []ResourceSpec   `yaml:"taskRuns"`     // Selector-based configs (namespace ConfigMap only)
 }
 
+// GlobalConfig represents the global ConfigMap (tekton-pruner-default-spec)
+// Root-level fields are defaults; Namespaces map is for per-namespace defaults
+// NOTE: Selector support (PipelineRuns/TaskRuns arrays) is IGNORED in global ConfigMap
 type GlobalConfig struct {
-	PrunerConfig `yaml:",inline"`
-	Namespaces   map[string]NamespaceSpec `yaml:"namespaces"  json:"namespaces"`
+	PrunerConfig `yaml:",inline"`         // Global root-level defaults
+	Namespaces   map[string]NamespaceSpec `yaml:"namespaces"  json:"namespaces"` // Per-namespace defaults (selectors ignored)
 }
 
 // PrunerConfig used to hold the cluster-wide pruning config as well as namespace specific pruning config
@@ -197,6 +204,12 @@ func (ps *prunerConfigStore) WorkerCount(ctx context.Context, configMap *corev1.
 	return count, nil
 }
 
+// getFromPrunerConfigResourceLevelwithSelector retrieves resource-level configuration using selectors
+// This function is used ONLY for namespace-level ConfigMaps (tekton-pruner-namespace-spec), NOT global ConfigMaps
+// Selector matching logic:
+// - If 'name' is provided, it has absolute precedence (returns nil if no match, no fallback)
+// - Otherwise, checks selector arrays (PipelineRuns/TaskRuns) for matches
+// - When both matchLabels AND matchAnnotations are specified, BOTH must match (AND logic)
 func getFromPrunerConfigResourceLevelwithSelector(namespacesSpec map[string]NamespaceSpec, namespace, name string, selector SelectorSpec, resourceType PrunerResourceType, fieldType PrunerFieldType) (*int32, string) {
 	prunerResourceSpec, found := namespacesSpec[namespace]
 	if !found {
@@ -213,8 +226,8 @@ func getFromPrunerConfigResourceLevelwithSelector(namespacesSpec map[string]Name
 		resourceSpecs = prunerResourceSpec.TaskRuns
 	}
 
-	// First, check if name is provided, and use it to match exactly
-	if name != "" && (len(selector.MatchAnnotations) == 0 || len(selector.MatchLabels) == 0) {
+	// First, check if name is provided, and use it to match exactly (absolute precedence)
+	if name != "" {
 		for _, resourceSpec := range resourceSpecs {
 			if resourceSpec.Name == name {
 				// Return the field value from the matched resourceSpec
@@ -228,67 +241,70 @@ func getFromPrunerConfigResourceLevelwithSelector(namespacesSpec map[string]Name
 				}
 			}
 		}
-	} else if len(selector.MatchAnnotations) > 0 || len(selector.MatchLabels) > 0 {
-		// If name is not provided, we proceed with selector matching
+		// Name was specified but no match found - no fallback to selectors (field isolation)
+		return nil, ""
+	}
+
+	// If name is not provided, proceed with selector matching
+	if len(selector.MatchAnnotations) > 0 || len(selector.MatchLabels) > 0 {
 
 		for _, resourceSpec := range resourceSpecs {
-			// Check if the resourceSpec matches the provided selector by annotations or labels
+			// Check if the resourceSpec matches the provided selector by annotations AND labels
 			for _, selectorSpec := range resourceSpec.Selector {
-				// Match by annotations if provided in the selector
-				if len(selector.MatchAnnotations) > 0 {
-					match := true
-					for key, value := range selector.MatchAnnotations {
-						if resourceAnnotationValue, exists := selectorSpec.MatchAnnotations[key]; !exists || resourceAnnotationValue != value {
-							match = false
-							break
-						}
-					}
-					if match {
-						// Return the field value if annotations match
-						switch fieldType {
-						case PrunerFieldTypeTTLSecondsAfterFinished:
-							return resourceSpec.TTLSecondsAfterFinished, "identifiedBy_resource_ann"
-						case PrunerFieldTypeSuccessfulHistoryLimit:
-							if resourceSpec.SuccessfulHistoryLimit != nil {
-								return resourceSpec.SuccessfulHistoryLimit, "identifiedBy_resource_ann"
-							} else {
-								return resourceSpec.HistoryLimit, "identifiedBy_resource_ann"
-							}
-						case PrunerFieldTypeFailedHistoryLimit:
-							if resourceSpec.FailedHistoryLimit != nil {
-								return resourceSpec.FailedHistoryLimit, "identifiedBy_resource_ann"
-							} else {
-								return resourceSpec.HistoryLimit, "identifiedBy_resource_ann"
+				// Both annotations and labels must match when both are specified (AND logic)
+				// If ResourceSpec has both, selector must also provide both
+				annotationsMatch := true
+				labelsMatch := true
+
+				// If ResourceSpec has annotations, check if selector provides matching annotations
+				if len(selectorSpec.MatchAnnotations) > 0 {
+					if len(selector.MatchAnnotations) == 0 {
+						// ResourceSpec has annotations but selector doesn't - no match
+						annotationsMatch = false
+					} else {
+						// Check if all selector annotations match
+						for key, value := range selector.MatchAnnotations {
+							if resourceAnnotationValue, exists := selectorSpec.MatchAnnotations[key]; !exists || resourceAnnotationValue != value {
+								annotationsMatch = false
+								break
 							}
 						}
 					}
 				}
-				// Match by labels if provided in the selector
-				if len(selector.MatchLabels) > 0 {
-					match := true
-					for key, value := range selector.MatchLabels {
-						if resourceLabelValue, exists := selectorSpec.MatchLabels[key]; !exists || resourceLabelValue != value {
-							match = false
-							break
+
+				// If ResourceSpec has labels, check if selector provides matching labels
+				if len(selectorSpec.MatchLabels) > 0 {
+					if len(selector.MatchLabels) == 0 {
+						// ResourceSpec has labels but selector doesn't - no match
+						labelsMatch = false
+					} else {
+						// Check if all selector labels match
+						for key, value := range selector.MatchLabels {
+							if resourceLabelValue, exists := selectorSpec.MatchLabels[key]; !exists || resourceLabelValue != value {
+								labelsMatch = false
+								break
+							}
 						}
 					}
-					if match {
-						// Return the field value if labels match
-						switch fieldType {
-						case PrunerFieldTypeTTLSecondsAfterFinished:
-							return resourceSpec.TTLSecondsAfterFinished, "identifiedBy_resource_label"
-						case PrunerFieldTypeSuccessfulHistoryLimit:
-							if resourceSpec.SuccessfulHistoryLimit != nil {
-								return resourceSpec.SuccessfulHistoryLimit, "identifiedBy_resource_label"
-							} else {
-								return resourceSpec.HistoryLimit, "identifiedBy_resource_label"
-							}
-						case PrunerFieldTypeFailedHistoryLimit:
-							if resourceSpec.FailedHistoryLimit != nil {
-								return resourceSpec.FailedHistoryLimit, "identifiedBy_resource_label"
-							} else {
-								return resourceSpec.HistoryLimit, "identifiedBy_resource_label"
-							}
+				}
+
+				// Only return if BOTH match (AND logic)
+				if annotationsMatch && labelsMatch {
+					// Return the field value if selectors match
+					switch fieldType {
+					case PrunerFieldTypeTTLSecondsAfterFinished:
+						return resourceSpec.TTLSecondsAfterFinished, "identifiedBy_resource_selector"
+					case PrunerFieldTypeSuccessfulHistoryLimit:
+						if resourceSpec.SuccessfulHistoryLimit != nil {
+							return resourceSpec.SuccessfulHistoryLimit, "identifiedBy_resource_selector"
+						} else {
+							return resourceSpec.HistoryLimit, "identifiedBy_resource_selector"
+						}
+					case PrunerFieldTypeFailedHistoryLimit:
+						if resourceSpec.FailedHistoryLimit != nil {
+							return resourceSpec.FailedHistoryLimit, "identifiedBy_resource_selector"
+						} else {
+							return resourceSpec.HistoryLimit, "identifiedBy_resource_selector"
 						}
 					}
 				}
@@ -300,6 +316,24 @@ func getFromPrunerConfigResourceLevelwithSelector(namespacesSpec map[string]Name
 	return nil, ""
 }
 
+// getResourceFieldData retrieves configuration field values based on enforcedConfigLevel
+// Design principle: Selector support ONLY for namespace-level ConfigMaps, NOT global ConfigMaps
+//
+// Lookup hierarchy by enforcedConfigLevel:
+//
+// 1. EnforcedConfigLevelResource:
+//   - Resource-level selector match (from global ConfigMap's Namespaces map)
+//   - Namespace root-level (from global ConfigMap's Namespaces map)
+//   - Global root-level defaults
+//
+// 2. EnforcedConfigLevelNamespace:
+//   - Resource-level selector match (from namespace ConfigMap - NEW)
+//   - Namespace root-level (from namespace ConfigMap)
+//   - Namespace root-level (from global ConfigMap's Namespaces map)
+//   - Global root-level defaults
+//
+// 3. EnforcedConfigLevelGlobal:
+//   - Global root-level defaults ONLY (no selectors, no namespace lookup)
 func getResourceFieldData(globalSpec GlobalConfig, namespaceConfigMap map[string]NamespaceSpec, namespace, name string, selector SelectorSpec, resourceType PrunerResourceType, fieldType PrunerFieldType, enforcedConfigLevel EnforcedConfigLevel) (*int32, string) {
 	var fieldData *int32
 	var identified_by string
@@ -357,7 +391,13 @@ func getResourceFieldData(globalSpec GlobalConfig, namespaceConfigMap map[string
 		}
 		return fieldData, identified_by
 	case EnforcedConfigLevelNamespace:
-		// First check namespace-level ConfigMap (tekton-pruner-namespace-spec)
+		// First check namespace-level ConfigMap (tekton-pruner-namespace-spec) for selector matches
+		fieldData, identified_by = getFromPrunerConfigResourceLevelwithSelector(namespaceConfigMap, namespace, name, selector, resourceType, fieldType)
+		if fieldData != nil {
+			return fieldData, identified_by
+		}
+
+		// Then check namespace-level ConfigMap root-level fields
 		nsSpec, found := namespaceConfigMap[namespace]
 		if found {
 			switch fieldType {
@@ -628,6 +668,19 @@ func ValidateConfigMapWithGlobal(cm *corev1.ConfigMap, globalConfigMap *corev1.C
 		for ns, nsSpec := range globalConfig.Namespaces {
 			if err := validatePrunerConfig(&nsSpec.PrunerConfig, "global-config.namespaces."+ns, &globalConfig.PrunerConfig); err != nil {
 				return err
+			}
+
+			// CRITICAL: Validate that global ConfigMap namespace sections do NOT contain selectors
+			// Selectors are ONLY supported in namespace-level ConfigMaps (tekton-pruner-namespace-spec)
+			for i, pr := range nsSpec.PipelineRuns {
+				if len(pr.Selector) > 0 {
+					return fmt.Errorf("global-config.namespaces.%s.pipelineRuns[%d]: selectors are NOT supported in global ConfigMap. Use namespace-level ConfigMap (tekton-pruner-namespace-spec) instead", ns, i)
+				}
+			}
+			for i, tr := range nsSpec.TaskRuns {
+				if len(tr.Selector) > 0 {
+					return fmt.Errorf("global-config.namespaces.%s.taskRuns[%d]: selectors are NOT supported in global ConfigMap. Use namespace-level ConfigMap (tekton-pruner-namespace-spec) instead", ns, i)
+				}
 			}
 		}
 		return nil

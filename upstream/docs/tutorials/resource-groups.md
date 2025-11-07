@@ -9,98 +9,127 @@ weight: 500
 
 Apply different pruning policies to different sets of PipelineRuns/TaskRuns using selectors.
 
+**IMPORTANT:** Selectors only work in **namespace-level ConfigMaps** (`tekton-pruner-namespace-spec`). Selectors in global ConfigMaps are ignored by the pruner.
+
 ## How It Works
 
 - **Match by labels or annotations** on PipelineRuns/TaskRuns
 - **First match wins**: Groups evaluated in order
 - **Fallback**: Unmatched resources use namespace or global defaults
+- **Location**: Must be in namespace ConfigMap, not global ConfigMap
 
 ## Selector Types
 
 **Label selectors:**
 ```yaml
-pipelineRuns:
-  - selector:
-      matchLabels:
-        environment: production
-        tier: frontend
-    ttlSecondsAfterFinished: 604800
-    successfulHistoryLimit: 10
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tekton-pruner-namespace-spec
+  namespace: my-app
+  labels:
+    app.kubernetes.io/part-of: tekton-pruner
+    pruner.tekton.dev/config-type: namespace
+data:
+  ns-config: |
+    pipelineRuns:
+      - selector:
+          matchLabels:
+            environment: production
+            tier: frontend
+        ttlSecondsAfterFinished: 604800
+        successfulHistoryLimit: 10
 ```
 
 **Annotation selectors:**
 ```yaml
-pipelineRuns:
-  - selector:
-      matchAnnotations:
-        tekton.dev/release: "true"
-    ttlSecondsAfterFinished: 2592000  # 30 days
+data:
+  ns-config: |
+    pipelineRuns:
+      - selector:
+          matchAnnotations:
+            tekton.dev/release: "true"
+        ttlSecondsAfterFinished: 2592000
 ```
 
-**Mixed selectors:**
+**Mixed selectors** (both labels and annotations must match):
 ```yaml
-pipelineRuns:
-  - selector:
-      matchLabels:
-        app: myapp
-      matchAnnotations:
-        critical: "true"
-    successfulHistoryLimit: 50
+data:
+  ns-config: |
+    pipelineRuns:
+      - selector:
+          matchLabels:
+            app: myapp
+          matchAnnotations:
+            critical: "true"
+        successfulHistoryLimit: 50
 ```
 
 ## Common Patterns
 
 **By Pipeline Type:**
 ```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tekton-pruner-namespace-spec
+  namespace: my-app
+  labels:
+    app.kubernetes.io/part-of: tekton-pruner
+    pruner.tekton.dev/config-type: namespace
 data:
-  global-config: |
-    ttlSecondsAfterFinished: 3600  # Default
+  ns-config: |
+    ttlSecondsAfterFinished: 3600
     pipelineRuns:
       - selector:
           matchLabels:
             pipeline-type: build
-        ttlSecondsAfterFinished: 300      # 5 min
+        ttlSecondsAfterFinished: 300
       - selector:
           matchLabels:
             pipeline-type: test
-        ttlSecondsAfterFinished: 3600     # 1 hour
+        ttlSecondsAfterFinished: 3600
       - selector:
           matchLabels:
             pipeline-type: release
-        ttlSecondsAfterFinished: 604800   # 7 days
+        ttlSecondsAfterFinished: 604800
         successfulHistoryLimit: 20
 ```
 
 **By Environment:**
 ```yaml
-pipelineRuns:
-  - selector:
-      matchLabels:
-        env: dev
-    ttlSecondsAfterFinished: 300
-  - selector:
-      matchLabels:
-        env: staging
-    ttlSecondsAfterFinished: 86400
-  - selector:
-      matchLabels:
-        env: prod
-    ttlSecondsAfterFinished: 604800
+data:
+  ns-config: |
+    pipelineRuns:
+      - selector:
+          matchLabels:
+            env: dev
+        ttlSecondsAfterFinished: 300
+      - selector:
+          matchLabels:
+            env: staging
+        ttlSecondsAfterFinished: 86400
+      - selector:
+          matchLabels:
+            env: prod
+        ttlSecondsAfterFinished: 604800
 ```
 
 **By Criticality:**
 ```yaml
-pipelineRuns:
-  - selector:
-      matchLabels:
-        critical: "true"
-    ttlSecondsAfterFinished: 2592000  # 30 days
-    successfulHistoryLimit: 50
-  - selector:
-      matchLabels:
-        critical: "false"
-    ttlSecondsAfterFinished: 3600     # 1 hour
-    successfulHistoryLimit: 3
+data:
+  ns-config: |
+    pipelineRuns:
+      - selector:
+          matchLabels:
+            critical: "true"
+        ttlSecondsAfterFinished: 2592000
+        successfulHistoryLimit: 50
+      - selector:
+          matchLabels:
+            critical: "false"
+        ttlSecondsAfterFinished: 3600
+        successfulHistoryLimit: 3
 ```
 
 ## Order Matters
@@ -108,29 +137,31 @@ pipelineRuns:
 **First match wins** - order selectors from most to least specific:
 
 ```yaml
-pipelineRuns:
-  - selector:  # Match first: prod + critical
-      matchLabels:
-        env: prod
-        critical: "true"
-    ttlSecondsAfterFinished: 2592000
-  - selector:  # Match second: just prod
-      matchLabels:
-        env: prod
-    ttlSecondsAfterFinished: 604800
-  - selector:  # Match last: everything else
-         matchLabels:
-           app: myapp
-   ```
+data:
+  ns-config: |
+    pipelineRuns:
+      - selector:
+          matchLabels:
+            env: prod
+            critical: "true"
+        ttlSecondsAfterFinished: 2592000
+      - selector:
+          matchLabels:
+            env: prod
+        ttlSecondsAfterFinished: 604800
+      - selector:
+          matchLabels:
+            app: myapp
+        ttlSecondsAfterFinished: 3600
+```
 
-3. Document Group Purpose
-   ```yaml
-   pipelineRuns:
-     # Critical security scanning pipelines
-     - selector:
-         matchLabels:
-           pipeline-type: security
-   ```
+## Best Practices
+
+1. **Use namespace ConfigMaps** for selector-based groups
+2. **Order selectors** from most to least specific (first match wins)
+3. **Use consistent labels**: `app`, `component`, `env`, `tier`
+4. **Document groups** with comments above selectors
+5. **Test** with sample runs before production
 
 ## Advanced Configurations
 
@@ -138,35 +169,43 @@ pipelineRuns:
 
 ```yaml
 data:
-  global-config: |
+  ns-config: |
     pipelineRuns:
-      # Frontend components
       - selector:
           matchLabels:
             tier: frontend
         ttlSecondsAfterFinished: 604800
         successfulHistoryLimit: 10
-        
-      - selector:  # Match last: everything else (no labels)
-    ttlSecondsAfterFinished: 3600
+      - selector:
+          matchLabels:
+            tier: backend
+        ttlSecondsAfterFinished: 1209600
+        successfulHistoryLimit: 15
+      - selector:
+          matchLabels:
+            tier: database
+        ttlSecondsAfterFinished: 2592000
+        successfulHistoryLimit: 30
 ```
 
-## Combining with Namespaces
-
-Resource groups work within namespace configs:
+### Release Types
 
 ```yaml
 data:
-  global-config: |
-    enforcedConfigLevel: namespace
-    namespaces:
-      prod:
-        ttlSecondsAfterFinished: 604800  # Namespace default
-        pipelineRuns:
-          - selector:
-              matchLabels:
-                critical: "true"
-            ttlSecondsAfterFinished: 2592000  # Override for critical
+  ns-config: |
+    pipelineRuns:
+      - selector:
+          matchLabels:
+            release-type: feature
+        ttlSecondsAfterFinished: 604800
+      - selector:
+          matchLabels:
+            release-type: hotfix
+        ttlSecondsAfterFinished: 2592000
+      - selector:
+          matchLabels:
+            release-type: major
+        ttlSecondsAfterFinished: 7776000
 ```
 
 ## Labeling Your Pipelines
@@ -197,71 +236,36 @@ kubectl get pr --show-labels
 kubectl logs -n tekton-pipelines -l app=tekton-pruner-controller | grep "selector"
 ```
 
-## Best Practices
+## Labeling Your Pipelines
 
-1. **Consistent labeling scheme** across all pipelines
-2. **Order selectors** from most to least specific
-3. **Use standard labels**: `app`, `component`, `env`, `tier`
-4. **Document** your grouping strategy
-5. **Test** with sample runs before production
+Add labels to PipelineRuns for grouping:
 
-## Related
-
-- [Namespace Configuration](./namespace-configuration.md) - Combine groups with namespace configs
-- [Time-based Pruning](./time-based-pruning.md) - TTL strategies for groups
-- [History-based Pruning](./history-based-pruning.md) - Retention strategies for groups
-```
-
-### Release Types
-
-```yaml
-data:
-  global-config: |
-    pipelineRuns:
-      # Feature releases
-      - selector:
-          matchLabels:
-            release-type: feature
-        ttlSecondsAfterFinished: 604800     # 1 week
-        
-      # Hotfix releases
-      - selector:
-          matchLabels:
-            release-type: hotfix
-        ttlSecondsAfterFinished: 2592000    # 30 days
-        
-      # Major releases
-      - selector:
-          matchLabels:
-            release-type: major
-        ttlSecondsAfterFinished: 7776000    # 90 days
-```
-
-## Testing Resource Groups
-
-1. Apply labels to your PipelineRuns:
 ```yaml
 apiVersion: tekton.dev/v1beta1
 kind: PipelineRun
 metadata:
-  generateName: test-pipeline-
+  generateName: my-pipeline-
   labels:
-    tier: frontend
-    environment: production
+    pipeline-type: release
+    env: prod
+    critical: "true"
+spec:
+  pipelineRef:
+    name: my-pipeline
 ```
 
-2. Verify group matching:
+## Verification
+
 ```bash
-kubectl get pipelineruns --show-labels
+# Check labels on runs
+kubectl get pr --show-labels
+
+# Monitor which group matched
+kubectl logs -n tekton-pipelines -l app=tekton-pruner-controller | grep "selector"
 ```
 
-3. Monitor pruning behavior:
-```bash
-kubectl logs -n tekton-pipelines -l app=tekton-pruner-controller
-```
+## Related
 
-## Next Steps
-
-- Review [History-based Pruning](./history-based-pruning.md)
-- Explore [Time-based Pruning](./time-based-pruning.md)
-- Learn about [Namespace Configuration](./namespace-configuration.md)
+- [Namespace Configuration](./namespace-configuration.md) - Set up namespace ConfigMaps
+- [Time-based Pruning](./time-based-pruning.md) - TTL strategies for groups
+- [History-based Pruning](./history-based-pruning.md) - Retention strategies for groups

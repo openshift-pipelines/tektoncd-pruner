@@ -1,0 +1,35 @@
+# Global Configuration with Inline Namespace Overrides
+# Centralized management with different settings per namespace
+# Useful when you want to manage all configuration in one place
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tekton-pruner-default-spec
+  namespace: tekton-pipelines
+  labels:
+    app.kubernetes.io/part-of: tekton-pruner
+    pruner.tekton.dev/config-type: global
+data:
+  global-config: |
+    enforcedConfigLevel: namespace
+    
+    ttlSecondsAfterFinished: 604800
+    successfulHistoryLimit: 5
+    failedHistoryLimit: 5
+    
+    namespaces:
+      development:
+        ttlSecondsAfterFinished: 300
+        successfulHistoryLimit: 3
+        failedHistoryLimit: 2
+      
+      staging:
+        ttlSecondsAfterFinished: 86400
+        successfulHistoryLimit: 10
+        failedHistoryLimit: 5
+      
+      production:
+        ttlSecondsAfterFinished: 604800
+        successfulHistoryLimit: 20
+        failedHistoryLimit: 10

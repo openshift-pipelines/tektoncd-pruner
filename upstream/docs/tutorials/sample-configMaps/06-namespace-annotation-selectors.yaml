@@ -1,0 +1,58 @@
+# Namespace-Specific ConfigMap with Annotation Selectors
+# Useful when PipelineRuns/TaskRuns are annotated by external systems
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tekton-pruner-namespace-spec
+  namespace: ci-cd                       # User namespace
+  labels:
+    app.kubernetes.io/part-of: tekton-pruner
+    pruner.tekton.dev/config-type: namespace
+data:
+  ns-config: |
+    ttlSecondsAfterFinished: 1800
+    successfulHistoryLimit: 5
+    failedHistoryLimit: 5
+    
+    pipelineRuns:
+      - selector:
+        - matchAnnotations:
+            release-pipeline: "true"
+        ttlSecondsAfterFinished: 2592000
+        successfulHistoryLimit: 50
+        failedHistoryLimit: 20
+      
+      - selector:
+        - matchAnnotations:
+            build-schedule: "nightly"
+        ttlSecondsAfterFinished: 86400
+        successfulHistoryLimit: 7
+        failedHistoryLimit: 7
+      
+      - selector:
+        - matchAnnotations:
+            trigger-type: "pull-request"
+        ttlSecondsAfterFinished: 300
+        successfulHistoryLimit: 1
+        failedHistoryLimit: 2
+      
+      - selector:
+        - matchAnnotations:
+            trigger-type: "manual"
+        ttlSecondsAfterFinished: 3600
+        successfulHistoryLimit: 5
+    
+    taskRuns:
+      - selector:
+        - matchAnnotations:
+            scan-type: "security"
+        ttlSecondsAfterFinished: 2592000
+        successfulHistoryLimit: 100
+        failedHistoryLimit: 100
+      
+      - selector:
+        - matchAnnotations:
+            scan-type: "quality"
+        ttlSecondsAfterFinished: 604800
+        successfulHistoryLimit: 20

@@ -1,0 +1,18 @@
+# Basic Global Configuration
+# Simplest setup with cluster-wide defaults
+# All PipelineRuns and TaskRuns in all namespaces use these settings
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tekton-pruner-default-spec
+  namespace: tekton-pipelines
+  labels:
+    app.kubernetes.io/part-of: tekton-pruner
+    pruner.tekton.dev/config-type: global
+data:
+  global-config: |
+    enforcedConfigLevel: global
+    ttlSecondsAfterFinished: 3600
+    successfulHistoryLimit: 5
+    failedHistoryLimit: 3

@@ -188,83 +188,73 @@ Unspecified settings inherit from higher levels:
 data:
   global-config: |
     enforcedConfigLevel: namespace
-    ttlSecondsAfterFinished: 3600     # Global default
-    successfulHistoryLimit: 5          # Global default
+    ttlSecondsAfterFinished: 3600
+    successfulHistoryLimit: 5
     namespaces:
       dev:
-        ttlSecondsAfterFinished: 300   # Override TTL
-        # Inherits successfulHistoryLimit: 5 from global
-```
-
-## Namespace Groups
-
-You can group namespaces with similar requirements:
-
-```yaml
-data:
-  global-config: |
-    namespaces:
-      dev-*:    # Applies to dev-team1, dev-team2, etc.
         ttlSecondsAfterFinished: 300
-        successfulHistoryLimit: 3
-      prod-*:   # Applies to prod-team1, prod-team2, etc.
-        ttlSecondsAfterFinished: 604800
-        successfulHistoryLimit: 10
 ```
 
-## Combining with Resource Groups
+## Selector Support
 
-Within each namespace, you can further configure specific resource groups:
+**IMPORTANT:** Resource selectors (matchLabels, matchAnnotations) only work in **namespace-level ConfigMaps** (`tekton-pruner-namespace-spec`), NOT in global ConfigMap's inline namespace specs.
 
+**This works** (namespace ConfigMap):
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tekton-pruner-namespace-spec
+  namespace: my-app
+  labels:
+    app.kubernetes.io/part-of: tekton-pruner
+    pruner.tekton.dev/config-type: namespace
+data:
+  ns-config: |
+    pipelineRuns:
+      - selector:
+          matchLabels:
+            critical: "true"
+        ttlSecondsAfterFinished: 2592000
+```
+
+**This is IGNORED** (inline namespace in global ConfigMap):
 ```yaml
 data:
   global-config: |
     namespaces:
       production:
-        ttlSecondsAfterFinished: 604800    # Namespace default: 1 week
         pipelineRuns:
           - selector:
               matchLabels:
-                importance: critical
-            ttlSecondsAfterFinished: 2592000    # Critical pipelines: 30 days
+                critical: "true"
 ```
+
+For selector-based resource groups, use separate namespace ConfigMaps (Method 2).
 
 ## Common Patterns
 
 **Environment-based:**
 ```yaml
-namespaces:
-  dev:
-    ttlSecondsAfterFinished: 300    # 5 min
-    successfulHistoryLimit: 3
-  staging:
-    ttlSecondsAfterFinished: 86400  # 1 day
-    successfulHistoryLimit: 5
-  prod:
-    ttlSecondsAfterFinished: 604800 # 7 days
-    successfulHistoryLimit: 10
-```
-
-**With Resource Groups:**
-```yaml
-namespaces:
-  prod:
-    ttlSecondsAfterFinished: 604800  # Namespace default
-    pipelineRuns:
-      - selector:
-          matchLabels:
-            critical: "true"
-        ttlSecondsAfterFinished: 2592000  # 30 days for critical
-```
-
+data:
+  global-config: |
+    enforcedConfigLevel: namespace
+    namespaces:
+      dev:
+        ttlSecondsAfterFinished: 300
+        successfulHistoryLimit: 3
+      staging:
+        ttlSecondsAfterFinished: 86400
+        successfulHistoryLimit: 5
+      prod:
 ## Verification
 
 **Check namespace config:**
 ```bash
-# For inline method
+# For inline method (global ConfigMap)
 kubectl get cm tekton-pruner-default-spec -n tekton-pipelines -o jsonpath='{.data.global-config}'
 
-# For per-namespace method
+# For namespace ConfigMap method
 kubectl get cm tekton-pruner-namespace-spec -n <namespace> -o yaml
 ```
 
@@ -274,34 +264,28 @@ kubectl logs -n tekton-pipelines -l app=tekton-pruner-controller | grep "namespa
 ```
 
 **Validate Configuration Against Limits:**
-
-The webhook validates ConfigMaps at creation and update time:
-
 ```bash
 kubectl apply -f namespace-config.yaml
-# Error if limits exceeded:
-# admission webhook denied: namespace-config: ttlSecondsAfterFinished (3000000) 
-# cannot exceed system maximum (2592000 seconds / 30 days)
-```
 
-Check current global limits:
-```bash
-kubectl get configmap tekton-pruner-default-spec -n tekton-pipelines -o jsonpath='{.data.global-config}'
+# Error if limits exceeded:
+# admission webhook denied: ttlSecondsAfterFinished (3000000) 
+# cannot exceed system maximum (2592000 seconds / 30 days)
 ```
 
 ## Best Practices
 
 1. Use clear namespace naming conventions
-2. Start with permissive limits in development within system maximums
+2. Start with permissive limits in development
 3. Implement stricter retention in production
 4. Document namespace configuration decisions
 5. Regularly review and adjust settings
-6. Plan configurations within system limits (30 days / 100 runs)
-7. Use global limits for cluster-wide governance
-8. Test configurations before deployment
+6. Test configurations before deployment
+7. Use namespace ConfigMaps for selector-based groups
 
 ## Next Steps
 
-- Learn about [Resource Groups](./resource-groups.md)
+- Learn about [Resource Groups](./resource-groups.md) - Selector-based configurations
+- Explore [Time-based Pruning](./time-based-pruning.md) - TTL strategies
+- Review [History-based Pruning](./history-based-pruning.md) - Retention limits
 - Review [History-based Pruning](./history-based-pruning.md)
 - Explore [Time-based Pruning](./time-based-pruning.md)
