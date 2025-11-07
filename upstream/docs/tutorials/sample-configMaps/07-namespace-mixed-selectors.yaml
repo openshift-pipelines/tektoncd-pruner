@@ -1,0 +1,63 @@
+# Namespace-Specific ConfigMap with Mixed Selectors
+# Combines both labels AND annotations for precise matching
+# When both are specified, ALL conditions must match
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tekton-pruner-namespace-spec
+  namespace: production                  # User namespace
+  labels:
+    app.kubernetes.io/part-of: tekton-pruner
+    pruner.tekton.dev/config-type: namespace
+data:
+  ns-config: |
+    ttlSecondsAfterFinished: 86400
+    successfulHistoryLimit: 10
+    failedHistoryLimit: 10
+    
+    pipelineRuns:
+      - selector:
+        - matchLabels:
+            app: payment-service
+            tier: critical
+          matchAnnotations:
+            compliance-required: "true"
+            audit-log: "enabled"
+        ttlSecondsAfterFinished: 2592000
+        successfulHistoryLimit: 50
+        failedHistoryLimit: 50
+      
+      - selector:
+        - matchLabels:
+            app: payment-service
+            environment: production
+        ttlSecondsAfterFinished: 604800
+        successfulHistoryLimit: 20
+        failedHistoryLimit: 10
+      
+      - selector:
+        - matchLabels:
+            deployment-strategy: canary
+          matchAnnotations:
+            monitoring: "enabled"
+        ttlSecondsAfterFinished: 259200
+        successfulHistoryLimit: 15
+    
+    taskRuns:
+      - selector:
+        - matchLabels:
+            task-category: security
+            component-tier: critical
+          matchAnnotations:
+            compliance-check: "required"
+        ttlSecondsAfterFinished: 2592000
+        successfulHistoryLimit: 100
+      
+      - selector:
+        - matchLabels:
+            task-category: performance
+          matchAnnotations:
+            environment: "production"
+        ttlSecondsAfterFinished: 1209600
+        successfulHistoryLimit: 30

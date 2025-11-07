@@ -347,6 +347,140 @@ func TestValidateConfigMap_Admit_NonConfigMapResource(t *testing.T) {
 	}
 }
 
+func TestValidateConfigMap_Admit_ForbiddenNamespaces(t *testing.T) {
+	tests := []struct {
+		name        string
+		namespace   string
+		wantAllowed bool
+		wantMessage string
+	}{
+		{
+			name:        "kube-system namespace - forbidden",
+			namespace:   "kube-system",
+			wantAllowed: false,
+			wantMessage: "kube-* namespaces",
+		},
+		{
+			name:        "kube-public namespace - forbidden",
+			namespace:   "kube-public",
+			wantAllowed: false,
+			wantMessage: "kube-* namespaces",
+		},
+		{
+			name:        "kube-custom namespace - forbidden",
+			namespace:   "kube-custom",
+			wantAllowed: false,
+			wantMessage: "kube-* namespaces",
+		},
+		{
+			name:        "openshift-pipelines namespace - forbidden",
+			namespace:   "openshift-pipelines",
+			wantAllowed: false,
+			wantMessage: "openshift-* namespaces",
+		},
+		{
+			name:        "openshift-operators namespace - forbidden",
+			namespace:   "openshift-operators",
+			wantAllowed: false,
+			wantMessage: "openshift-* namespaces",
+		},
+		{
+			name:        "openshift-custom namespace - forbidden",
+			namespace:   "openshift-custom",
+			wantAllowed: false,
+			wantMessage: "openshift-* namespaces",
+		},
+		{
+			name:        "tekton-pipelines namespace - forbidden",
+			namespace:   "tekton-pipelines",
+			wantAllowed: false,
+			wantMessage: "tekton-* namespaces",
+		},
+		{
+			name:        "tekton-operator namespace - forbidden",
+			namespace:   "tekton-operator",
+			wantAllowed: false,
+			wantMessage: "tekton-* namespaces",
+		},
+		{
+			name:        "tekton-custom namespace - forbidden",
+			namespace:   "tekton-custom",
+			wantAllowed: false,
+			wantMessage: "tekton-* namespaces",
+		},
+		{
+			name:        "user namespace - allowed",
+			namespace:   "my-app",
+			wantAllowed: true,
+		},
+		{
+			name:        "user namespace with similar name - allowed",
+			namespace:   "my-kube-app",
+			wantAllowed: true,
+		},
+		{
+			name:        "user namespace with tekton suffix - allowed",
+			namespace:   "my-tekton-app",
+			wantAllowed: true,
+		},
+		{
+			name:        "default namespace - allowed (not in forbidden patterns)",
+			namespace:   "default",
+			wantAllowed: true,
+		},
+		{
+			name:        "dev namespace - allowed",
+			namespace:   "dev",
+			wantAllowed: true,
+		},
+		{
+			name:        "production namespace - allowed",
+			namespace:   "production",
+			wantAllowed: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cm := &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "tekton-pruner-namespace-spec",
+					Namespace: tt.namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/part-of":     "tekton-pruner",
+						"pruner.tekton.dev/config-type": "namespace",
+					},
+				},
+				Data: map[string]string{
+					config.PrunerNamespaceConfigKey: `ttlSecondsAfterFinished: 3600`,
+				},
+			}
+
+			req := makeAdmissionRequest(t, cm, admissionv1.Create)
+			ctx := logtesting.TestContextWithLogger(t)
+
+			client := fake.NewSimpleClientset()
+			validator := &ValidateConfigMap{
+				Client:      client,
+				SecretName:  "test-secret",
+				WebhookName: "test-webhook",
+			}
+
+			resp := validator.Admit(ctx, req)
+
+			if resp.Allowed != tt.wantAllowed {
+				t.Errorf("Admit() allowed = %v, want %v", resp.Allowed, tt.wantAllowed)
+			}
+
+			if !tt.wantAllowed && resp.Result != nil {
+				if !contains(resp.Result.Message, tt.wantMessage) {
+					t.Errorf("Admit() message = %v, want to contain %v", resp.Result.Message, tt.wantMessage)
+				}
+			}
+		})
+	}
+}
+
 func TestValidateConfigMap_Admit_UpdateOperation(t *testing.T) {
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -584,4 +718,117 @@ func findSubstring(s, substr string) bool {
 		}
 	}
 	return false
+}
+
+func TestValidateNamespaceForConfig(t *testing.T) {
+	tests := []struct {
+		name      string
+		namespace string
+		wantErr   bool
+		errMsg    string
+	}{
+		{
+			name:      "allowed user namespace",
+			namespace: "my-app",
+			wantErr:   false,
+		},
+		{
+			name:      "allowed dev namespace",
+			namespace: "dev",
+			wantErr:   false,
+		},
+		{
+			name:      "allowed production namespace",
+			namespace: "production",
+			wantErr:   false,
+		},
+		{
+			name:      "allowed namespace with kube in middle",
+			namespace: "my-kube-app",
+			wantErr:   false,
+		},
+		{
+			name:      "allowed namespace with tekton in middle",
+			namespace: "my-tekton-app",
+			wantErr:   false,
+		},
+		{
+			name:      "allowed default namespace",
+			namespace: "default",
+			wantErr:   false,
+		},
+		{
+			name:      "forbidden kube-system",
+			namespace: "kube-system",
+			wantErr:   true,
+			errMsg:    "kube-* namespaces",
+		},
+		{
+			name:      "forbidden kube-public",
+			namespace: "kube-public",
+			wantErr:   true,
+			errMsg:    "kube-* namespaces",
+		},
+		{
+			name:      "forbidden kube-node-lease",
+			namespace: "kube-node-lease",
+			wantErr:   true,
+			errMsg:    "kube-* namespaces",
+		},
+		{
+			name:      "forbidden kube-custom",
+			namespace: "kube-custom",
+			wantErr:   true,
+			errMsg:    "kube-* namespaces",
+		},
+		{
+			name:      "forbidden openshift-pipelines",
+			namespace: "openshift-pipelines",
+			wantErr:   true,
+			errMsg:    "openshift-* namespaces",
+		},
+		{
+			name:      "forbidden openshift-operators",
+			namespace: "openshift-operators",
+			wantErr:   true,
+			errMsg:    "openshift-* namespaces",
+		},
+		{
+			name:      "forbidden openshift-custom",
+			namespace: "openshift-custom",
+			wantErr:   true,
+			errMsg:    "openshift-* namespaces",
+		},
+		{
+			name:      "forbidden tekton-pipelines",
+			namespace: "tekton-pipelines",
+			wantErr:   true,
+			errMsg:    "tekton-* namespaces",
+		},
+		{
+			name:      "forbidden tekton-operator",
+			namespace: "tekton-operator",
+			wantErr:   true,
+			errMsg:    "tekton-* namespaces",
+		},
+		{
+			name:      "forbidden tekton-custom",
+			namespace: "tekton-custom",
+			wantErr:   true,
+			errMsg:    "tekton-* namespaces",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateNamespaceForConfig(tt.namespace)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validateNamespaceForConfig() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr && err != nil && !contains(err.Error(), tt.errMsg) {
+				t.Errorf("validateNamespaceForConfig() error = %v, want to contain %v", err.Error(), tt.errMsg)
+			}
+		})
+	}
 }

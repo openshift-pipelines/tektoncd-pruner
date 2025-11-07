@@ -1,0 +1,56 @@
+# Namespace-Specific ConfigMap with Name-Based Targeting
+# Target runs on specific pipelines or tasks by their exact name
+# Name matching takes precedence over selectors
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tekton-pruner-namespace-spec
+  namespace: app-builds                  # User namespace
+  labels:
+    app.kubernetes.io/part-of: tekton-pruner
+    pruner.tekton.dev/config-type: namespace
+data:
+  ns-config: |
+    ttlSecondsAfterFinished: 1800
+    successfulHistoryLimit: 5
+    failedHistoryLimit: 5
+    
+    pipelineRuns:
+      - name: production-deployment
+        ttlSecondsAfterFinished: 2592000
+        successfulHistoryLimit: 50
+        failedHistoryLimit: 30
+      
+      - name: nightly-build
+        ttlSecondsAfterFinished: 86400
+        successfulHistoryLimit: 7
+        failedHistoryLimit: 7
+      
+      - name: integration-tests
+        ttlSecondsAfterFinished: 3600
+        successfulHistoryLimit: 5
+        failedHistoryLimit: 10
+      
+      - name: pr-validation
+        ttlSecondsAfterFinished: 300
+        successfulHistoryLimit: 1
+        failedHistoryLimit: 2
+    
+    taskRuns:
+      - name: vulnerability-scan
+        ttlSecondsAfterFinished: 2592000
+        successfulHistoryLimit: 100
+        failedHistoryLimit: 100
+      
+      - name: sonar-scan
+        ttlSecondsAfterFinished: 604800
+        successfulHistoryLimit: 20
+      
+      - name: unit-tests
+        ttlSecondsAfterFinished: 600
+        successfulHistoryLimit: 3
+      
+      - name: build-image
+        ttlSecondsAfterFinished: 3600
+        successfulHistoryLimit: 5

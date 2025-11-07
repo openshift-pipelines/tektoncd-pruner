@@ -120,21 +120,31 @@ data:
 
 ### Resource Groups (Fine-grained Control)
 
-Group resources by labels/annotations for different policies:
+Group resources by labels/annotations for different policies within a namespace.
+
+**Note:** Selectors only work in namespace-level ConfigMaps, not global ConfigMaps.
 
 ```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tekton-pruner-namespace-spec
+  namespace: my-app
+  labels:
+    app.kubernetes.io/part-of: tekton-pruner
+    pruner.tekton.dev/config-type: namespace
 data:
-  global-config: |
+  ns-config: |
     pipelineRuns:
       - selector:
           matchLabels:
             environment: production
-        ttlSecondsAfterFinished: 604800  # 7 days
+        ttlSecondsAfterFinished: 604800
         successfulHistoryLimit: 10
       - selector:
           matchLabels:
             environment: development
-        ttlSecondsAfterFinished: 300     # 5 minutes
+        ttlSecondsAfterFinished: 300
         successfulHistoryLimit: 3
 ```
 

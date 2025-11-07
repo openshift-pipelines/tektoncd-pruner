@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/tektoncd/pruner/pkg/config"
 	admissionv1 "k8s.io/api/admission/v1"
@@ -69,6 +70,21 @@ func validateRequiredLabels(cm *corev1.ConfigMap) error {
 		return fmt.Errorf("label pruner.tekton.dev/config-type must be 'global' or 'namespace', got: %s", configType)
 	}
 
+	return nil
+}
+
+// validateNamespaceForConfig checks if a namespace is allowed for namespace-level configs
+// Forbidden namespaces: kube-*, openshift-*, tekton-*
+func validateNamespaceForConfig(namespace string) error {
+	if strings.HasPrefix(namespace, "kube-") {
+		return fmt.Errorf("namespace-level config cannot be created in kube-* namespaces, got: %s", namespace)
+	}
+	if strings.HasPrefix(namespace, "openshift-") {
+		return fmt.Errorf("namespace-level config cannot be created in openshift-* namespaces, got: %s", namespace)
+	}
+	if strings.HasPrefix(namespace, "tekton-") {
+		return fmt.Errorf("namespace-level config cannot be created in tekton-* namespaces, got: %s", namespace)
+	}
 	return nil
 }
 
@@ -198,6 +214,22 @@ func (v *ValidateConfigMap) Admit(ctx context.Context, request *admissionv1.Admi
 				Reason:  metav1.StatusReasonInvalid,
 				Code:    400,
 			},
+		}
+	}
+
+	// Validate that namespace-level configs are not in forbidden namespaces
+	if isNamespaceConfig {
+		if err := validateNamespaceForConfig(cm.Namespace); err != nil {
+			logger.Warnw("Namespace config in forbidden namespace", "name", cm.Name, "namespace", cm.Namespace, "error", err)
+			return &admissionv1.AdmissionResponse{
+				Allowed: false,
+				Result: &metav1.Status{
+					Status:  metav1.StatusFailure,
+					Message: fmt.Sprintf("Invalid namespace for namespace-level config: %v", err),
+					Reason:  metav1.StatusReasonInvalid,
+					Code:    400,
+				},
+			}
 		}
 	}
 
