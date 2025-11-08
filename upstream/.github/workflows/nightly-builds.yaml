@@ -133,6 +133,7 @@ jobs:
           rm -f /tmp/docker-config.json
 
           # Apply service account configuration with proper RBAC
+          # NOTE: Adding this to kustomize might impact main release pipeline. so better to keep this step separate for nightly builds
           kubectl apply -f tekton/account.yaml
 
           cat > workspace-template.yaml << EOF
@@ -150,7 +151,7 @@ jobs:
 
           echo "Starting Tekton pipeline..."
 
-          PIPELINE_RUN=$(tkn pipeline start pipeline-release \
+          PIPELINE_RUN=$(tkn pipeline start pruner-release \
             --serviceaccount=release-right-meow \
             --param package="${{ env.PACKAGE }}" \
             --param repoName="${{ env.REPO_NAME }}" \
