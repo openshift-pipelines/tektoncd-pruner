@@ -18,6 +18,10 @@ kind: ConfigMap
 metadata:
   name: tekton-pruner-default-spec
   namespace: tekton-pipelines
+  labels:
+    app.kubernetes.io/part-of: tekton-pruner
+    pruner.tekton.dev/release: "devel"
+    pruner.tekton.dev/config-type: global
 data:
   global-config: |
     enforcedConfigLevel: global

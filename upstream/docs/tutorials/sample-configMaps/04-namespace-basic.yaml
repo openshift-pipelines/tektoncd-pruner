@@ -1,0 +1,18 @@
+# Namespace-Specific ConfigMap with Basic Configuration
+# Fixed name REQUIRED: tekton-pruner-namespace-spec
+# This ConfigMap MUST be created in the user namespace (NOT tekton-pipelines)
+# Cannot be created in: kube-*, openshift-*, or tekton-* namespaces
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tekton-pruner-namespace-spec     # Fixed name - DO NOT CHANGE
+  namespace: my-app-namespace            # User application namespace
+  labels:
+    app.kubernetes.io/part-of: tekton-pruner
+    pruner.tekton.dev/config-type: namespace
+data:
+  ns-config: |
+    ttlSecondsAfterFinished: 300
+    successfulHistoryLimit: 3
+    failedHistoryLimit: 5
