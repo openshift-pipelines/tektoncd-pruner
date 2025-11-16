@@ -5,35 +5,36 @@ weight: 100
 ---
 -->
 
-# Pruner Getting Started Tutorial
+# Getting Started with Tekton Pruner
 
-This tutorial will guide you through the process of setting up and configuring Tekton Pruner to remove Tekton-specific custom resources, initially focusing on PipelineRun (PR) and TaskRun (TR), along with all related objects owned by these PRs/TRs, from the etcd of the specified cluster.
+This tutorial walks you through installing Tekton Pruner and creating your first configuration.
 
 ## Prerequisites
 
-A Kubernetes cluster with the following installed:
+- Kubernetes cluster with [Tekton Pipelines](https://github.com/tektoncd/pipeline/blob/main/docs/install.md) installed
 
-* [Tekton Pipelines](https://github.com/tektoncd/pipeline/blob/main/docs/install.md)
-
-### Pruner Installation
-
-1. Install Tekton Pruner using kubectl:
+## Installation
 
 ```bash
 kubectl apply -f https://raw.githubusercontent.com/tektoncd/pruner/main/release.yaml
+kubectl get pods -n tekton-pipelines -l app=tekton-pruner-controller
 ```
 
-2. Verify the installation:
+## Understanding Required Labels
 
-```bash
-kubectl get pods -n tekton-pipelines
-```
+> **CRITICAL**: All pruner ConfigMaps **MUST** have these labels:
+> 
+> ```yaml
+> labels:
+>   app.kubernetes.io/part-of: tekton-pruner
+>   pruner.tekton.dev/config-type: <global|namespace>
+> ```
+> 
+> These labels enable the pruner webhook to validate ConfigMaps and controllers to process them correctly.
 
-You should see the `tekton-pruner-controller` pod running.
+## Create Your First Configuration
 
-### Basic Pruner Configuration
-
-1. Create a basic configuration for the pruner:
+Create a global configuration that deletes completed resources after 5 minutes and keeps the last 3 runs:
 
 ```yaml
 apiVersion: v1
@@ -41,31 +42,31 @@ kind: ConfigMap
 metadata:
   name: tekton-pruner-default-spec
   namespace: tekton-pipelines
+  labels:
+    app.kubernetes.io/part-of: tekton-pruner
+    pruner.tekton.dev/config-type: global
 data:
   global-config: |
     enforcedConfigLevel: global
-    ttlSecondsAfterFinished: 300    # Delete resources 5 minutes after completion
-    successfulHistoryLimit: 3        # Keep last 3 successful runs
-    failedHistoryLimit: 3           # Keep last 3 failed runs
+    ttlSecondsAfterFinished: 300
+    successfulHistoryLimit: 3
+    failedHistoryLimit: 3
 ```
 
-Apply the configuration:
+Apply and verify:
 
 ```bash
 kubectl apply -f pruner-config.yaml
+kubectl get configmap tekton-pruner-default-spec -n tekton-pipelines
 ```
 
-2. Verify the configuration:
+## Test the Configuration
+
+Create test PipelineRuns to verify pruning:
 
 ```bash
-kubectl get configmap tekton-pruner-default-spec -n tekton-pipelines -o yaml
-```
-
-### Testing the Pruner
-
-1. Create a simple pipeline for testing:
-
-```yaml
+# Create a simple pipeline
+kubectl apply -f - <<EOF
 apiVersion: tekton.dev/v1beta1
 kind: Pipeline
 metadata:
@@ -79,12 +80,11 @@ spec:
             image: ubuntu
             command: ['echo']
             args: ['hello world']
-```
+EOF
 
-2. Create multiple PipelineRuns:
-
-```bash
-kubectl create -f - <<EOF
+# Create multiple runs
+for i in {1..5}; do
+  kubectl create -f - <<EOF
 apiVersion: tekton.dev/v1beta1
 kind: PipelineRun
 metadata:
@@ -93,20 +93,26 @@ spec:
   pipelineRef:
     name: hello-pipeline
 EOF
-```
+done
 
-3. Watch the PipelineRuns:
-
-```bash
+# Watch pruning in action (after 5 minutes + completion time)
 kubectl get pipelineruns -w
 ```
 
-You should see older completed PipelineRuns being automatically cleaned up based on your configuration.
+## Configuration Options
 
-### Next Steps
+| Setting | Description | Example |
+|---------|-------------|---------|
+| `ttlSecondsAfterFinished` | Delete after N seconds | `300` (5 min) |
+| `successfulHistoryLimit` | Keep N successful runs | `3` |
+| `failedHistoryLimit` | Keep N failed runs | `3` |
+| `historyLimit` | Keep N runs (both types) | `5` |
+| `enforcedConfigLevel` | Config hierarchy level | `global` or `namespace` |
 
-- Learn about [History-based Pruning](./history-based-pruning.md)
-- Explore [Time-based Pruning](./time-based-pruning.md)
-- Configure [Namespace-specific Settings](./namespace-configuration.md)
-- Set up [Resource Groups](./resource-groups.md)
+## Next Steps
+
+- **[Namespace Configuration](./namespace-configuration.md)** - Per-namespace settings and validation boundaries
+- **[Resource Groups](./resource-groups.md)** - Fine-grained control with selectors
+- **[Time-based Pruning](./time-based-pruning.md)** - TTL strategies for different environments
+- **[History-based Pruning](./history-based-pruning.md)** - Retention strategies by status
 

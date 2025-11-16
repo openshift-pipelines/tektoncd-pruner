@@ -111,6 +111,14 @@ const (
 
 	// DefaultHistoryLimit represents the default history limit for successful and failed resources
 	DefaultHistoryLimit = 100
+
+	// MaxTTLSecondsAfterFinished represents the maximum TTL in seconds that can be set
+	// when no explicit global limit is defined. This is 30 days (2,592,000 seconds)
+	MaxTTLSecondsAfterFinished = 2592000
+
+	// MaxHistoryLimit represents the maximum history limit that can be set
+	// when no explicit global limit is defined for history-based retention
+	MaxHistoryLimit = 100
 )
 
 // GetEnvValueAsInt fetches the value of an environment variable and converts it to an integer
