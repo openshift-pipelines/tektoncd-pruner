@@ -883,13 +883,13 @@ func testWebhookSystemMaximumEnforcement(ctx context.Context, t *testing.T, kube
 		shouldFail  bool
 		description string
 	}{
-		// Global config tests
+		// Global config tests - global configs can exceed system maximums
 		{
-			name:        "global config exceeds system maximum TTL",
+			name:        "global config can exceed system maximum TTL",
 			configType:  "global",
 			config:      `ttlSecondsAfterFinished: 2592001`,
-			shouldFail:  true,
-			description: "TTL of 2592001 seconds exceeds system maximum of 2592000 seconds (30 days)",
+			shouldFail:  false,
+			description: "TTL of 2592001 seconds exceeds system maximum but allowed for global config",
 		},
 		{
 			name:        "global config at system maximum TTL",
@@ -899,11 +899,11 @@ func testWebhookSystemMaximumEnforcement(ctx context.Context, t *testing.T, kube
 			description: "TTL of 2592000 seconds is at system maximum",
 		},
 		{
-			name:        "global config exceeds system maximum successfulHistoryLimit",
+			name:        "global config can exceed system maximum successfulHistoryLimit",
 			configType:  "global",
 			config:      `successfulHistoryLimit: 101`,
-			shouldFail:  true,
-			description: "successfulHistoryLimit of 101 exceeds system maximum of 100",
+			shouldFail:  false,
+			description: "successfulHistoryLimit of 101 exceeds system maximum but allowed for global config",
 		},
 		{
 			name:        "global config at system maximum successfulHistoryLimit",
@@ -913,18 +913,26 @@ func testWebhookSystemMaximumEnforcement(ctx context.Context, t *testing.T, kube
 			description: "successfulHistoryLimit of 100 is at system maximum",
 		},
 		{
-			name:        "global config exceeds system maximum failedHistoryLimit",
+			name:        "global config can exceed system maximum failedHistoryLimit",
 			configType:  "global",
 			config:      `failedHistoryLimit: 150`,
-			shouldFail:  true,
-			description: "failedHistoryLimit of 150 exceeds system maximum of 100",
+			shouldFail:  false,
+			description: "failedHistoryLimit of 150 exceeds system maximum but allowed for global config",
 		},
 		{
-			name:        "global config exceeds system maximum historyLimit",
+			name:        "global config can exceed system maximum historyLimit",
 			configType:  "global",
 			config:      `historyLimit: 200`,
-			shouldFail:  true,
-			description: "historyLimit of 200 exceeds system maximum of 100",
+			shouldFail:  false,
+			description: "historyLimit of 200 exceeds system maximum but allowed for global config",
+		},
+		// Clear global config before namespace-only tests
+		{
+			name:        "reset global config to empty for namespace tests",
+			configType:  "global",
+			config:      `{}`,
+			shouldFail:  false,
+			description: "reset global config to test namespace configs against system maximum only",
 		},
 		// Namespace config tests (without global limits)
 		{

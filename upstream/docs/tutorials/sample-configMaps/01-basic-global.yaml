@@ -14,5 +14,5 @@ data:
   global-config: |
     enforcedConfigLevel: global
     ttlSecondsAfterFinished: 3600
-    successfulHistoryLimit: 5
+    successfulHistoryLimit: 50
     failedHistoryLimit: 3

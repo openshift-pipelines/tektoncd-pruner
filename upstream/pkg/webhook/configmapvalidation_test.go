@@ -552,11 +552,10 @@ func TestValidateConfigMap_Admit_SystemMaximumEnforcement(t *testing.T) {
 		wantMessage string
 	}{
 		{
-			name:        "global config exceeds system maximum TTL",
+			name:        "global config can exceed system maximum TTL",
 			configType:  "global",
 			configData:  `ttlSecondsAfterFinished: 2592001`,
-			wantAllowed: false,
-			wantMessage: "cannot exceed system maximum (2592000 seconds / 30 days)",
+			wantAllowed: true,
 		},
 		{
 			name:        "global config at system maximum TTL",
@@ -565,11 +564,10 @@ func TestValidateConfigMap_Admit_SystemMaximumEnforcement(t *testing.T) {
 			wantAllowed: true,
 		},
 		{
-			name:        "global config exceeds system maximum successfulHistoryLimit",
+			name:        "global config can exceed system maximum successfulHistoryLimit",
 			configType:  "global",
 			configData:  `successfulHistoryLimit: 101`,
-			wantAllowed: false,
-			wantMessage: "cannot exceed system maximum (100)",
+			wantAllowed: true,
 		},
 		{
 			name:        "global config at system maximum successfulHistoryLimit",

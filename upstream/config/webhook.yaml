@@ -49,11 +49,11 @@ spec:
                   fieldPath: metadata.namespace
             # Logging configuration
             - name: CONFIG_LOGGING_NAME
-              value: config-logging
+              value: config-logging-tekton-pruner
             - name: CONFIG_OBSERVABILITY_NAME
-              value: config-observability
+              value: config-observability-tekton-pruner
             - name: METRICS_DOMAIN
-              value: tekton.dev/pruner
+              value: pruner.tekton.dev
             # Webhook configuration
             - name: WEBHOOK_PORT
               value: "8443"

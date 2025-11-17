@@ -12,18 +12,18 @@ metadata:
     pruner.tekton.dev/config-type: namespace
 data:
   ns-config: |
-    ttlSecondsAfterFinished: 1800
-    successfulHistoryLimit: 5
-    failedHistoryLimit: 5
+    ttlSecondsAfterFinished: 2592000
+    successfulHistoryLimit: 100
+    failedHistoryLimit: 100
     
     pipelineRuns:
       - name: production-deployment
-        ttlSecondsAfterFinished: 2592000
+        ttlSecondsAfterFinished: 3600
         successfulHistoryLimit: 50
         failedHistoryLimit: 30
       
       - name: nightly-build
-        ttlSecondsAfterFinished: 86400
+        ttlSecondsAfterFinished: 3600
         successfulHistoryLimit: 7
         failedHistoryLimit: 7
       
@@ -39,12 +39,12 @@ data:
     
     taskRuns:
       - name: vulnerability-scan
-        ttlSecondsAfterFinished: 2592000
+        ttlSecondsAfterFinished: 3600
         successfulHistoryLimit: 100
         failedHistoryLimit: 100
       
       - name: sonar-scan
-        ttlSecondsAfterFinished: 604800
+        ttlSecondsAfterFinished: 3600
         successfulHistoryLimit: 20
       
       - name: unit-tests

@@ -15,18 +15,18 @@ data:
     enforcedConfigLevel: namespace
     
     ttlSecondsAfterFinished: 604800
-    successfulHistoryLimit: 5
-    failedHistoryLimit: 5
+    successfulHistoryLimit: 50
+    failedHistoryLimit: 50
     
     namespaces:
       development:
         ttlSecondsAfterFinished: 300
-        successfulHistoryLimit: 3
-        failedHistoryLimit: 2
+        successfulHistoryLimit: 30
+        failedHistoryLimit: 20
       
       staging:
         ttlSecondsAfterFinished: 86400
-        successfulHistoryLimit: 10
+        successfulHistoryLimit: 25
         failedHistoryLimit: 5
       
       production:
