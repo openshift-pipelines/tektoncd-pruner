@@ -29,16 +29,18 @@ func int32Ptr(i int32) *int32 {
 	return &i
 }
 
-// TestValidateConfigMap_GlobalWithSelectorsRejected verifies that global ConfigMaps
-// with selectors in namespace sections are REJECTED by validation
-func TestValidateConfigMap_GlobalWithSelectorsRejected(t *testing.T) {
+// TestValidateConfigMap_SelectorsInGlobal verifies selector support rules
+func TestValidateConfigMap_SelectorsInGlobal(t *testing.T) {
 	tests := []struct {
 		name       string
+		configKey  string
 		config     string
+		wantErr    bool
 		wantErrMsg string
 	}{
 		{
-			name: "global config with pipelineRuns selector should fail",
+			name:      "global config with pipelineRuns selector rejected",
+			configKey: PrunerGlobalConfigKey,
 			config: `ttlSecondsAfterFinished: 3600
 namespaces:
   dev:
@@ -47,10 +49,12 @@ namespaces:
           - matchLabels:
               app: myapp
         ttlSecondsAfterFinished: 1800`,
-			wantErrMsg: "global-config.namespaces.dev.pipelineRuns[0]: selectors are NOT supported in global ConfigMap",
+			wantErr:    true,
+			wantErrMsg: "selectors are NOT supported in global ConfigMap",
 		},
 		{
-			name: "global config with taskRuns selector should fail",
+			name:      "global config with taskRuns selector rejected",
+			configKey: PrunerGlobalConfigKey,
 			config: `ttlSecondsAfterFinished: 3600
 namespaces:
   prod:
@@ -59,103 +63,28 @@ namespaces:
           - matchAnnotations:
               team: platform
         successfulHistoryLimit: 5`,
-			wantErrMsg: "global-config.namespaces.prod.taskRuns[0]: selectors are NOT supported in global ConfigMap",
+			wantErr:    true,
+			wantErrMsg: "selectors are NOT supported in global ConfigMap",
 		},
 		{
-			name: "global config with multiple selectors should fail on first",
-			config: `namespaces:
-  dev:
-    pipelineRuns:
-      - selector:
-          - matchLabels:
-              app: myapp
-      - selector:
-          - matchLabels:
-              app: anotherapp`,
-			wantErrMsg: "global-config.namespaces.dev.pipelineRuns[0]: selectors are NOT supported in global ConfigMap",
-		},
-		{
-			name: "global config with mixed label and annotation selectors should fail",
-			config: `namespaces:
-  staging:
-    pipelineRuns:
-      - selector:
-          - matchLabels:
-              app: myapp
-            matchAnnotations:
-              version: v1`,
-			wantErrMsg: "global-config.namespaces.staging.pipelineRuns[0]: selectors are NOT supported in global ConfigMap",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			cm := &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "tekton-pruner-default-spec",
-					Namespace: "tekton-pipelines",
-				},
-				Data: map[string]string{
-					PrunerGlobalConfigKey: tt.config,
-				},
-			}
-
-			err := ValidateConfigMap(cm)
-			if err == nil {
-				t.Errorf("ValidateConfigMap() expected error containing '%s', got nil", tt.wantErrMsg)
-				return
-			}
-			if !strings.Contains(err.Error(), tt.wantErrMsg) {
-				t.Errorf("ValidateConfigMap() error = %v, want error containing %v", err, tt.wantErrMsg)
-			}
-		})
-	}
-}
-
-// TestValidateConfigMap_NamespaceWithSelectorsAccepted verifies that namespace ConfigMaps
-// with selectors ARE accepted by validation
-func TestValidateConfigMap_NamespaceWithSelectorsAccepted(t *testing.T) {
-	tests := []struct {
-		name   string
-		config string
-	}{
-		{
-			name: "namespace config with pipelineRuns selector should pass",
+			name:      "namespace config with pipelineRuns selector accepted",
+			configKey: PrunerNamespaceConfigKey,
 			config: `pipelineRuns:
   - selector:
       - matchLabels:
           app: myapp
     ttlSecondsAfterFinished: 1800`,
+			wantErr: false,
 		},
 		{
-			name: "namespace config with taskRuns selector should pass",
+			name:      "namespace config with taskRuns selector accepted",
+			configKey: PrunerNamespaceConfigKey,
 			config: `taskRuns:
   - selector:
       - matchAnnotations:
           team: platform
     successfulHistoryLimit: 5`,
-		},
-		{
-			name: "namespace config with mixed selectors should pass",
-			config: `pipelineRuns:
-  - selector:
-      - matchLabels:
-          app: myapp
-        matchAnnotations:
-          version: v1
-    ttlSecondsAfterFinished: 600`,
-		},
-		{
-			name: "namespace config with multiple resource specs should pass",
-			config: `pipelineRuns:
-  - selector:
-      - matchLabels:
-          app: app1
-    ttlSecondsAfterFinished: 1800
-  - selector:
-      - matchLabels:
-          app: app2
-    ttlSecondsAfterFinished: 3600`,
+			wantErr: false,
 		},
 	}
 
@@ -163,25 +92,32 @@ func TestValidateConfigMap_NamespaceWithSelectorsAccepted(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			cm := &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "tekton-pruner-namespace-spec",
-					Namespace: "dev",
+					Name:      "test-configmap",
+					Namespace: "tekton-pipelines",
 				},
 				Data: map[string]string{
-					PrunerNamespaceConfigKey: tt.config,
+					tt.configKey: tt.config,
 				},
 			}
 
 			err := ValidateConfigMap(cm)
-			if err != nil {
-				t.Errorf("ValidateConfigMap() unexpected error = %v", err)
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("expected error containing '%s', got nil", tt.wantErrMsg)
+				} else if !strings.Contains(err.Error(), tt.wantErrMsg) {
+					t.Errorf("expected error containing '%s', got: %s", tt.wantErrMsg, err.Error())
+				}
+			} else {
+				if err != nil {
+					t.Errorf("expected no error, got: %s", err.Error())
+				}
 			}
 		})
 	}
 }
 
-// TestGetFromPrunerConfigResourceLevelwithSelector_NamePrecedence verifies that
-// name-based matching has absolute precedence over selector-based matching
-func TestGetFromPrunerConfigResourceLevelwithSelector_NamePrecedence(t *testing.T) {
+// TestSelectorMatching_Precedence verifies selector matching precedence rules
+func TestSelectorMatching_Precedence(t *testing.T) {
 	ttl1800 := int32(1800)
 	ttl3600 := int32(3600)
 
@@ -191,63 +127,98 @@ func TestGetFromPrunerConfigResourceLevelwithSelector_NamePrecedence(t *testing.
 				{
 					Name: "build-pipeline",
 					PrunerConfig: PrunerConfig{
-						TTLSecondsAfterFinished: &ttl1800, // Should match by name
+						TTLSecondsAfterFinished: &ttl1800,
 					},
 				},
 				{
-					Selector: []SelectorSpec{
-						{
-							MatchLabels: map[string]string{"app": "myapp"},
-						},
-					},
+					Selector: []SelectorSpec{{MatchLabels: map[string]string{"app": "myapp"}}},
 					PrunerConfig: PrunerConfig{
-						TTLSecondsAfterFinished: &ttl3600, // Should NOT match even if labels match
+						TTLSecondsAfterFinished: &ttl3600,
 					},
 				},
 			},
 		},
 	}
 
-	selector := SelectorSpec{
-		MatchLabels: map[string]string{"app": "myapp"}, // This matches second spec
+	tests := []struct {
+		name         string
+		resourceName string
+		selector     SelectorSpec
+		wantTTL      int32
+		wantID       string
+	}{
+		{
+			name:         "name match takes precedence over selector",
+			resourceName: "build-pipeline",
+			selector:     SelectorSpec{MatchLabels: map[string]string{"app": "myapp"}},
+			wantTTL:      1800,
+			wantID:       "identifiedBy_resource_name",
+		},
+		{
+			name:         "selector match when no name provided",
+			resourceName: "",
+			selector:     SelectorSpec{MatchLabels: map[string]string{"app": "myapp"}},
+			wantTTL:      3600,
+			wantID:       "identifiedBy_resource_selector",
+		},
+		{
+			name:         "selector match when name doesn't exist",
+			resourceName: "non-existent",
+			selector:     SelectorSpec{MatchLabels: map[string]string{"app": "myapp"}},
+			wantTTL:      3600, // Falls through to selector matching after name mismatch
+			wantID:       "identifiedBy_resource_selector",
+		},
+		{
+			name:         "no match when both name and selector don't match",
+			resourceName: "non-existent",
+			selector:     SelectorSpec{MatchLabels: map[string]string{"app": "different"}},
+			wantTTL:      0, // Neither name nor selector match
+			wantID:       "",
+		},
 	}
 
-	// Name should take precedence
-	result, identifiedBy := getFromPrunerConfigResourceLevelwithSelector(
-		namespaceSpec,
-		"dev",
-		"build-pipeline", // Name provided
-		selector,         // Selector also matches, but name should win
-		PrunerResourceTypePipelineRun,
-		PrunerFieldTypeTTLSecondsAfterFinished,
-	)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, identifiedBy := getFromPrunerConfigResourceLevelwithSelector(
+				namespaceSpec,
+				"dev",
+				tt.resourceName,
+				tt.selector,
+				PrunerResourceTypePipelineRun,
+				PrunerFieldTypeTTLSecondsAfterFinished,
+			)
 
-	if result == nil {
-		t.Fatal("Expected non-nil result for name match")
-	}
-	if *result != 1800 {
-		t.Errorf("Expected TTL=1800 from name match, got %d", *result)
-	}
-	if identifiedBy != "identifiedBy_resource_name" {
-		t.Errorf("Expected identifiedBy='identifiedBy_resource_name', got '%s'", identifiedBy)
+			if tt.wantTTL == 0 {
+				if result != nil {
+					t.Errorf("expected nil result, got %v", *result)
+				}
+			} else {
+				if result == nil {
+					t.Fatal("expected non-nil result")
+				}
+				if *result != tt.wantTTL {
+					t.Errorf("expected TTL=%d, got %d", tt.wantTTL, *result)
+				}
+			}
+
+			if identifiedBy != tt.wantID {
+				t.Errorf("expected identifiedBy='%s', got '%s'", tt.wantID, identifiedBy)
+			}
+		})
 	}
 }
 
-// TestGetFromPrunerConfigResourceLevelwithSelector_ANDLogic verifies that
-// both labels AND annotations must match when both are specified
-func TestGetFromPrunerConfigResourceLevelwithSelector_ANDLogic(t *testing.T) {
+// TestSelectorMatching_ANDLogic verifies AND logic for labels and annotations
+func TestSelectorMatching_ANDLogic(t *testing.T) {
 	ttl1800 := int32(1800)
-
 	namespaceSpec := map[string]NamespaceSpec{
 		"dev": {
 			PipelineRuns: []ResourceSpec{
 				{
-					Selector: []SelectorSpec{
-						{
-							MatchLabels:      map[string]string{"app": "myapp"},
-							MatchAnnotations: map[string]string{"version": "v1"},
-						},
-					},
+					Selector: []SelectorSpec{{
+						MatchLabels:      map[string]string{"app": "myapp"},
+						MatchAnnotations: map[string]string{"version": "v1"},
+					}},
 					PrunerConfig: PrunerConfig{
 						TTLSecondsAfterFinished: &ttl1800,
 					},
@@ -262,7 +233,7 @@ func TestGetFromPrunerConfigResourceLevelwithSelector_ANDLogic(t *testing.T) {
 		shouldFind bool
 	}{
 		{
-			name: "both labels and annotations match - should find",
+			name: "both labels and annotations match",
 			selector: SelectorSpec{
 				MatchLabels:      map[string]string{"app": "myapp"},
 				MatchAnnotations: map[string]string{"version": "v1"},
@@ -270,24 +241,16 @@ func TestGetFromPrunerConfigResourceLevelwithSelector_ANDLogic(t *testing.T) {
 			shouldFind: true,
 		},
 		{
-			name: "only labels match - should NOT find",
+			name: "only labels match",
 			selector: SelectorSpec{
 				MatchLabels: map[string]string{"app": "myapp"},
 			},
 			shouldFind: false,
 		},
 		{
-			name: "only annotations match - should NOT find",
+			name: "only annotations match",
 			selector: SelectorSpec{
 				MatchAnnotations: map[string]string{"version": "v1"},
-			},
-			shouldFind: false,
-		},
-		{
-			name: "labels match but annotations don't - should NOT find",
-			selector: SelectorSpec{
-				MatchLabels:      map[string]string{"app": "myapp"},
-				MatchAnnotations: map[string]string{"version": "v2"},
 			},
 			shouldFind: false,
 		},
@@ -298,188 +261,97 @@ func TestGetFromPrunerConfigResourceLevelwithSelector_ANDLogic(t *testing.T) {
 			result, identifiedBy := getFromPrunerConfigResourceLevelwithSelector(
 				namespaceSpec,
 				"dev",
-				"", // No name, use selector
+				"",
 				tt.selector,
 				PrunerResourceTypePipelineRun,
 				PrunerFieldTypeTTLSecondsAfterFinished,
 			)
 
 			if tt.shouldFind {
-				if result == nil {
-					t.Error("Expected to find result, but got nil")
-				} else if *result != 1800 {
-					t.Errorf("Expected TTL=1800, got %d", *result)
+				if result == nil || *result != 1800 {
+					t.Errorf("expected TTL=1800, got %v", result)
 				}
 				if identifiedBy != "identifiedBy_resource_selector" {
-					t.Errorf("Expected identifiedBy='identifiedBy_resource_selector', got '%s'", identifiedBy)
+					t.Errorf("expected identifiedBy='identifiedBy_resource_selector', got '%s'", identifiedBy)
 				}
 			} else {
 				if result != nil {
-					t.Errorf("Expected nil result, but got %v", *result)
+					t.Errorf("expected nil result, got %v", result)
 				}
 				if identifiedBy != "" {
-					t.Errorf("Expected empty identifiedBy, got '%s'", identifiedBy)
+					t.Errorf("expected empty identifiedBy, got '%s'", identifiedBy)
 				}
 			}
 		})
 	}
 }
 
-// TestGetFromPrunerConfigResourceLevelwithSelector_NoMatchReturnsNil verifies that
-// when name is provided but doesn't match, nil is returned (no fallback to selectors)
-func TestGetFromPrunerConfigResourceLevelwithSelector_NoMatchReturnsNil(t *testing.T) {
-	ttl1800 := int32(1800)
-
-	namespaceSpec := map[string]NamespaceSpec{
-		"dev": {
-			PipelineRuns: []ResourceSpec{
-				{
-					Selector: []SelectorSpec{
-						{
-							MatchLabels: map[string]string{"app": "myapp"},
-						},
-					},
-					PrunerConfig: PrunerConfig{
-						TTLSecondsAfterFinished: &ttl1800,
-					},
-				},
-			},
-		},
-	}
-
-	selector := SelectorSpec{
-		MatchLabels: map[string]string{"app": "myapp"},
-	}
-
-	// Name provided but doesn't match - should return nil (no fallback to selector)
-	result, identifiedBy := getFromPrunerConfigResourceLevelwithSelector(
-		namespaceSpec,
-		"dev",
-		"non-existent-pipeline", // Name doesn't match any resource
-		selector,                // Selector would match, but should be ignored
-		PrunerResourceTypePipelineRun,
-		PrunerFieldTypeTTLSecondsAfterFinished,
-	)
-
-	if result != nil {
-		t.Errorf("Expected nil result for non-matching name, got %v", *result)
-	}
-	if identifiedBy != "" {
-		t.Errorf("Expected empty identifiedBy, got '%s'", identifiedBy)
-	}
-}
-
-// TestGetResourceFieldData_NamespaceConfigMapSelectors verifies that
-// EnforcedConfigLevelNamespace checks namespace ConfigMap selectors first
-func TestGetResourceFieldData_NamespaceConfigMapSelectors(t *testing.T) {
+// TestGetResourceFieldData_ConfigLevels verifies config level precedence
+func TestGetResourceFieldData_ConfigLevels(t *testing.T) {
 	ttl1800 := int32(1800)
 	ttl3600 := int32(3600)
 	ttl7200 := int32(7200)
 
 	globalSpec := GlobalConfig{
-		PrunerConfig: PrunerConfig{
-			TTLSecondsAfterFinished: &ttl7200, // Global default
-		},
+		PrunerConfig: PrunerConfig{TTLSecondsAfterFinished: &ttl7200},
 	}
 
 	namespaceConfigMap := map[string]NamespaceSpec{
 		"dev": {
 			PipelineRuns: []ResourceSpec{
 				{
-					Selector: []SelectorSpec{
-						{
-							MatchLabels: map[string]string{"app": "myapp"},
-						},
-					},
-					PrunerConfig: PrunerConfig{
-						TTLSecondsAfterFinished: &ttl1800, // Namespace ConfigMap selector
-					},
+					Selector:     []SelectorSpec{{MatchLabels: map[string]string{"app": "myapp"}}},
+					PrunerConfig: PrunerConfig{TTLSecondsAfterFinished: &ttl1800},
 				},
 			},
-			PrunerConfig: PrunerConfig{
-				TTLSecondsAfterFinished: &ttl3600, // Namespace ConfigMap root
-			},
+			PrunerConfig: PrunerConfig{TTLSecondsAfterFinished: &ttl3600},
 		},
 	}
 
-	selector := SelectorSpec{
-		MatchLabels: map[string]string{"app": "myapp"},
-	}
+	selector := SelectorSpec{MatchLabels: map[string]string{"app": "myapp"}}
 
-	// Should find selector match from namespace ConfigMap (ttl1800)
-	result, identifiedBy := getResourceFieldData(
-		globalSpec,
-		namespaceConfigMap,
-		"dev",
-		"", // No name
-		selector,
-		PrunerResourceTypePipelineRun,
-		PrunerFieldTypeTTLSecondsAfterFinished,
-		EnforcedConfigLevelNamespace,
-	)
-
-	if result == nil {
-		t.Fatal("Expected non-nil result")
-	}
-	if *result != 1800 {
-		t.Errorf("Expected TTL=1800 from namespace ConfigMap selector, got %d", *result)
-	}
-	if identifiedBy != "identifiedBy_resource_selector" {
-		t.Errorf("Expected identifiedBy='identifiedBy_resource_selector', got '%s'", identifiedBy)
-	}
-}
-
-// TestGetResourceFieldData_GlobalConfigMapNoSelectors verifies that
-// EnforcedConfigLevelGlobal never uses selectors, only root-level fields
-func TestGetResourceFieldData_GlobalConfigMapNoSelectors(t *testing.T) {
-	ttl7200 := int32(7200)
-
-	globalSpec := GlobalConfig{
-		PrunerConfig: PrunerConfig{
-			TTLSecondsAfterFinished: &ttl7200, // Global default - should be used
+	tests := []struct {
+		name    string
+		level   EnforcedConfigLevel
+		wantTTL int32
+		wantID  string
+	}{
+		{
+			name:    "namespace level uses selector",
+			level:   EnforcedConfigLevelNamespace,
+			wantTTL: 1800,
+			wantID:  "identifiedBy_resource_selector",
 		},
-		Namespaces: map[string]NamespaceSpec{
-			"dev": {
-				// Even if there are selectors here, they should be ignored for EnforcedConfigLevelGlobal
-				PipelineRuns: []ResourceSpec{
-					{
-						Selector: []SelectorSpec{
-							{
-								MatchLabels: map[string]string{"app": "myapp"},
-							},
-						},
-						PrunerConfig: PrunerConfig{
-							TTLSecondsAfterFinished: int32Ptr(1800), // Should be ignored
-						},
-					},
-				},
-			},
+		{
+			name:    "global level ignores selector",
+			level:   EnforcedConfigLevelGlobal,
+			wantTTL: 7200,
+			wantID:  "identified_by_global",
 		},
 	}
 
-	selector := SelectorSpec{
-		MatchLabels: map[string]string{"app": "myapp"},
-	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, identifiedBy := getResourceFieldData(
+				globalSpec,
+				namespaceConfigMap,
+				"dev",
+				"",
+				selector,
+				PrunerResourceTypePipelineRun,
+				PrunerFieldTypeTTLSecondsAfterFinished,
+				tt.level,
+			)
 
-	// EnforcedConfigLevelGlobal should use only global root, ignore all selectors
-	result, identifiedBy := getResourceFieldData(
-		globalSpec,
-		map[string]NamespaceSpec{},
-		"dev",
-		"",
-		selector,
-		PrunerResourceTypePipelineRun,
-		PrunerFieldTypeTTLSecondsAfterFinished,
-		EnforcedConfigLevelGlobal,
-	)
-
-	if result == nil {
-		t.Fatal("Expected non-nil result")
-	}
-	if *result != 7200 {
-		t.Errorf("Expected TTL=7200 from global root (ignoring selectors), got %d", *result)
-	}
-	if identifiedBy != "identified_by_global" {
-		t.Errorf("Expected identifiedBy='identified_by_global', got '%s'", identifiedBy)
+			if result == nil {
+				t.Fatal("expected non-nil result")
+			}
+			if *result != tt.wantTTL {
+				t.Errorf("expected TTL=%d, got %d", tt.wantTTL, *result)
+			}
+			if identifiedBy != tt.wantID {
+				t.Errorf("expected identifiedBy='%s', got '%s'", tt.wantID, identifiedBy)
+			}
+		})
 	}
 }

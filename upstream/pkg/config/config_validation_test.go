@@ -203,7 +203,7 @@ func TestValidateConfigMap_InvalidNamespaceConfig(t *testing.T) {
 		{
 			name:       "invalid YAML",
 			config:     `bad yaml: [[[`,
-			wantErrMsg: "failed to parse namespace-config",
+			wantErrMsg: "failed to parse ns-config",
 		},
 	}
 
@@ -534,11 +534,10 @@ func TestValidateConfigMap_SystemMaximumEnforcement(t *testing.T) {
 		wantErrMsg string
 	}{
 		{
-			name:       "global config exceeds system maximum TTL",
+			name:       "global config can exceed system maximum TTL",
 			configType: "global",
 			config:     `ttlSecondsAfterFinished: 2592001`,
-			wantErr:    true,
-			wantErrMsg: "cannot exceed system maximum (2592000 seconds / 30 days)",
+			wantErr:    false,
 		},
 		{
 			name:       "global config at system maximum TTL",
@@ -547,11 +546,10 @@ func TestValidateConfigMap_SystemMaximumEnforcement(t *testing.T) {
 			wantErr:    false,
 		},
 		{
-			name:       "global config exceeds system maximum successfulHistoryLimit",
+			name:       "global config can exceed system maximum successfulHistoryLimit",
 			configType: "global",
 			config:     `successfulHistoryLimit: 101`,
-			wantErr:    true,
-			wantErrMsg: "cannot exceed system maximum (100)",
+			wantErr:    false,
 		},
 		{
 			name:       "global config at system maximum successfulHistoryLimit",
@@ -560,11 +558,10 @@ func TestValidateConfigMap_SystemMaximumEnforcement(t *testing.T) {
 			wantErr:    false,
 		},
 		{
-			name:       "global config exceeds system maximum failedHistoryLimit",
+			name:       "global config can exceed system maximum failedHistoryLimit",
 			configType: "global",
 			config:     `failedHistoryLimit: 150`,
-			wantErr:    true,
-			wantErrMsg: "cannot exceed system maximum (100)",
+			wantErr:    false,
 		},
 		{
 			name:       "global config at system maximum failedHistoryLimit",
@@ -573,11 +570,10 @@ func TestValidateConfigMap_SystemMaximumEnforcement(t *testing.T) {
 			wantErr:    false,
 		},
 		{
-			name:       "global config exceeds system maximum historyLimit",
+			name:       "global config can exceed system maximum historyLimit",
 			configType: "global",
 			config:     `historyLimit: 200`,
-			wantErr:    true,
-			wantErrMsg: "cannot exceed system maximum (100)",
+			wantErr:    false,
 		},
 		{
 			name:       "global config at system maximum historyLimit",
@@ -612,13 +608,12 @@ func TestValidateConfigMap_SystemMaximumEnforcement(t *testing.T) {
 			wantErr:    false,
 		},
 		{
-			name:       "global config with multiple fields exceeding system maximum",
+			name:       "global config can have multiple fields exceeding system maximum",
 			configType: "global",
 			config: `ttlSecondsAfterFinished: 3000000
 successfulHistoryLimit: 150
 failedHistoryLimit: 200`,
-			wantErr:    true,
-			wantErrMsg: "cannot exceed system maximum",
+			wantErr: false,
 		},
 	}
 

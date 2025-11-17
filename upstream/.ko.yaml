@@ -1,7 +1,4 @@
-defaultBaseImage: gcr.io/distroless/static:nonroot
-baseImageOverrides:
-  github.com/tektoncd/pruner/cmd/controller: registry.access.redhat.com/ubi9/ubi-minimal
-  github.com/tektoncd/pruner/cmd/webhook: registry.access.redhat.com/ubi9/ubi-minimal
+defaultBaseImage: cgr.dev/chainguard/static:latest
 
 builds:
   - id: ko

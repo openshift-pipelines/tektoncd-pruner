@@ -12,8 +12,8 @@ metadata:
 data:
   ns-config: |
     ttlSecondsAfterFinished: 600
-    successfulHistoryLimit: 3
-    failedHistoryLimit: 3
+    successfulHistoryLimit: 30
+    failedHistoryLimit: 30
     
     pipelineRuns:
       - selector:

@@ -12,9 +12,9 @@ metadata:
     pruner.tekton.dev/config-type: namespace
 data:
   ns-config: |
-    ttlSecondsAfterFinished: 86400
-    successfulHistoryLimit: 10
-    failedHistoryLimit: 10
+    ttlSecondsAfterFinished: 2592000
+    successfulHistoryLimit: 100
+    failedHistoryLimit: 100
     
     pipelineRuns:
       - selector:
@@ -24,7 +24,7 @@ data:
           matchAnnotations:
             compliance-required: "true"
             audit-log: "enabled"
-        ttlSecondsAfterFinished: 2592000
+        ttlSecondsAfterFinished: 3600
         successfulHistoryLimit: 50
         failedHistoryLimit: 50
       
@@ -32,7 +32,7 @@ data:
         - matchLabels:
             app: payment-service
             environment: production
-        ttlSecondsAfterFinished: 604800
+        ttlSecondsAfterFinished: 3600
         successfulHistoryLimit: 20
         failedHistoryLimit: 10
       
@@ -41,7 +41,7 @@ data:
             deployment-strategy: canary
           matchAnnotations:
             monitoring: "enabled"
-        ttlSecondsAfterFinished: 259200
+        ttlSecondsAfterFinished: 3600
         successfulHistoryLimit: 15
     
     taskRuns:
@@ -51,13 +51,13 @@ data:
             component-tier: critical
           matchAnnotations:
             compliance-check: "required"
-        ttlSecondsAfterFinished: 2592000
-        successfulHistoryLimit: 100
+        ttlSecondsAfterFinished: 3600
+        successfulHistoryLimit: 70
       
       - selector:
         - matchLabels:
             task-category: performance
           matchAnnotations:
             environment: "production"
-        ttlSecondsAfterFinished: 1209600
+        ttlSecondsAfterFinished: 3600
         successfulHistoryLimit: 30

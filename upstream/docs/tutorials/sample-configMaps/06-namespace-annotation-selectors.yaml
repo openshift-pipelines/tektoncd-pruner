@@ -11,22 +11,22 @@ metadata:
     pruner.tekton.dev/config-type: namespace
 data:
   ns-config: |
-    ttlSecondsAfterFinished: 1800
-    successfulHistoryLimit: 5
-    failedHistoryLimit: 5
-    
+    ttlSecondsAfterFinished: 3600
+    successfulHistoryLimit: 100
+    failedHistoryLimit: 100
+
     pipelineRuns:
       - selector:
         - matchAnnotations:
             release-pipeline: "true"
-        ttlSecondsAfterFinished: 2592000
+        ttlSecondsAfterFinished: 3600
         successfulHistoryLimit: 50
         failedHistoryLimit: 20
       
       - selector:
         - matchAnnotations:
             build-schedule: "nightly"
-        ttlSecondsAfterFinished: 86400
+        ttlSecondsAfterFinished: 3600
         successfulHistoryLimit: 7
         failedHistoryLimit: 7
       
@@ -47,12 +47,12 @@ data:
       - selector:
         - matchAnnotations:
             scan-type: "security"
-        ttlSecondsAfterFinished: 2592000
-        successfulHistoryLimit: 100
-        failedHistoryLimit: 100
+        ttlSecondsAfterFinished: 3600
+        successfulHistoryLimit: 80
+        failedHistoryLimit: 80
       
       - selector:
         - matchAnnotations:
             scan-type: "quality"
-        ttlSecondsAfterFinished: 604800
+        ttlSecondsAfterFinished: 3600
         successfulHistoryLimit: 20
