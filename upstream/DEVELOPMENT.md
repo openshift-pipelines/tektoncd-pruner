@@ -81,12 +81,13 @@ This sets up a Kind cluster with Tekton Pruner, Prometheus, and Jaeger. Access v
 - Jaeger: http://localhost:16686  
 - Pruner Metrics: http://localhost:9090/metrics
 
-### Redeploy controller
-
-As you make changes to the code, you can redeploy your controller with:
-
+### Redeploy components
+As you make changes to the code, you can redeploy components individually:
 ```shell
+# Redeploy the controller
 ko apply -f config/controller.yaml
+# Redeploy the webhook
+ko apply -f config/webhook.yaml
 ```
 
 ### Tear it down

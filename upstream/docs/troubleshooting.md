@@ -115,6 +115,8 @@ kubectl get configmap tekton-pruner-default-spec -n tekton-pipelines -o yaml > c
 diff current-config.yaml config/600-tekton-pruner-default-spec.yaml
 ```
 
+**Note:** For detailed information about ConfigMap validation, including webhook validation rules, required labels, and common validation errors, see the [ConfigMap Validation](./configmap-validation.md) guide.
+
 ## Best Practices for Troubleshooting
 
 1. Start with Controller Logs
