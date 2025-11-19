@@ -11,7 +11,7 @@ RUN go build -ldflags="-X 'knative.dev/pkg/changeset.rev=$(cat HEAD)'" -mod=vend
     ./cmd/controller
 
 FROM $RUNTIME
-ARG VERSION=tektoncd-pruner-next
+ARG VERSION=tektoncd-pruner-1.21
 
 ENV KO_APP=/ko-app \
     CONTROLLER=${KO_APP}/controller
