@@ -1,4 +1,4 @@
-# Generated for Konflux Application openshift-pipelines-core-next by openshift-pipelines/hack. DO NOT EDIT
+# Generated for Konflux Application openshift-pipelines-core by openshift-pipelines/hack. DO NOT EDIT
 apiVersion: tekton.dev/v1
 kind: PipelineRun
 metadata:
@@ -10,16 +10,16 @@ metadata:
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
-      == "next" &&
+      == "release-v1.22.x" &&
       ("upstream/***".pathChanged() || ".konflux/patches/***".pathChanged() || ".konflux/rpms/***".pathChanged() ||
-      ".konflux/dockerfiles/webhook.Dockerfile".pathChanged() ||
-      ".tekton/tektoncd-pruner-next-webhook-push.yaml".pathChanged())
+      ".konflux/dockerfiles/controller.Dockerfile".pathChanged() ||
+      ".tekton/tektoncd-pruner-1-22-controller-push.yaml".pathChanged())
   creationTimestamp: null
   labels:
-    appstudio.openshift.io/application: openshift-pipelines-core-next
-    appstudio.openshift.io/component: tektoncd-pruner-next-webhook
+    appstudio.openshift.io/application: openshift-pipelines-core-1-22
+    appstudio.openshift.io/component: tektoncd-pruner-controller-1-22
     pipelines.appstudio.openshift.io/type: build
-  name: tektoncd-pruner-next-webhook-on-push
+  name: tektoncd-pruner-1-22-controller-on-push
   namespace: tekton-ecosystem-tenant
 spec:
   params:
@@ -27,19 +27,21 @@ spec:
     value: '{{source_url}}'
   - name: revision
     value: '{{revision}}'
-  - name: upstream-git-url
-    value: 'https://github.com/tektoncd/pruner'
   - name: output-image
-    value: quay.io/redhat-user-workloads/tekton-ecosystem-tenant/next/pruner-webhook-rhel9:{{revision}}
+    value: quay.io/redhat-user-workloads/tekton-ecosystem-tenant/pipelines-pruner-controller-rhel9:{{revision}}
   - name: dockerfile
-    value: .konflux/dockerfiles/webhook.Dockerfile
+    value: .konflux/dockerfiles/controller.Dockerfile
+  - name: additional-tags
+    value:
+      - "1.22"
+      - "1.22.0"
   - name: prefetch-input
     value: |
       {"type": "rpm", "path": ".konflux/rpms"}
   pipelineRef:
     name: docker-build-ta
   taskRunTemplate:
-    serviceAccountName: build-pipeline-tektoncd-pruner-next-webhook
+    serviceAccountName: build-pipeline-tektoncd-pruner-controller-1-22
   workspaces:
   - name: git-auth
     secret:
