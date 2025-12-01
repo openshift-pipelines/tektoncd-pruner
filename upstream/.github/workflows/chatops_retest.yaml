@@ -9,7 +9,7 @@
 # - or the issuer is the owner the PR
 
 name: Rerun Failed Actions
-on:
+'on':
   repository_dispatch:
     types: [retest-command]
 
@@ -61,7 +61,7 @@ jobs:
 
     - name: Create comment on failure
       if: ${{ failure() }}
-      uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
+      uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9  # v5.0.0
       with:
         token: ${{ secrets.CHATOPS_TOKEN }}
         repository: ${{ github.event.client_payload.github.payload.repository.full_name }}
@@ -73,7 +73,7 @@ jobs:
 
     - name: Add reaction
       if: ${{ success() }}
-      uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
+      uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9  # v5.0.0
       with:
         token: ${{ secrets.CHATOPS_TOKEN }}
         repository: ${{ github.event.client_payload.github.payload.repository.full_name }}

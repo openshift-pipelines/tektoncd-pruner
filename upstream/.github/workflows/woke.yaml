@@ -3,23 +3,23 @@ name: 'woke'
 permissions:
   contents: read
 
-on:
-  - pull_request
+'on':
+  pull_request: {}
 jobs:
   woke:
     name: 'woke'
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2 # v2.13.2
+        uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2  # v2.13.2
         with:
           egress-policy: audit
       - name: 'Checkout'
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-        
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3  # v6.0.0
+
       - name: Get changed files
         id: changed-files
-        uses: tj-actions/changed-files@70069877f29101175ed2b055d210fe8b1d54d7d7 # v45.0.7
+        uses: tj-actions/changed-files@abdd2f68ea150cee8f236d4a9fb4e0f2491abf1b  # v45.0.7
         with:
           write_output_files: true
           files: |
@@ -27,7 +27,7 @@ jobs:
 
       - name: 'woke'
         if: steps.changed-files.outputs.any_changed == 'true'
-        uses: get-woke/woke-action@b2ec032c4a2c912142b38a6a453ad62017813ed0 # v0
+        uses: get-woke/woke-action@b2ec032c4a2c912142b38a6a453ad62017813ed0  # v0
         with:
           # Cause the check to fail on any broke rules
           fail-on-error: true

@@ -1,6 +1,6 @@
 name: Pruner kind E2E Tests
 
-on:
+'on':
   push:
     branches:
       - main
@@ -18,7 +18,7 @@ defaults:
 jobs:
   k8s:
     strategy:
-      fail-fast: false # Keep running if one leg fails.
+      fail-fast: false  # Keep running if one leg fails.
       matrix:
         # Keep in sync with the list of supported releases: https://kubernetes.io/releases/
         k8s-version:
@@ -31,7 +31,7 @@ jobs:
   # This job is for testing the latest LTS version of Tekton Pipelines
   pipelines-lts:
     strategy:
-      fail-fast: false # Keep running if one leg fails.
+      fail-fast: false  # Keep running if one leg fails.
       matrix:
         pipelines-release:
         # This should follow the list of versions from https://github.com/tektoncd/pipeline/blob/main/releases.md#release
