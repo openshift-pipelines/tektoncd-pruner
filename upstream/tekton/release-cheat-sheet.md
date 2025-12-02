@@ -6,33 +6,33 @@ the pruner repo, a terminal window and a text editor.
 
 1. [Setup a context to connect to the dogfooding cluster](#setup-dogfooding-context) if you haven't already.
 
-1. `cd` to root of Pruner git checkout.
+2. `cd` to root of Pruner git checkout.
 
-1. Make sure the release `Pipeline` is up-to-date on the cluster.
+3. Make sure the release `Pipeline` is up-to-date on the cluster.
 
    - [pruner-release](https://github.com/tektoncd/pruner/blob/main/tekton/release-pipeline.yaml)
      ```shell script
      kubectl apply -f tekton/release-pipeline.yaml
      ```
 
-1. Select the commit you would like to build the release from, most likely the
+4. Select the commit you would like to build the release from, most likely the
    most recent commit at https://github.com/tektoncd/pruner/commits/main
    and note the commit's hash.
 
-1. Create environment variables for bash scripts in later steps.
+5. Create environment variables for bash scripts in later steps.
 
     ```bash
     VERSION_TAG=# UPDATE THIS. Example: v0.6.2
     PRUNER_RELEASE_GIT_SHA=# SHA of the release to be released
     ```
 
-1. Confirm commit SHA matches what you want to release.
+6. Confirm commit SHA matches what you want to release.
 
     ```bash
     git show $PRUNER_RELEASE_GIT_SHA
     ```
 
-1. Create a workspace template file:
+7. Create a workspace template file:
 
    ```bash
    cat <<EOF > workspace-template.yaml
@@ -45,31 +45,31 @@ the pruner repo, a terminal window and a text editor.
    EOF
    ```
 
-1. Execute the release pipeline.
+8. Execute the release pipeline.
 
     **If you are back-porting include this flag: `--param=releaseAsLatest="false"`**
 
-    ```bash
-    tkn --context dogfooding pipeline start pruner-release \
-      --param package=github.com/tektoncd/pruner \
-      --param repoName=pruner
-      --param imageRegistry=ghcr.io \
-      --param imageRegistryPath=tektoncd/pruner \
-      --param imageRegistryRegions="" \
-      --param imageRegistryUser=tekton-robot \
-      --param gitRevision="${PRUNER_RELEASE_GIT_SHA}" \
-      --param versionTag="${VERSION_TAG}" \
-      --param serviceAccountImagesPath=credentials \
-      --param releaseBucket=tekton-releases \
-      --param koExtraArgs="" \
-      --workspace name=release-secret,secret=oci-release-secret \
-      --workspace name=release-images-secret,secret=ghcr-creds \
-      --workspace name=workarea,volumeClaimTemplateFile=workspace-template.yaml
+   ```bash
+   tkn --context dogfooding pipeline start pruner-release \
+     --param package=github.com/tektoncd/pruner \
+     --param repoName=pruner \
+     --param imageRegistry=ghcr.io \
+     --param imageRegistryPath=tektoncd/pruner \
+     --param imageRegistryRegions="" \
+     --param imageRegistryUser=tekton-robot \
+     --param gitRevision="${PRUNER_RELEASE_GIT_SHA}" \
+     --param versionTag="${VERSION_TAG}" \
+     --param serviceAccountImagesPath=credentials \
+     --param releaseBucket=tekton-releases \
+     --param koExtraArgs="" \
+     --workspace name=release-secret,secret=oci-release-secret \
+     --workspace name=release-images-secret,secret=ghcr-creds \
+     --workspace name=workarea,volumeClaimTemplateFile=workspace-template.yaml
     ```
 
-1. Watch logs of pruner-release.
+9. Watch logs of pruner-release.
 
-1. Once the pipeline run is complete, check its results:
+10. Once the pipeline run is complete, check its results:
 
    ```bash
    tkn --context dogfooding pr describe <pipeline-run-name>
@@ -88,16 +88,16 @@ the pruner repo, a terminal window and a text editor.
    The `commit-sha` should match `$PRUNER_RELEASE_GIT_SHA`.
    The two URLs can be opened in the browser or via `curl` to download the release manifests.
 
-1. The YAMLs are now released! Anyone installing Tekton pruner will now get the new version. Time to create a new GitHub release announcement:
+11. The YAMLs are now released! Anyone installing Tekton pruner will now get the new version. Time to create a new GitHub release announcement:
 
-1. Create additional environment variables
+12. Create additional environment variables
 
     ```bash
     PRUNER_OLD_VERSION=# Example: v0.11.1
     TEKTON_PACKAGE=tektoncd/pruner
     ```
 
-1. Find the Rekor UUID for the release
+13. Find the Rekor UUID for the release
 
     ```bash
     RELEASE_FILE=https://infra.tekton.dev/tekton-releases/pruner/previous/${VERSION_TAG}/release.yaml
@@ -106,7 +106,7 @@ the pruner repo, a terminal window and a text editor.
     echo -e "CONTROLLER_IMAGE_SHA: ${CONTROLLER_IMAGE_SHA}\nREKOR_UUID: ${REKOR_UUID}"
     ```
 
-1. Execute the Draft Release task.
+14. Execute the Draft Release task.
 
     ```bash
     tkn --context dogfooding pipeline start \
@@ -122,28 +122,28 @@ the pruner repo, a terminal window and a text editor.
         release-draft
     ```
 
-1. Watch logs of create-draft-release. On successful completion, a URL will be logged. Visit that URL and look through the release notes.
+15. Watch logs of create-draft-release. On successful completion, a URL will be logged. Visit that URL and look through the release notes.
    
-1. Manually add upgrade and deprecation notices based on the generated release notes.  Double-check that the list of commits here matches your expectations
+16. Manually add upgrade and deprecation notices based on the generated release notes.  Double-check that the list of commits here matches your expectations
 for the release. You might need to remove incorrect commits or copy/paste commits
 from the release branch. Refer to previous releases to confirm the expected format.
 
-1. Un-check the "This is a pre-release" checkbox since you're making a legit for-reals release!
+17. Un-check the "This is a pre-release" checkbox since you're making a legit for-reals release!
 
-1. Publish the GitHub release once all notes are correct and in order.
+18. Publish the GitHub release once all notes are correct and in order.
 
-1. Edit `releases.md` on the `main` branch, add an entry for the release.
+19. Edit `releases.md` on the `main` branch, add an entry for the release.
    - In case of a patch release, replace the latest release with the new one,
      including links to docs and examples. Append the new release to the list
      of patch releases as well.
-   - In case of a minor or major release, add a new entry for the
-     release, including links to docs and example
+  - In case of a minor or major release, add a new entry for the
+    release, including links to docs and examples
    - Check if any release is EOL, if so move it to the "End of Life Releases"
      section
 
-1. Push & make PR for updated `releases.md`
+20. Push & make PR for updated `releases.md`
 
-1. Test release that you just made against your own cluster (note `--context my-dev-cluster`):
+21. Test release that you just made against your own cluster (note `--context my-dev-cluster`):
 
     ```bash
     # Test latest
@@ -155,10 +155,10 @@ from the release branch. Refer to previous releases to confirm the expected form
     kubectl --context my-dev-cluster apply --filename https://infra.tekton.dev/tekton-releases/pruner/previous/v0.12.1/release.yaml
     ```
 
-1. For major releases, the [website sync configuration](https://github.com/tektoncd/website/blob/main/sync/config/pruner.yaml)
+22. For major releases, update the [website sync configuration](https://github.com/tektoncd/website/blob/main/sync/config/pruner.yaml)
    to include the new release.
 
-1. Announce the release in Slack channels #general, #pruner and #announcements.
+23. Announce the release in Slack channels #general, #pruner and #announcements.
 
 Congratulations, you're done!
 
@@ -171,7 +171,7 @@ Congratulations, you're done!
     oci ce cluster create-kubeconfig --cluster-id <CLUSTER-OCID> --file $HOME/.kube/config --region <CLUSTER-REGION> --token-version 2.0.0  --kube-endpoint PUBLIC_ENDPOINT
     ```
 
-1. Give [the context](https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/)
+2. Give [the context](https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/)
    a short memorable name such as `dogfooding`:
 
    ```bash

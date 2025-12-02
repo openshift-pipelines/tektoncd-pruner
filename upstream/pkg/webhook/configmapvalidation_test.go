@@ -513,7 +513,7 @@ func TestValidateConfigMap_Admit_UpdateOperation(t *testing.T) {
 	}
 }
 
-func TestValidateConfigMap_Admit_InvalidJSON(t *testing.T) {
+func TestValidateConfigMap_Admit_InvalidJSONParsing(t *testing.T) {
 	req := &admissionv1.AdmissionRequest{
 		UID: "test-uid",
 		Kind: metav1.GroupVersionKind{
@@ -648,7 +648,7 @@ func TestValidateConfigMap_Admit_SystemMaximumEnforcement(t *testing.T) {
 	}
 }
 
-func TestValidateConfigMap_Path(t *testing.T) {
+func TestValidateConfigMap_Path_WithClient(t *testing.T) {
 	validator := &ValidateConfigMap{
 		Client:      fake.NewSimpleClientset(),
 		SecretName:  "test-secret",
@@ -718,7 +718,7 @@ func findSubstring(s, substr string) bool {
 	return false
 }
 
-func TestValidateNamespaceForConfig(t *testing.T) {
+func TestValidateNamespaceForConfig_AdditionalCases(t *testing.T) {
 	tests := []struct {
 		name      string
 		namespace string
