@@ -1,5 +1,5 @@
 ARG GO_BUILDER=brew.registry.redhat.io/rh-osbs/openshift-golang-builder:v1.22
-ARG RUNTIME=registry.access.redhat.com/ubi9/ubi-minimal@sha256:7c5495d5fad59aaee12abc3cbbd2b283818ee1e814b00dbc7f25bf2d14fa4f0c
+ARG RUNTIME=registry.access.redhat.com/ubi9/ubi-minimal@sha256:161a4e29ea482bab6048c2b36031b4f302ae81e4ff18b83e61785f40dc576f5d
 
 FROM $GO_BUILDER AS builder
 
@@ -9,7 +9,7 @@ COPY . .
 RUN go build -tags strictfipsruntime -v -o /tmp/webhook  ./cmd/webhook
 
 FROM $RUNTIME
-ARG VERSION=tektoncd-pruner
+ARG VERSION=tektoncd-pruner-1-19-4
 
 COPY --from=builder /tmp/webhook /ko-app/webhook
 
