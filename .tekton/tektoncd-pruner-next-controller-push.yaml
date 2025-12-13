@@ -1,4 +1,4 @@
-# Generated for Konflux Application openshift-pipelines-core-next by openshift-pipelines/hack. DO NOT EDIT
+# Generated for Konflux Application openshift-pipelines-core by openshift-pipelines/hack. DO NOT EDIT
 apiVersion: tekton.dev/v1
 kind: PipelineRun
 metadata:
@@ -25,14 +25,17 @@ spec:
   params:
   - name: git-url
     value: '{{source_url}}'
-  - name: revision
-    value: '{{revision}}'
   - name: upstream-git-url
     value: 'https://github.com/tektoncd/pruner'
+  - name: revision
+    value: '{{revision}}'
   - name: output-image
-    value: quay.io/redhat-user-workloads/tekton-ecosystem-tenant/next/pruner-controller-rhel9:{{revision}}
+    value: quay.io/redhat-user-workloads/tekton-ecosystem-tenant/pipelines-pruner-controller-rhel9:{{revision}}
   - name: dockerfile
     value: .konflux/dockerfiles/controller.Dockerfile
+  - name: additional-tags
+    value:
+      - "next"
   - name: prefetch-input
     value: |
       {"type": "rpm", "path": ".konflux/rpms"}
