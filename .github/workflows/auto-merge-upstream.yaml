@@ -28,7 +28,9 @@ jobs:
           --jq ' .[]| select((.statusCheckRollup // [])| all(.conclusion == "SUCCESS" or .conclusion == "SKIPPED"))| "\(.number)"')
         
         for p in $pr_list; do
-          echo "Merging upstream PR $p"
+          echo "Approving  PR $p"
+          gh pr edit $p --add-label "lgtm,approved" || true
+          echo "Merging  PR $p"
           gh pr merge --rebase --delete-branch --auto $p
         done
       env:
