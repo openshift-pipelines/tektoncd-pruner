@@ -29,6 +29,7 @@ jobs:
         
         for p in $pr_list; do
           echo "Merging upstream PR $p"
+          gh pr edit $p --add-label "lgtm,approved"
           gh pr merge --rebase --delete-branch --auto $p
         done
       env:
