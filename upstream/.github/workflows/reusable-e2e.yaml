@@ -1,6 +1,6 @@
 name: Reusable workflow example
 
-on:
+'on':
   workflow_call:
     inputs:
       pipelines-release:
@@ -30,21 +30,21 @@ jobs:
 
     steps:
     - name: Check out our repo
-      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3  # v6.0.0
 
     - name: Set up Go
-      uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
+      uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c  # v6.1.0
       with:
         go-version-file: "go.mod"
 
-    - uses: ko-build/setup-ko@d006021bd0c28d1ce33a07e7943d48b079944c8d # v0.9
+    - uses: ko-build/setup-ko@d006021bd0c28d1ce33a07e7943d48b079944c8d  # v0.9
       with:
         version: tip
 
     - name: Create kind cluster
-      run: |  
+      run: |
         kind create cluster --config "./test/kind-cluster.yaml" --wait=60s
-        while ! kubectl get nodes 
+        while ! kubectl get nodes
         do
           echo "waiting for kind cluster to be ready"
           sleep 2

@@ -31,9 +31,9 @@ import (
 )
 
 // NewController creates a Reconciler and returns the result of NewImpl.
-// It also sets up a periodic garbage collection (GC) process that runs every 5 minutes.
-// The GC process is responsible for cleaning up resources based on the TTL configuration.
-// Additionally, it watches for changes to the ConfigMap and triggers GC immediately when a change is detected.
+// It watches for changes to the pruner ConfigMap and triggers garbage collection (GC)
+// when configuration changes are detected. The GC process cleans up resources based
+// on the TTL configuration across all namespaces.
 func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
 	logger := logging.FromContext(ctx)
 
