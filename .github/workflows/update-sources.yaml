@@ -1,9 +1,7 @@
 # Generated for Konflux Application openshift-pipelines-core by openshift-pipelines/hack. DO NOT EDIT
-name: update-sources-tektoncd-pruner
+name: update-sources-tektoncd/pruner
 on:
   workflow_dispatch: {}
-  schedule:
-  - cron: "0 1 * * *" # At 1:00 everyday
 
 jobs:
 
@@ -16,7 +14,7 @@ jobs:
     - name: Checkout the current repo
       uses: actions/checkout@v4
       with:
-        ref: next
+        ref: release-v1.14.x
 
     - name: Clone tektoncd/pruner
       run: |
@@ -32,7 +30,7 @@ jobs:
         
         git config user.name openshift-pipelines-bot
         git config user.email pipelines-extcomm@redhat.com
-        git checkout -b actions/update/sources-next
+        git checkout -b actions/update/sources-release-v1.14.x
         touch head
         pushd upstream
         OLD_COMMIT=$(cat ../head)
@@ -53,7 +51,7 @@ jobs:
         fi
 
         git commit -F- <<EOF
-        [bot] Update next from tektoncd/pruner to ${NEW_COMMIT}
+        [bot] Update release-v1.14.x from tektoncd/pruner to ${NEW_COMMIT}
 
             $ git diff --stat ${NEW_COMMIT}..${OLD_COMMIT}
         $(cat /tmp/diff.txt | sed 's/^/    /' | head -c 55555)
@@ -61,14 +59,14 @@ jobs:
         https://github.com/tektoncd/pruner/compare/${NEW_COMMIT}..${OLD_COMMIT}
         EOF
         
-        git push -f origin actions/update/sources-next
+        git push -f origin actions/update/sources-release-v1.14.x
 
-        if [ "$(gh pr list --base next --head actions/update/sources-next --json url --jq 'length')" = "0" ]; then
+        if [ "$(gh pr list --base release-v1.14.x --head actions/update/sources-release-v1.14.x --json url --jq 'length')" = "0" ]; then
           echo "creating PR..."
-          gh pr create -B next -H actions/update/sources-next --label=automated --label=upstream --fill
+          gh pr create -B release-v1.14.x -H actions/update/sources-release-v1.14.x --label=automated --label=upstream --fill
         else
           echo "a PR already exists, editing..."
-          gh pr edit --title "[bot] Update next from tektoncd/pruner to ${NEW_COMMIT}" --body "$(cat /tmp/diff.txt | sed 's/^/    /' | head -c 55555)"
+          gh pr edit --title "[bot] Update release-v1.14.x from tektoncd/pruner to ${NEW_COMMIT}" --body "$(cat /tmp/diff.txt | sed 's/^/    /' | head -c 55555)"
         fi
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
