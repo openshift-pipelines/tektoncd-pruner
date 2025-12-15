@@ -1,9 +1,7 @@
 # Generated for Konflux Application openshift-pipelines-core by openshift-pipelines/hack. DO NOT EDIT
-name: update-sources-tektoncd-pruner
+name: update-sources-tektoncd/pruner
 on:
   workflow_dispatch: {}
-  schedule:
-  - cron: "0 1 * * *" # At 1:00 everyday
 
 jobs:
 
