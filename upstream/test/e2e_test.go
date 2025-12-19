@@ -180,7 +180,7 @@ func ensureClusterReady(ctx context.Context, t *testing.T, kubeClient *kubernete
 
 // waitForDeploymentReady waits for a deployment to have at least one ready replica
 func waitForDeploymentReady(ctx context.Context, kubeClient *kubernetes.Clientset, namespace, deploymentName string, timeout time.Duration) error {
-	return wait.PollImmediate(3*time.Second, timeout, func() (bool, error) {
+	return wait.PollUntilContextTimeout(ctx, 3*time.Second, timeout, true, func(ctx context.Context) (bool, error) {
 		deployment, err := kubeClient.AppsV1().Deployments(namespace).Get(ctx, deploymentName, metav1.GetOptions{})
 		if err != nil {
 			if errors.IsNotFound(err) {
@@ -1067,18 +1067,17 @@ func testWebhookForbiddenNamespaces(ctx context.Context, t *testing.T, kubeClien
 			expectedErrMessage: "openshift-* namespaces",
 		},
 		{
-			name:               "tekton-custom namespace - should be rejected by code validation",
-			namespace:          "tekton-custom-test",
-			shouldCreateNS:     true,
-			expectedRejection:  true,
-			expectedErrMessage: "tekton-* namespaces",
+			name:              "tekton-custom namespace - should be allowed",
+			namespace:         "tekton-custom-test",
+			shouldCreateNS:    true,
+			expectedRejection: false,
 		},
 		{
 			name:               "tekton-operator namespace - should be rejected by code validation",
 			namespace:          "tekton-operator",
 			shouldCreateNS:     true,
 			expectedRejection:  true,
-			expectedErrMessage: "tekton-* namespaces",
+			expectedErrMessage: "tekton-operator namespace",
 		},
 		{
 			name:              "user namespace - should be allowed",
@@ -1170,7 +1169,7 @@ successfulHistoryLimit: 10`)
 
 // waitForTaskRunDeletion polls for a TaskRun to be deleted within the configured timeout
 func waitForTaskRunDeletion(ctx context.Context, client *clientset.Clientset, name, namespace string) error {
-	return wait.PollImmediate(pollingInterval, waitForDeletion, func() (bool, error) {
+	return wait.PollUntilContextTimeout(ctx, pollingInterval, waitForDeletion, true, func(ctx context.Context) (bool, error) {
 		_, err := client.TektonV1().TaskRuns(namespace).Get(ctx, name, metav1.GetOptions{})
 		if errors.IsNotFound(err) {
 			return true, nil // Resource deleted, we're done
@@ -1184,7 +1183,7 @@ func waitForTaskRunDeletion(ctx context.Context, client *clientset.Clientset, na
 
 // waitForPipelineRunDeletion polls for a PipelineRun to be deleted within the configured timeout
 func waitForPipelineRunDeletion(ctx context.Context, client *clientset.Clientset, name, namespace string) error {
-	return wait.PollImmediate(pollingInterval, waitForDeletion, func() (bool, error) {
+	return wait.PollUntilContextTimeout(ctx, pollingInterval, waitForDeletion, true, func(ctx context.Context) (bool, error) {
 		_, err := client.TektonV1().PipelineRuns(namespace).Get(ctx, name, metav1.GetOptions{})
 		if errors.IsNotFound(err) {
 			return true, nil // Resource deleted, we're done

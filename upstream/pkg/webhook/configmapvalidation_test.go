@@ -394,19 +394,18 @@ func TestValidateConfigMap_Admit_ForbiddenNamespaces(t *testing.T) {
 			name:        "tekton-pipelines namespace - forbidden",
 			namespace:   "tekton-pipelines",
 			wantAllowed: false,
-			wantMessage: "tekton-* namespaces",
+			wantMessage: "tekton-pipelines namespace",
 		},
 		{
 			name:        "tekton-operator namespace - forbidden",
 			namespace:   "tekton-operator",
 			wantAllowed: false,
-			wantMessage: "tekton-* namespaces",
+			wantMessage: "tekton-operator namespace",
 		},
 		{
-			name:        "tekton-custom namespace - forbidden",
+			name:        "tekton-custom namespace - allowed",
 			namespace:   "tekton-custom",
-			wantAllowed: false,
-			wantMessage: "tekton-* namespaces",
+			wantAllowed: true,
 		},
 		{
 			name:        "user namespace - allowed",
@@ -801,19 +800,18 @@ func TestValidateNamespaceForConfig_AdditionalCases(t *testing.T) {
 			name:      "forbidden tekton-pipelines",
 			namespace: "tekton-pipelines",
 			wantErr:   true,
-			errMsg:    "tekton-* namespaces",
+			errMsg:    "tekton-pipelines namespace",
 		},
 		{
 			name:      "forbidden tekton-operator",
 			namespace: "tekton-operator",
 			wantErr:   true,
-			errMsg:    "tekton-* namespaces",
+			errMsg:    "tekton-operator namespace",
 		},
 		{
-			name:      "forbidden tekton-custom",
+			name:      "allowed tekton-custom",
 			namespace: "tekton-custom",
-			wantErr:   true,
-			errMsg:    "tekton-* namespaces",
+			wantErr:   false,
 		},
 	}
 
