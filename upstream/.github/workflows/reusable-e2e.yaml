@@ -38,8 +38,6 @@ jobs:
         go-version-file: "go.mod"
 
     - uses: ko-build/setup-ko@d006021bd0c28d1ce33a07e7943d48b079944c8d  # v0.9
-      with:
-        version: tip
 
     - name: Create kind cluster
       run: |
