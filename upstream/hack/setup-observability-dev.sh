@@ -55,7 +55,7 @@ kind create cluster --config kind-config.yaml --name "${KIND_CLUSTER_NAME}"
 
 # Install Tekton Pipeline
 echo "Installing Tekton Pipeline..."
-kubectl apply -f https://storage.googleapis.com/tekton-releases/pipeline/latest/release.yaml
+kubectl apply -f https://infra.tekton.dev/tekton-releases/pipeline/latest/release.yaml
 wait_for_deploy tekton-pipelines tekton-pipelines-controller
 
 # Install Prometheus
