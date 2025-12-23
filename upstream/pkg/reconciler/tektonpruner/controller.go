@@ -145,7 +145,8 @@ func runGarbageCollector(ctx context.Context) {
 	logger.Info("Garbage collection completed")
 }
 
-// getFilteredNamespaces returns namespaces not starting with "kube" or "openshift"
+// getFilteredNamespaces returns namespaces excluding system namespaces
+// Excluded: kube-*, openshift-*, tekton-pipelines, tekton-operator
 func getFilteredNamespaces(ctx context.Context, client kubernetes.Interface) ([]string, error) {
 	nsList, err := client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
 	if err != nil {
@@ -155,7 +156,8 @@ func getFilteredNamespaces(ctx context.Context, client kubernetes.Interface) ([]
 	var filtered []string
 	for _, ns := range nsList.Items {
 		name := ns.Name
-		if !strings.HasPrefix(name, "kube") && !strings.HasPrefix(name, "openshift") && !strings.HasPrefix(name, "tekton") {
+		if !strings.HasPrefix(name, "kube-") && !strings.HasPrefix(name, "openshift-") &&
+			name != "tekton-pipelines" && name != "tekton-operator" {
 			filtered = append(filtered, name)
 		}
 	}

@@ -74,7 +74,7 @@ func validateRequiredLabels(cm *corev1.ConfigMap) error {
 }
 
 // validateNamespaceForConfig checks if a namespace is allowed for namespace-level configs
-// Forbidden namespaces: kube-*, openshift-*, tekton-*
+// Forbidden namespaces: kube-*, openshift-*, tekton-pipelines, tekton-operator
 func validateNamespaceForConfig(namespace string) error {
 	if strings.HasPrefix(namespace, "kube-") {
 		return fmt.Errorf("namespace-level config cannot be created in kube-* namespaces, got: %s", namespace)
@@ -82,8 +82,8 @@ func validateNamespaceForConfig(namespace string) error {
 	if strings.HasPrefix(namespace, "openshift-") {
 		return fmt.Errorf("namespace-level config cannot be created in openshift-* namespaces, got: %s", namespace)
 	}
-	if strings.HasPrefix(namespace, "tekton-") {
-		return fmt.Errorf("namespace-level config cannot be created in tekton-* namespaces, got: %s", namespace)
+	if namespace == "tekton-pipelines" || namespace == "tekton-operator" {
+		return fmt.Errorf("namespace-level config cannot be created in %s namespace", namespace)
 	}
 	return nil
 }
