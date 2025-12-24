@@ -35,7 +35,10 @@ jobs:
       matrix:
         pipelines-release:
         # This should follow the list of versions from https://github.com/tektoncd/pipeline/blob/main/releases.md#release
+        - v1.6.0
+        - v1.3.2
         - v1.0.0
+        - v0.68.1
     uses: ./.github/workflows/reusable-e2e.yaml
     with:
       k8s-version: v1.29.x
