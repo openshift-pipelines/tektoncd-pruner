@@ -1,52 +1,28 @@
 # Generated for Konflux Application openshift-pipelines-core by openshift-pipelines/hack. DO NOT EDIT
-name: auto-merge-upstream-tektoncd/pruner
+name: auto-merge-upstream-tektoncd-pruner
 
 on:
   workflow_dispatch: {}
+  schedule:
+  - cron: "*/30 * * * *" # At every 30 minutes
 
 jobs:
-  auto-approve-and-merge:
+  auto-approve:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
     steps:
-    - id: Checkout the current repo
-      uses: actions/checkout@v5
-    - id: list-prs
+    - name: Checkout the current repo
+      uses: actions/checkout@v4
+    - name: auto-merge-upstream-tektoncd-pruner
       run: |
-        echo "Listing PRs"
         gh auth status
         git config user.name openshift-pipelines-bot
         git config user.email pipelines-extcomm@redhat.com
         # Approve and merge pull-request with no reviews
-
-        pr_list=$(gh pr list \
-          --state open \
-          --label upstream \
-          --json number,title,statusCheckRollup \
-          --jq ' .[]| select((.statusCheckRollup // [])| all(.conclusion == "SUCCESS" or .conclusion == "SKIPPED"))| "\(.number)"')    
-        
-        echo "pr_list=$pr_list"  >> "$GITHUB_OUTPUT"
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - id: add LGTM Label
-      run: |
-        # Approve and merge pull-request with no reviews
-        for p in $pr_list; do
-          echo "Adding lgtm label to  PR $p"
-          gh pr edit $p --add-label "lgtm" || true
-        done
-      env:
-        pr_list: ${{ steps.list-prs.outputs.pr_list }} 
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    - id: Merging PRs
-      run: |
-        # Approve and merge pull-request with no reviews
-        for p in $pr_list; do
-          echo "Merging  PR $p"
+        for p in $(gh pr list --search "head:actions/update/sources-tektoncd-pruner" --json "number" | jq ".[].number"); do
           gh pr merge --rebase --delete-branch --auto $p
         done
       env:
-        pr_list: ${{ steps.list-prs.outputs.pr_list }} 
         GH_TOKEN: ${{ secrets.OPENSHIFT_PIPELINES_ROBOT }}
+
