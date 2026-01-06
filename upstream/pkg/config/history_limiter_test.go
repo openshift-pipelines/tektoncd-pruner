@@ -99,6 +99,10 @@ func (m *mockResourceFuncs) GetEnforcedConfigLevel(_, _ string, _ SelectorSpec) 
 	return m.enforceLevel
 }
 
+func (m *mockResourceFuncs) GetMatchingSelector(_, _ string, _ SelectorSpec) *SelectorSpec {
+	return nil // Return nil to list all resources in namespace for tests
+}
+
 func TestNewHistoryLimiter(t *testing.T) {
 	tests := []struct {
 		name       string
