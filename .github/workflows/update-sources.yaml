@@ -1,10 +1,9 @@
 # Generated for Konflux Application openshift-pipelines-core by openshift-pipelines/hack. DO NOT EDIT
-name: update-sources-tektoncd/pruner
+name: update-sources
 on:
   workflow_dispatch: {}
 
 jobs:
-
   update-sources:
     runs-on: ubuntu-latest
     permissions:
