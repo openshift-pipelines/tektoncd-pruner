@@ -1,5 +1,5 @@
 # Generated for Konflux Application openshift-pipelines-core by openshift-pipelines/hack. DO NOT EDIT
-name: auto-merge-upstream-tektoncd/pruner
+name: auto-merge-upstream
 on:
   workflow_dispatch: {}
   schedule:
