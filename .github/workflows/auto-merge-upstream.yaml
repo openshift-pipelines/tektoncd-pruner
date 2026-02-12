@@ -19,24 +19,32 @@ jobs:
         gh auth status
         git config user.name openshift-pipelines-bot
         git config user.email pipelines-extcomm@redhat.com
-        # Approve and merge pull-request with no reviews
 
         pr_list=$(gh pr list \
           --state open \
+          --base release-v1.22.x \
+          --search 'label:upstream -label:do-not-merge/hold' \
+          --json number \
+          --jq '.[]|.number')
+        
+        success_pr_list=$(gh pr list \
+          --state open \
+          --base release-v1.22.x \
           --search 'label:upstream -label:do-not-merge/hold' \
           --json number,title,statusCheckRollup \
           --jq ' .[]| select((.statusCheckRollup // [])| all(.conclusion == "SUCCESS" or .conclusion == "SKIPPED"))| "\(.number)"')    
         
         echo "pr_list=$pr_list"  >> "$GITHUB_OUTPUT"
+        echo "success_pr_list=$success_pr_list"  >> "$GITHUB_OUTPUT"
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: add LGTM Label
+    - name: Approve and add LGTM Label
       run: |
         # Approve and merge pull-request with no reviews
         for p in $pr_list; do
           echo "Adding lgtm label to  PR $p"
-          gh pr edit $p --add-label "lgtm" || true
+          gh pr edit $p --add-label "lgtm" --add-label "approved" || true
         done
       env:
         pr_list: ${{ steps.list-prs.outputs.pr_list }} 
@@ -44,10 +52,10 @@ jobs:
     - name: Merging PRs
       run: |
         # Approve and merge pull-request with no reviews
-        for p in $pr_list; do
+        for p in $success_pr_list; do
           echo "Merging  PR $p"
           gh pr merge --rebase --delete-branch --auto $p
         done
       env:
-        pr_list: ${{ steps.list-prs.outputs.pr_list }} 
+        success_pr_list: ${{ steps.list-prs.outputs.success_pr_list }} 
         GH_TOKEN: ${{ secrets.OPENSHIFT_PIPELINES_ROBOT }}
