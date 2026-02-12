@@ -11,7 +11,7 @@ RUN go build -ldflags="-X 'knative.dev/pkg/changeset.rev=$(cat HEAD)'" -mod=vend
     ./cmd/webhook
 
 FROM $RUNTIME
-ARG VERSION=tektoncd-pruner-next
+ARG VERSION=tektoncd-pruner-1-20
 
 ENV KO_APP=/ko-app \
     WEBHOOK=${KO_APP}/webhook
