@@ -6,6 +6,8 @@ on:
 
 jobs:
   auto-approve-and-merge:
+    # This line prevents the job from running if CodeFreeze is true
+    if: false
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
