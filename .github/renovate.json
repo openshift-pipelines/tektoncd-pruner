@@ -19,7 +19,8 @@
   "packageRules": [
     {
       "matchPackageNames": ["*"],
-      "automerge": true
+      "automerge": true,
+      "schedule": ["0 0 1 * *"]
     }
   ]
 }
