@@ -2,7 +2,11 @@
 name: update-sources
 on:
   workflow_dispatch: {}
-
+  push:
+    branches:
+     - release-v1.22.x
+    paths:
+     - .github/workflows/update-sources.yaml
 jobs:
   update-sources:
     runs-on: ubuntu-latest
