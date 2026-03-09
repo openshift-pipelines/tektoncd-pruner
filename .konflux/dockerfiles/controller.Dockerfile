@@ -1,4 +1,4 @@
-ARG GO_BUILDER=brew.registry.redhat.io/rh-osbs/openshift-golang-builder:v1.24
+ARG GO_BUILDER=registry.access.redhat.com/ubi9/go-toolset:1.25
 ARG RUNTIME=registry.access.redhat.com/ubi9/ubi-minimal:latest@sha256:90bd85dcd061d1ad6dbda70a867c41958c04a86462d05c631f8205e8870f28f8 
 
 FROM $GO_BUILDER AS builder
@@ -11,7 +11,7 @@ RUN go build -ldflags="-X 'knative.dev/pkg/changeset.rev=$(cat HEAD)'" -mod=vend
     ./cmd/controller
 
 FROM $RUNTIME
-ARG VERSION=tektoncd-pruner-next
+ARG VERSION=1.20
 
 ENV KO_APP=/ko-app \
     CONTROLLER=${KO_APP}/controller
@@ -19,15 +19,16 @@ ENV KO_APP=/ko-app \
 COPY --from=builder /tmp/controller ${CONTROLLER}
 
 LABEL \
-      com.redhat.component="openshift-pipelines-tektoncd-pruner-controller-rhel9-container" \
-      name="openshift-pipelines/pipelines-tektoncd-pruner-controller-rhel9" \
-      version=$VERSION \
-      summary="Red Hat OpenShift Pipelines tektoncd-pruner Controller" \
-      maintainer="pipelines-extcomm@redhat.com" \
-      description="Red Hat OpenShift Pipelines tektoncd-pruner Controller" \
-      io.k8s.display-name="Red Hat OpenShift Pipelines tektoncd-pruner Controller" \
-      io.k8s.description="Red Hat OpenShift Pipelines tektoncd-pruner Controller" \
-      io.openshift.tags="pipelines,tekton,openshift"
+    com.redhat.component="openshift-pipelines-pruner-controller-rhel9-container" \
+    cpe="cpe:/a:redhat:openshift_pipelines:1.20::el9" \
+    description="Red Hat OpenShift Pipelines tektoncd-pruner controller" \
+    io.k8s.description="Red Hat OpenShift Pipelines tektoncd-pruner controller" \
+    io.k8s.display-name="Red Hat OpenShift Pipelines tektoncd-pruner controller" \
+    io.openshift.tags="tekton,openshift,tektoncd-pruner,controller" \
+    maintainer="pipelines-extcomm@redhat.com" \
+    name="openshift-pipelines/pipelines-pruner-controller-rhel9" \
+    summary="Red Hat OpenShift Pipelines tektoncd-pruner controller" \
+    version="v1.20.4"
 
 RUN groupadd -r -g 65532 nonroot && useradd --no-log-init -r -u 65532 -g nonroot nonroot
 USER 65532
