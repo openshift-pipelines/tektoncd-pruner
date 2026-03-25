@@ -5,15 +5,9 @@
   ],
   "enabledManagers": [
     "tekton",
-    "dockerfile",
     "rpm-lockfile"
   ],
-  "tekton": {
-    "schedule": ["0 0 * * *"]
-  },
-  "dockerfile": {
-    "schedule": ["0 0 * * *"]
-  },
+  "schedule": ["* * * * 0,6"],
   "addLabels": [
     "approved",
     "lgtm",
