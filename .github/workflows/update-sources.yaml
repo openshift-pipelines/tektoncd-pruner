@@ -24,7 +24,7 @@ jobs:
         rm -fR upstream
         git clone https://github.com/tektoncd/pruner upstream
         pushd upstream
-        git checkout -B release-v0.3.x origin/release-v0.3.x
+        git checkout -B release-v0.2.x origin/release-v0.2.x
         popd
     - name: Commit new changes
       run: |
