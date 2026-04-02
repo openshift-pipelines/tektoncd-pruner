@@ -102,3 +102,35 @@ jobs:
         # Test that ko can resolve the config for multiple architectures
         KO_DOCKER_REPO=example.com ko resolve --platform=linux/amd64,linux/arm64 --push=false -R -f config 1>/dev/null
         echo "Ko resolve succeeded for multi-arch build."
+
+  ci-summary:
+    name: CI summary
+    needs: [build, unit-tests, linting, check-licenses, ko-resolve]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+    - name: Check CI results
+      run: |
+        results=(
+          "build=${{ needs.build.result }}"
+          "unit-tests=${{ needs.unit-tests.result }}"
+          "linting=${{ needs.linting.result }}"
+          "check-licenses=${{ needs.check-licenses.result }}"
+          "ko-resolve=${{ needs.ko-resolve.result }}"
+        )
+        failed=0
+        for r in "${results[@]}"; do
+          name="${r%%=*}"
+          result="${r#*=}"
+          echo "${name}: ${result}"
+          if [ "$result" != "success" ] && [ "$result" != "skipped" ]; then
+            failed=1
+          fi
+        done
+        if [ "$failed" -eq 1 ]; then
+          echo ""
+          echo "Some CI jobs failed or were cancelled"
+          exit 1
+        fi
+        echo ""
+        echo "All CI checks passed"
