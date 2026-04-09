@@ -5,6 +5,7 @@
   ],
   "enabledManagers": [
     "tekton",
+    "dockerfile",
     "rpm-lockfile"
   ],
   "schedule": ["* * * * 0,6"],
