@@ -19,14 +19,14 @@ ENV KO_APP=/ko-app \
 COPY --from=builder /tmp/webhook ${WEBHOOK}
 
 LABEL \
-    com.redhat.component="openshift-pipelines-pruner-webhook-rhel8-container" \
+    com.redhat.component="openshift-pipelines-pruner-webhook-rhel9-container" \
     cpe="cpe:/a:redhat:openshift_pipelines:1.15::el9" \
     description="Red Hat OpenShift Pipelines tektoncd-pruner webhook" \
     io.k8s.description="Red Hat OpenShift Pipelines tektoncd-pruner webhook" \
     io.k8s.display-name="Red Hat OpenShift Pipelines tektoncd-pruner webhook" \
     io.openshift.tags="tekton,openshift,tektoncd-pruner,webhook" \
     maintainer="pipelines-extcomm@redhat.com" \
-    name="openshift-pipelines/pipelines-pruner-webhook-rhel8" \
+    name="openshift-pipelines/pipelines-pruner-webhook-rhel9" \
     summary="Red Hat OpenShift Pipelines tektoncd-pruner webhook" \
     version="v1.15.5"
 
