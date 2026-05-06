@@ -19,14 +19,14 @@ ENV KO_APP=/ko-app \
 COPY --from=builder /tmp/controller ${CONTROLLER}
 
 LABEL \
-    com.redhat.component="openshift-pipelines-pruner-controller-rhel8-container" \
+    com.redhat.component="openshift-pipelines-pruner-controller-rhel9-container" \
     cpe="cpe:/a:redhat:openshift_pipelines:1.15::el9" \
     description="Red Hat OpenShift Pipelines tektoncd-pruner controller" \
     io.k8s.description="Red Hat OpenShift Pipelines tektoncd-pruner controller" \
     io.k8s.display-name="Red Hat OpenShift Pipelines tektoncd-pruner controller" \
     io.openshift.tags="tekton,openshift,tektoncd-pruner,controller" \
     maintainer="pipelines-extcomm@redhat.com" \
-    name="openshift-pipelines/pipelines-pruner-controller-rhel8" \
+    name="openshift-pipelines/pipelines-pruner-controller-rhel9" \
     summary="Red Hat OpenShift Pipelines tektoncd-pruner controller" \
     version="v1.15.5"
 
