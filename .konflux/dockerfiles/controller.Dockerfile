@@ -1,4 +1,4 @@
-ARG GO_BUILDER=registry.access.redhat.com/ubi9/go-toolset:1.25
+ARG GO_BUILDER=registry.access.redhat.com/ubi8/go-toolset:latest
 ARG RUNTIME=registry.access.redhat.com/ubi9/ubi-minimal:latest
 
 FROM $GO_BUILDER AS builder
@@ -19,14 +19,14 @@ ENV KO_APP=/ko-app \
 COPY --from=builder /tmp/controller ${CONTROLLER}
 
 LABEL \
-    com.redhat.component="openshift-pipelines-pruner-controller-rhel9-container" \
+    com.redhat.component="openshift-pipelines-pruner-controller-rhel8-container" \
     cpe="cpe:/a:redhat:openshift_pipelines:1.15::el9" \
     description="Red Hat OpenShift Pipelines tektoncd-pruner controller" \
     io.k8s.description="Red Hat OpenShift Pipelines tektoncd-pruner controller" \
     io.k8s.display-name="Red Hat OpenShift Pipelines tektoncd-pruner controller" \
     io.openshift.tags="tekton,openshift,tektoncd-pruner,controller" \
     maintainer="pipelines-extcomm@redhat.com" \
-    name="openshift-pipelines/pipelines-pruner-controller-rhel9" \
+    name="openshift-pipelines/pipelines-pruner-controller-rhel8" \
     summary="Red Hat OpenShift Pipelines tektoncd-pruner controller" \
     version="v1.15.5"
 
