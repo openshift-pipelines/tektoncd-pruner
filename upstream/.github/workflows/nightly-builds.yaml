@@ -1,5 +1,7 @@
 name: Pruner Nightly Build
 
+permissions: {}
+
 "on":
   schedule:
     # Run at 03:00 UTC daily
@@ -38,20 +40,23 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3  # v6.0.0
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
+          persist-credentials: false
           fetch-depth: 0
 
       - name: Generate version info
         id: version
+        env:
+          GIT_SHA: ${{ github.sha }}
         run: |
-          latest_sha=${{ github.sha }}
-          date_tag=$(date +v%Y%m%d-${latest_sha:0:7})
+          latest_sha="${GIT_SHA}"
+          date_tag=$(date "+v%Y%m%d-${latest_sha:0:7}")
           echo "version_tag=${date_tag}" >> "$GITHUB_OUTPUT"
           echo "latest_sha=${latest_sha}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Kind cluster
-        uses: chainguard-dev/actions/setup-kind@3e8a2a226fad9e1ecbf2d359b8a7697554a4ac6d  # v1.5.10
+        uses: chainguard-dev/actions/setup-kind@c69a264ec2a5934c3186c618f368fc1c86f16cff  # v1.6.19
         with:
           k8s-version: ${{ env.KUBERNETES_VERSION }}
 
@@ -146,21 +151,30 @@ jobs:
           EOF
 
       - name: Start Tekton Build Pipeline
+        env:
+          PARAM_PACKAGE: ${{ env.PACKAGE }}
+          PARAM_REPO_NAME: ${{ env.REPO_NAME }}
+          PARAM_GIT_REVISION: ${{ steps.version.outputs.latest_sha }}
+          PARAM_VERSION_TAG: ${{ steps.version.outputs.version_tag }}
+          PARAM_RELEASE_BUCKET: ${{ env.BUCKET }}
+          PARAM_IMAGE_REGISTRY: ${{ env.REGISTRY }}
+          PARAM_IMAGE_REGISTRY_PATH: ${{ env.IMAGE_REGISTRY_PATH }}
+          PARAM_IMAGE_REGISTRY_USER: ${{ env.IMAGE_REGISTRY_USER }}
         run: |
-          set -euo pipefail  # Exit on any error, undefined variables, or pipe failures
+          set -euo pipefail
 
           echo "Starting Tekton pipeline..."
 
           PIPELINE_RUN=$(tkn pipeline start pruner-release \
             --serviceaccount=release-right-meow \
-            --param package="${{ env.PACKAGE }}" \
-            --param repoName="${{ env.REPO_NAME }}" \
-            --param gitRevision="${{ steps.version.outputs.latest_sha }}" \
-            --param versionTag="${{ steps.version.outputs.version_tag }}" \
-            --param releaseBucket="${{ env.BUCKET }}" \
-            --param imageRegistry=${{ env.REGISTRY }} \
-            --param imageRegistryPath="${{ env.IMAGE_REGISTRY_PATH }}" \
-            --param imageRegistryUser="${{ env.IMAGE_REGISTRY_USER }}" \
+            --param package="${PARAM_PACKAGE}" \
+            --param repoName="${PARAM_REPO_NAME}" \
+            --param gitRevision="${PARAM_GIT_REVISION}" \
+            --param versionTag="${PARAM_VERSION_TAG}" \
+            --param releaseBucket="${PARAM_RELEASE_BUCKET}" \
+            --param imageRegistry="${PARAM_IMAGE_REGISTRY}" \
+            --param imageRegistryPath="${PARAM_IMAGE_REGISTRY_PATH}" \
+            --param imageRegistryUser="${PARAM_IMAGE_REGISTRY_USER}" \
             --param imageRegistryRegions="" \
             --param buildPlatforms="linux/amd64,linux/arm64,linux/s390x,linux/ppc64le" \
             --param publishPlatforms="linux/amd64,linux/arm64,linux/s390x,linux/ppc64le,windows/amd64" \
@@ -188,4 +202,4 @@ jobs:
             exit 1
           }
 
-          echo "✅ Pipeline Run completed successfully!"
+          echo "Pipeline Run completed successfully!"
