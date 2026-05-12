@@ -18,7 +18,7 @@ jobs:
         id: set-matrix
         run: |
           # List all branches and filter
-          branches=$(gh api repos/${{ github.repository }}/branches --paginate -q '.[] | .name' | grep -E '^(release-v.*\.x$|next$)')
+          branches=$(gh api repos/${{ github.repository }}/branches --paginate -q '.[] | .name' | grep -E '^(release-v.*\.x$|nightly|next$)')
           echo "Found branches:"
           echo "$branches"
           
