@@ -9,6 +9,8 @@ on:
      - .github/workflows/update-sources.yaml
 jobs:
   update-sources:
+    # This line prevents the job from running if CodeFreeze is true
+    if: true
     runs-on: ubuntu-latest
     permissions:
       contents: write
