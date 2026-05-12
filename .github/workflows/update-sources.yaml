@@ -4,7 +4,7 @@ on:
   workflow_dispatch: {}
   push:
     branches:
-     - next
+     - nightly
     paths:
      - .github/workflows/update-sources.yaml
 jobs:
@@ -17,14 +17,14 @@ jobs:
     - name: Checkout the current repo
       uses: actions/checkout@v4
       with:
-        ref: next
+        ref: nightly
 
     - name: Clone tektoncd/pruner
       run: |
         rm -fR upstream
         git clone https://github.com/tektoncd/pruner upstream
         pushd upstream
-        git checkout -B release-v0.3.x origin/release-v0.3.x
+        git checkout -B main origin/main
         popd
     - name: Commit new changes
       run: |
@@ -33,7 +33,7 @@ jobs:
         
         git config user.name openshift-pipelines-bot
         git config user.email pipelines-extcomm@redhat.com
-        git checkout -b actions/update/sources-next
+        git checkout -b actions/update/sources-nightly
         touch head
         pushd upstream
         OLD_COMMIT=$(cat ../head)
@@ -54,7 +54,7 @@ jobs:
         fi
 
         git commit -F- <<EOF
-        [bot] Update next from tektoncd/pruner to ${NEW_COMMIT}
+        [bot] Update nightly from tektoncd/pruner:main to ${NEW_COMMIT}
 
             $ git diff --stat ${NEW_COMMIT}..${OLD_COMMIT}
         $(cat /tmp/diff.txt | sed 's/^/    /' | head -c 55555)
@@ -62,14 +62,14 @@ jobs:
         https://github.com/tektoncd/pruner/compare/${NEW_COMMIT}..${OLD_COMMIT}
         EOF
         
-        git push -f origin actions/update/sources-next
+        git push -f origin actions/update/sources-nightly
 
-        if [ "$(gh pr list --base next --head actions/update/sources-next --json url --jq 'length')" = "0" ]; then
+        if [ "$(gh pr list --base nightly --head actions/update/sources-nightly --json url --jq 'length')" = "0" ]; then
           echo "creating PR..."
-          gh pr create -B next -H actions/update/sources-next --label=automated --label=upstream --fill
+          gh pr create -B nightly -H actions/update/sources-nightly --label=automated --label=upstream --fill
         else
           echo "a PR already exists, editing..."
-          gh pr edit --title "[bot] Update next from tektoncd/pruner to ${NEW_COMMIT}" --body "$(cat /tmp/diff.txt | sed 's/^/    /' | head -c 55555)"
+          gh pr edit --title "[bot] Update nightly from tektoncd/pruner:main to ${NEW_COMMIT}" --body "$(cat /tmp/diff.txt | sed 's/^/    /' | head -c 55555)"
         fi
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
