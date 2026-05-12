@@ -452,3 +452,8 @@ func (prf *PrFuncs) GetFailedHistoryLimitCount(namespace, name string, selectors
 func (prf *PrFuncs) GetEnforcedConfigLevel(namespace, name string, selectors config.SelectorSpec) config.EnforcedConfigLevel {
 	return config.PrunerConfigStore.GetPipelineEnforcedConfigLevel(namespace, name, selectors)
 }
+
+// GetMatchingSelector returns the ConfigMap's selector that matches a PipelineRun.
+func (prf *PrFuncs) GetMatchingSelector(namespace, name string, selectors config.SelectorSpec) *config.SelectorSpec {
+	return config.PrunerConfigStore.GetPipelineMatchingSelector(namespace, name, selectors)
+}

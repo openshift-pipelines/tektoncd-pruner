@@ -444,3 +444,8 @@ func (trf *TrFuncs) GetFailedHistoryLimitCount(namespace, name string, selectors
 func (trf *TrFuncs) GetEnforcedConfigLevel(namespace, name string, selectors config.SelectorSpec) config.EnforcedConfigLevel {
 	return config.PrunerConfigStore.GetTaskEnforcedConfigLevel(namespace, name, selectors)
 }
+
+// GetMatchingSelector returns the ConfigMap's selector that matches a TaskRun.
+func (trf *TrFuncs) GetMatchingSelector(namespace, name string, selectors config.SelectorSpec) *config.SelectorSpec {
+	return config.PrunerConfigStore.GetTaskMatchingSelector(namespace, name, selectors)
+}
