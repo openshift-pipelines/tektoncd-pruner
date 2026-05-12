@@ -180,21 +180,6 @@ data:
         # Inherits successfulHistoryLimit: 5 from global
 ```
 
-## Configuration Inheritance
-
-Unspecified settings inherit from higher levels:
-
-```yaml
-data:
-  global-config: |
-    enforcedConfigLevel: namespace
-    ttlSecondsAfterFinished: 3600
-    successfulHistoryLimit: 5
-    namespaces:
-      dev:
-        ttlSecondsAfterFinished: 300
-```
-
 ## Selector Support
 
 **IMPORTANT:** Resource selectors (matchLabels, matchAnnotations) only work in **namespace-level ConfigMaps** (`tekton-pruner-namespace-spec`), NOT in global ConfigMap's inline namespace specs.
@@ -213,7 +198,7 @@ data:
   ns-config: |
     pipelineRuns:
       - selector:
-          matchLabels:
+        - matchLabels:
             critical: "true"
         ttlSecondsAfterFinished: 2592000
 ```
@@ -226,7 +211,7 @@ data:
       production:
         pipelineRuns:
           - selector:
-              matchLabels:
+            - matchLabels:
                 critical: "true"
 ```
 
@@ -247,6 +232,10 @@ data:
         ttlSecondsAfterFinished: 86400
         successfulHistoryLimit: 5
       prod:
+        ttlSecondsAfterFinished: 604800
+        successfulHistoryLimit: 10
+```
+
 ## Verification
 
 **Check namespace config:**
@@ -287,5 +276,3 @@ kubectl apply -f namespace-config.yaml
 - Learn about [Resource Groups](./resource-groups.md) - Selector-based configurations
 - Explore [Time-based Pruning](./time-based-pruning.md) - TTL strategies
 - Review [History-based Pruning](./history-based-pruning.md) - Retention limits
-- Review [History-based Pruning](./history-based-pruning.md)
-- Explore [Time-based Pruning](./time-based-pruning.md)
