@@ -37,7 +37,7 @@ spec:
     value: .konflux/dockerfiles/controller.Dockerfile
   - name: additional-tags
     value:
-      - "on-pr-vlatest"
+      - "on-pr-latest"
   - name: build-platforms
     value:
     - linux/x86_64
