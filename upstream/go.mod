@@ -1,15 +1,13 @@
 module github.com/tektoncd/pruner
 
-go 1.24.0
-
-toolchain go1.24.6
+go 1.24.13
 
 // Retract v0.3.2 as it was an unintended release
 retract v0.3.2
 
 require (
 	github.com/stretchr/testify v1.11.1
-	github.com/tektoncd/pipeline v1.6.1
+	github.com/tektoncd/pipeline v1.6.2
 	github.com/tektoncd/plumbing v0.0.0-20250805154627-25448098dea2
 	go.opentelemetry.io/otel v1.40.0
 	go.opentelemetry.io/otel/metric v1.40.0
