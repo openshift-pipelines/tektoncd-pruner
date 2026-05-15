@@ -4,9 +4,9 @@ on:
   workflow_dispatch: {}
   push:
     branches:
-     - next
+      - next
     paths:
-     - .github/workflows/update-sources.yaml
+      - .github/workflows/update-sources.yaml
 jobs:
   update-sources:
     # This line prevents the job from running if CodeFreeze is true
@@ -16,62 +16,80 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-    - name: Checkout the current repo
-      uses: actions/checkout@v4
-      with:
-        ref: next
+      - name: Checkout the current repo
+        uses: actions/checkout@v4
+        with:
+          ref: next
 
-    - name: Clone tektoncd/pruner
-      run: |
-        rm -fR upstream
-        git clone https://github.com/tektoncd/pruner upstream
-        pushd upstream
-        git checkout -B release-v0.3.x origin/release-v0.3.x
-        popd
-    - name: Commit new changes
-      run: |
+      - name: Clone tektoncd/pruner
+        run: |
+          rm -fR upstream
+          git clone https://github.com/tektoncd/pruner upstream
+          pushd upstream
+          git checkout -B release-v0.3.x origin/release-v0.3.x
+          popd
+      - name: update-rpms
+        continue-on-error: true
+        run: |
+          set -x
+          export BASE_IMAGE=$(grep -h "RUNTIME=" .konflux/dockerfiles/* | sed -E 's/.*RUNTIME=["'\'']?([^"'\'' ]+).*/\1/' | head -n 1)
+          docker run --rm\
+            -e BASE_IMAGE=$BASE_IMAGE \
+            -v ./.konflux/rpms/:/rpms -w /rpms $BASE_IMAGE  sh -c "
+              cp -f /etc/yum.repos.d/*.repo ./
+              sed -i 's/^\[ubi-9-/\[ubi-9-for-\$basearch-/' *.repo
+          "
+          docker run  --rm\
+            -e BASE_IMAGE=$BASE_IMAGE \
+            -v ./.konflux/rpms/:/rpms -w /rpms registry.access.redhat.com/ubi9/ubi-minimal:latest sh -c "
+          	  microdnf update -y	 &&   microdnf install -y python3-dnf skopeo pip
+              python3 -m pip install https://github.com/konflux-ci/rpm-lockfile-prototype/archive/refs/tags/v0.21.0.tar.gz
+              rpm-lockfile-prototype --image $BASE_IMAGE rpms.in.yaml
+            "
+      - name: Commit new changes
+        run: |          
         
-        set -x
+          set -x          
         
-        git config user.name openshift-pipelines-bot
-        git config user.email pipelines-extcomm@redhat.com
-        git checkout -b actions/update/sources-next
-        touch head
-        pushd upstream
-        OLD_COMMIT=$(cat ../head)
-        NEW_COMMIT=$(git rev-parse HEAD)
-        echo Previous commit: ${OLD_COMMIT}
-        git show --stat ${OLD_COMMIT}
-        echo New commit: ${NEW_COMMIT}
-        git show --stat ${NEW_COMMIT}
-        git diff --stat ${NEW_COMMIT}..${OLD_COMMIT} > /tmp/diff.txt
-        git rev-parse HEAD > ../head
-        popd
-        rm -rf upstream/.git
-        git add -f upstream head .konflux
-
-        if [[ -z $(git status --porcelain --untracked-files=no) ]]; then
-          echo "No change, exiting"
-          exit 0
-        fi
-
-        git commit -F- <<EOF
-        [bot] Update next from tektoncd/pruner:release-v0.3.x to ${NEW_COMMIT}
-
-            $ git diff --stat ${NEW_COMMIT}..${OLD_COMMIT}
-        $(cat /tmp/diff.txt | sed 's/^/    /' | head -c 55555)
-        
-        https://github.com/tektoncd/pruner/compare/${NEW_COMMIT}..${OLD_COMMIT}
-        EOF
-        
-        git push -f origin actions/update/sources-next
-
-        if [ "$(gh pr list --base next --head actions/update/sources-next --json url --jq 'length')" = "0" ]; then
-          echo "creating PR..."
-          gh pr create -B next -H actions/update/sources-next --label=automated --label=upstream --fill
-        else
-          echo "a PR already exists, editing..."
+          git config user.name openshift-pipelines-bot
+          git config user.email pipelines-extcomm@redhat.com
+          git checkout -b actions/update/sources-next
+          touch head
+          pushd upstream
+          OLD_COMMIT=$(cat ../head)
+          NEW_COMMIT=$(git rev-parse HEAD)
+          echo Previous commit: ${OLD_COMMIT}
+          git show --stat ${OLD_COMMIT}
+          echo New commit: ${NEW_COMMIT}
+          git show --stat ${NEW_COMMIT}
+          git diff --stat ${NEW_COMMIT}..${OLD_COMMIT} > /tmp/diff.txt
+          git rev-parse HEAD > ../head
+          popd
+          rm -rf upstream/.git
+          git add -f upstream head .konflux
+          
+          if [[ -z $(git status --porcelain --untracked-files=no) ]]; then
+            echo "No change, exiting"
+            exit 0
+          fi
+          
+          git commit -F- <<EOF
+          [bot] Update next from tektoncd/pruner:release-v0.3.x to ${NEW_COMMIT}
+          
+              $ git diff --stat ${NEW_COMMIT}..${OLD_COMMIT}
+          $(cat /tmp/diff.txt | sed 's/^/    /' | head -c 55555)
+          
+          https://github.com/tektoncd/pruner/compare/${NEW_COMMIT}..${OLD_COMMIT}
+          EOF
+          
+          git push -f origin actions/update/sources-next
+          
+          if [ "$(gh pr list --base next --head actions/update/sources-next --json url --jq 'length')" = "0" ]; then
+            echo "creating PR..."
+            gh pr create -B next -H actions/update/sources-next --label=automated --label=upstream --fill
+          else
+            echo "a PR already exists, editing..."
           gh pr edit --title "[bot] Update next from tektoncd/pruner:release-v0.3.x to ${NEW_COMMIT}" --body "$(cat /tmp/diff.txt | sed 's/^/    /' | head -c 55555)"
-        fi
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
