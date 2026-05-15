@@ -28,7 +28,7 @@ jobs:
                   "type": "header",
                   "text": {
                     "type": "plain_text",
-                    "text": "GitHub Actions Workflow Failed"
+                    "text": "🔴 Workflow Failure: ${{ github.event.workflow_run.name }} in ${{ github.event.workflow_run.repository.name }}"
                   }
                 },
                 {
