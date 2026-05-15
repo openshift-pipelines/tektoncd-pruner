@@ -37,7 +37,8 @@ spec:
     value:
       - "v1.23.0"
   - name: prefetch-input
-    value: |{"type": "rpm", "path": ".konflux/rpms"}
+    value: |
+      {"type": "rpm", "path": ".konflux/rpms"}
   pipelineRef:
     name: docker-build-ta
   taskRunTemplate:
