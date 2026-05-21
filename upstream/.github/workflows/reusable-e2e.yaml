@@ -76,7 +76,7 @@ jobs:
           echo "Running Go e2e tests"
           set +e
           # Run tests with verbose output to show per-test results
-          go test -v -timeout 35m ./test/... | tee test_output.log
+          go test -v -tags=e2e -timeout 35m ./test/... | tee test_output.log
           test_exit_code=$?
           set -e
 
