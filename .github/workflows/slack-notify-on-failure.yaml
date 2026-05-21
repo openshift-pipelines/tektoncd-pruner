@@ -45,10 +45,6 @@ jobs:
                     {
                       "type": "mrkdwn",
                       "text": "*Branch:*\n${{ github.event.workflow_run.head_branch }}"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Triggered by:*\n${{ github.event.workflow_run.actor.login }}"
                     }
                   ]
                 },
