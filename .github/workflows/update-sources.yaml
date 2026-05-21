@@ -26,7 +26,7 @@ jobs:
           rm -fR upstream
           git clone https://github.com/tektoncd/pruner upstream
           pushd upstream
-          git checkout -B release-v0.3.x origin/release-v0.3.x
+          git checkout -B release-v0.4.x origin/release-v0.4.x
           popd
       - name: update-rpms
         continue-on-error: true
@@ -74,7 +74,7 @@ jobs:
           fi
           
           git commit -F- <<EOF
-          [bot] Update next from tektoncd/pruner:release-v0.3.x to ${NEW_COMMIT}
+          [bot] Update next from tektoncd/pruner:release-v0.4.x to ${NEW_COMMIT}
           
               $ git diff --stat ${NEW_COMMIT}..${OLD_COMMIT}
           $(cat /tmp/diff.txt | sed 's/^/    /' | head -c 55555)
@@ -89,7 +89,7 @@ jobs:
             gh pr create -B next -H actions/update/sources-next --label=automated --label=upstream --fill
           else
             echo "a PR already exists, editing..."
-          gh pr edit --title "[bot] Update next from tektoncd/pruner:release-v0.3.x to ${NEW_COMMIT}" --body "$(cat /tmp/diff.txt | sed 's/^/    /' | head -c 55555)"
+          gh pr edit --title "[bot] Update next from tektoncd/pruner:release-v0.4.x to ${NEW_COMMIT}" --body "$(cat /tmp/diff.txt | sed 's/^/    /' | head -c 55555)"
           fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
