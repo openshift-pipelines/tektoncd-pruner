@@ -1,5 +1,8 @@
 ---
 name: Label Checker
+
+permissions: {}
+
 'on':
   pull_request:
     types:
