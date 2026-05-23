@@ -1,4 +1,4 @@
-ARG GO_BUILDER=registry.access.redhat.com/ubi9/go-toolset:1.25.9-1778675823
+ARG GO_BUILDER=registry.access.redhat.com/ubi9/go-toolset:1.26.2-1777889793
 ARG RUNTIME=registry.access.redhat.com/ubi9/ubi-minimal:latest
 
 FROM $GO_BUILDER AS builder
