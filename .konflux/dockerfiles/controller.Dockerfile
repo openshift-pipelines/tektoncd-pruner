@@ -19,16 +19,16 @@ ENV KO_APP=/ko-app \
 COPY --from=builder /tmp/controller ${CONTROLLER}
 
 LABEL \
-    com.redhat.component="openshift-pipelines-pruner-controller-rhel9-container" \
+    com.redhat.component="openshift-pipelines-pruner-controller-rhel10-container" \
     cpe="cpe:/a:redhat:openshift_pipelines:nightly::el9" \
     description="Red Hat OpenShift Pipelines tektoncd-pruner controller" \
     io.k8s.description="Red Hat OpenShift Pipelines tektoncd-pruner controller" \
     io.k8s.display-name="Red Hat OpenShift Pipelines tektoncd-pruner controller" \
     io.openshift.tags="tekton,openshift,tektoncd-pruner,controller" \
     maintainer="pipelines-extcomm@redhat.com" \
-    name="openshift-pipelines/pipelines-pruner-controller-rhel9" \
+    name="openshift-pipelines/pipelines-pruner-controller-rhel10" \
     summary="Red Hat OpenShift Pipelines tektoncd-pruner controller" \
-    version="latest"
+    version="nightly"
 
 RUN groupadd -r -g 65532 nonroot && useradd --no-log-init -r -u 65532 -g nonroot nonroot
 USER 65532
