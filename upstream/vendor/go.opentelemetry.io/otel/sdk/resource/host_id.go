@@ -31,19 +31,19 @@ type hostIDReaderBSD struct {
 	readFile    fileReader
 }
 
-// read attempts to read the machine-id from /etc/hostid. If not found it will
-// execute `kenv -q smbios.system.uuid`. If neither location yields an id an
-// error will be returned.
+// read attempts to read the machine-id from /etc/hostid.
+// If not found it will execute: /bin/kenv -q smbios.system.uuid.
+// If neither location yields an id an error will be returned.
 func (r *hostIDReaderBSD) read() (string, error) {
 	if result, err := r.readFile("/etc/hostid"); err == nil {
 		return strings.TrimSpace(result), nil
 	}
 
-	if result, err := r.execCommand("kenv", "-q", "smbios.system.uuid"); err == nil {
+	if result, err := r.execCommand("/bin/kenv", "-q", "smbios.system.uuid"); err == nil {
 		return strings.TrimSpace(result), nil
 	}
 
-	return "", errors.New("host id not found in: /etc/hostid or kenv")
+	return "", errors.New("host id not found in: /etc/hostid or /bin/kenv")
 }
 
 // hostIDReaderDarwin implements hostIDReader.
@@ -51,11 +51,11 @@ type hostIDReaderDarwin struct {
 	execCommand commandExecutor
 }
 
-// read executes `ioreg -rd1 -c "IOPlatformExpertDevice"` and parses host id
+// read executes `/usr/sbin/ioreg -rd1 -c "IOPlatformExpertDevice"` and parses host id
 // from the IOPlatformUUID line. If the command fails or the uuid cannot be
 // parsed an error will be returned.
 func (r *hostIDReaderDarwin) read() (string, error) {
-	result, err := r.execCommand("ioreg", "-rd1", "-c", "IOPlatformExpertDevice")
+	result, err := r.execCommand("/usr/sbin/ioreg", "-rd1", "-c", "IOPlatformExpertDevice")
 	if err != nil {
 		return "", err
 	}

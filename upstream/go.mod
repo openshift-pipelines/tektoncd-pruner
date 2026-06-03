@@ -1,6 +1,6 @@
 module github.com/tektoncd/pruner
 
-go 1.24.13
+go 1.25.0
 
 // Retract v0.3.2 as it was an unintended release
 retract v0.3.2
@@ -9,8 +9,8 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/tektoncd/pipeline v1.6.2
 	github.com/tektoncd/plumbing v0.0.0-20250805154627-25448098dea2
-	go.opentelemetry.io/otel v1.40.0
-	go.opentelemetry.io/otel/metric v1.40.0
+	go.opentelemetry.io/otel v1.44.0
+	go.opentelemetry.io/otel/metric v1.44.0
 	go.uber.org/zap v1.27.1
 	k8s.io/api v0.33.1
 	k8s.io/apimachinery v0.33.1
@@ -106,7 +106,7 @@ require (
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.37.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.39.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.39.0 // indirect
-	go.opentelemetry.io/otel/trace v1.40.0 // indirect
+	go.opentelemetry.io/otel/trace v1.44.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.7.0 // indirect
 	go.uber.org/automaxprocs v1.6.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
@@ -140,8 +140,15 @@ require (
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
 
-// otel/sdk/metric has a soft/runtime dependency which makes it incompatible with
-// this knative version. See: https://github.com/open-telemetry/opentelemetry-go/issues/7297
+// otel/sdk v1.39.0+ uses a newer semconv schema URL than knative.dev/pkg's
+// resource.Default(), causing a runtime panic on resource.Merge().
+// Pin to v1.37.0 which uses semconv/v1.34.0 matching Knative.
+// See: https://github.com/open-telemetry/opentelemetry-go/issues/7297
+//
+// SECURITY: The vendored SDK host_id files are manually patched to use
+// absolute paths for ioreg and kenv commands, fixing:
+//   - GHSA-9h8m-3fm2-qjrq (CVE-2026-24051) — PATH hijacking via ioreg on macOS
+//   - GHSA-hfvc-g4fc-pqhx (CVE-2026-39883) — PATH hijacking via kenv on BSD
 replace go.opentelemetry.io/otel/sdk v1.39.0 => go.opentelemetry.io/otel/sdk v1.37.0
 
 replace go.opentelemetry.io/otel/sdk/metric v1.39.0 => go.opentelemetry.io/otel/sdk/metric v1.37.0
