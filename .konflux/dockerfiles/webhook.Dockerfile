@@ -28,7 +28,7 @@ LABEL \
     maintainer="pipelines-extcomm@redhat.com" \
     name="openshift-pipelines/pipelines-pruner-webhook-rhel9" \
     summary="Red Hat OpenShift Pipelines tektoncd-pruner webhook" \
-    version="v1.22.2"
+    version="v1.22.3"
 
 RUN groupadd -r -g 65532 nonroot && useradd --no-log-init -r -u 65532 -g nonroot nonroot
 USER 65532
