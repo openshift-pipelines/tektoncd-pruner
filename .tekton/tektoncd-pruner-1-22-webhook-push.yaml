@@ -35,7 +35,7 @@ spec:
     value: .konflux/dockerfiles/webhook.Dockerfile
   - name: additional-tags
     value:
-      - "1.22.3"
+      - "v1.22.3"
   - name: prefetch-input
     value: |
       {"type": "rpm", "path": ".konflux/rpms"}
