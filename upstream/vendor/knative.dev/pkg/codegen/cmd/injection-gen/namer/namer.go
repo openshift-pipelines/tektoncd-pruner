@@ -53,17 +53,12 @@ func newTagOverrideNamer(tagName string, fallback namer.Namer) namer.Namer {
 // extractTag gets the comment-tags for the key.  If the tag did not exist, it
 // returns the empty string.
 func extractTag(key string, lines []string) string {
-	tags, err := gengo.ExtractFunctionStyleCommentTags("+", nil, lines)
-	if err != nil {
-		panic(err)
-	}
-
-	val, present := tags[key]
+	val, present := gengo.ExtractCommentTags("+", lines)[key]
 	if !present || len(val) < 1 {
 		return ""
 	}
 
-	return val[0].Value
+	return val[0]
 }
 
 type versionedClientsetNamer struct {
