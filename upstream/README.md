@@ -13,6 +13,7 @@ cascade:
 # Tekton Pruner
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/tektoncd/pruner/blob/main/LICENSE)
+[![Go Coverage](https://github.com/tektoncd/pruner/actions/workflows/go-coverage.yaml/badge.svg)](https://github.com/tektoncd/pruner/actions/workflows/go-coverage.yaml)
 
 Tekton Pruner manages the lifecycle of Tekton resources by automatically cleaning up completed PipelineRuns and TaskRuns based on configurable time-based (TTL) and history-based policies.
 

@@ -73,6 +73,10 @@ spec:
       value: credentials
     - name: runTests
       value: "true"
+    - name: previousReleaseTag
+      value: ""
+    - name: releaseName
+      value: ""
   timeouts:
     pipeline: 3h0m0s
   workspaces:
@@ -90,3 +94,6 @@ spec:
     - name: release-images-secret
       secret:
         secretName: ghcr-creds
+    - name: github-secret
+      secret:
+        secretName: github-token
