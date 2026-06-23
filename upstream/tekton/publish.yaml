@@ -73,7 +73,7 @@ spec:
   steps:
 
   - name: container-registry-auth
-    image: cgr.dev/chainguard/crane:latest-dev@sha256:c7bcea7537f38170cb516ec42810ff477c8026eb593f45b823c4321024d9be7a
+    image: cgr.dev/chainguard/crane:latest-dev@sha256:c3243b8ca7d5bd97bdb6fc6c4c0e834be702b47463cbf2701bc194a696f14a6f
     script: |
       #!/bin/sh
       set -ex
@@ -92,7 +92,7 @@ spec:
       cp ${DOCKER_CONFIG} /workspace/docker-config.json
 
   - name: create-ko-yaml
-    image: cgr.dev/chainguard/go:latest-dev@sha256:079cdc1693b27ae8f8b0cc475a0727e8508d4034f5a61a40efb90190bc62f13f
+    image: cgr.dev/chainguard/go:latest-dev@sha256:28cbf5213dd94f263c441a9e32ff1a08a2aadf5ff76e90a40aa67934d87f59ed
     script: |
       #!/bin/sh
       set -ex
@@ -119,7 +119,7 @@ spec:
       # Combine Distroless with a Windows base image, used for the entrypoint image.
       # Distroless is pinned to the last version based on Alpine 3.18. Newer versions are based on Alpine 3.19_alpha20230901.
       COMBINED_BASE_IMAGE=$(go run ./vendor/github.com/tektoncd/plumbing/cmd/combine/main.go \
-        cgr.dev/chainguard/static@sha256:67a1b00e0134e2b3a614c7198a26f7deed9d11b7acad4d52c79c0cfd47a2eae7 \
+        ghcr.io/tektoncd/plumbing/static-base@sha256:e150c89001e336b6a0200a6bac766a7b455e5573bf91c6c37f3ef8cf2fdccf0a \
         mcr.microsoft.com/windows/nanoserver:ltsc2019 \
         mcr.microsoft.com/windows/nanoserver:ltsc2022 \
         ${COMBINED_BASE_IMAGE_BASE}/combined-base-image:latest)
@@ -130,7 +130,7 @@ spec:
       cat /workspace/.ko.yaml
 
   - name: run-ko
-    image: ghcr.io/tektoncd/plumbing/ko@sha256:921ef54eb70ebcc2e74ee984686d03b894c1b5b7a891095de68eccb9fe8e5cbd
+    image: ghcr.io/tektoncd/plumbing/ko@sha256:680de7b00903176ab12813b3ec492bce62ab3debe690e9964bd834d3861939da
     env:
     - name: KO_DOCKER_REPO
       value: $(params.imageRegistry)/$(params.imageRegistryPath)
@@ -197,7 +197,7 @@ spec:
       sed -i -e 's/\(pruner.tekton.dev\/release\): "devel"/\1: "$(params.versionTag)"/g' -e 's/\(app.kubernetes.io\/version\): "devel"/\1: "$(params.versionTag)"/g' -e 's/\(version\): "devel"/\1: "$(params.versionTag)"/g' ${OUTPUT_RELEASE_DIR}/release.notags.yaml
 
   - name: koparse
-    image: ghcr.io/tektoncd/plumbing/koparse@sha256:c4424e6cf3e0590a8fe79e3d3d3653865c154b9cec3689971becbaaebdde84ac
+    image: ghcr.io/tektoncd/plumbing/koparse@sha256:b358759c32e2e578fe30ddb5f4cbba907251e5d0d1a5419fb3d05a4fbb899d76
     script: |
       set -ex
 
@@ -231,7 +231,7 @@ spec:
         ${PRESERVE_IMPORT_PATH} > /workspace/built_images
 
   - name: tag-images
-    image: cgr.dev/chainguard/crane:latest-dev@sha256:c7bcea7537f38170cb516ec42810ff477c8026eb593f45b823c4321024d9be7a
+    image: cgr.dev/chainguard/crane:latest-dev@sha256:c3243b8ca7d5bd97bdb6fc6c4c0e834be702b47463cbf2701bc194a696f14a6f
     script: |
       #!/bin/sh
       set -ex
