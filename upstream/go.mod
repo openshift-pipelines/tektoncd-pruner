@@ -7,7 +7,7 @@ retract v0.3.2
 
 require (
 	github.com/stretchr/testify v1.11.1
-	github.com/tektoncd/pipeline v1.13.0
+	github.com/tektoncd/pipeline v1.13.1
 	github.com/tektoncd/plumbing v0.0.0-20250805154627-25448098dea2
 	go.opentelemetry.io/otel v1.44.0
 	go.opentelemetry.io/otel/metric v1.44.0
@@ -15,7 +15,7 @@ require (
 	k8s.io/api v0.35.6
 	k8s.io/apimachinery v0.35.6
 	k8s.io/client-go v0.35.6
-	k8s.io/code-generator v0.35.5
+	k8s.io/code-generator v0.35.6
 	k8s.io/kube-openapi v0.0.0-20250910181357-589584f1c912
 	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
 	knative.dev/pkg v0.0.0-20260318013857-98d5a706d4fd
