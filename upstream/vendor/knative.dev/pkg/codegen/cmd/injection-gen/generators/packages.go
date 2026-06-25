@@ -55,19 +55,15 @@ func Targets(context *generator.Context, args *args.Args) []generator.Target {
 		// If there's a comment of the form "// +groupName=somegroup" or
 		// "// +groupName=somegroup.foo.bar.io", use the first field (somegroup) as the name of the
 		// group when generating.
-		if tags, err := gengo.ExtractFunctionStyleCommentTags("+", nil, p.Comments); err != nil {
-			panic(err)
-		} else if override := tags["groupName"]; override != nil {
-			gv.Group = clientgentypes.Group(override[0].Value)
+		if override := gengo.ExtractCommentTags("+", p.Comments)["groupName"]; override != nil {
+			gv.Group = clientgentypes.Group(override[0])
 		}
 
 		// If there's a comment of the form "// +groupGoName=SomeUniqueShortName", use that as
 		// the Go group identifier in CamelCase. It defaults
 		groupGoNames[groupPackageName] = namer.IC(strings.SplitN(gv.Group.NonEmpty(), ".", 2)[0])
-		if tags, err := gengo.ExtractFunctionStyleCommentTags("+", nil, p.Comments); err != nil {
-			panic(err)
-		} else if override := tags["groupGoName"]; override != nil {
-			groupGoNames[groupPackageName] = namer.IC(override[0].Value)
+		if override := gengo.ExtractCommentTags("+", p.Comments)["groupGoName"]; override != nil {
+			groupGoNames[groupPackageName] = namer.IC(override[0])
 		}
 
 		var typesWithInformers []*types.Type

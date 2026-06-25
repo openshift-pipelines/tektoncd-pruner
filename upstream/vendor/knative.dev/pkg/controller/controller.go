@@ -46,6 +46,9 @@ import (
 )
 
 const (
+	falseString = "false"
+	trueString  = "true"
+
 	// DefaultResyncPeriod is the default duration that is used when no
 	// resync period is associated with a controllers initialization context.
 	DefaultResyncPeriod = 10 * time.Hour
@@ -199,7 +202,7 @@ type Impl struct {
 	// never processing the same item simultaneously in two different workers.
 	// The slow queue is used for global resync and other background processes
 	// which are not required to complete at the highest priority.
-	workQueue *twoLaneRateLimitingQueue
+	workQueue *twoLaneQueue
 
 	// Concurrency - The number of workers to use when processing the controller's workqueue.
 	Concurrency int
@@ -211,6 +214,9 @@ type Impl struct {
 	// the expense of slightly greater verbosity.
 	logger *zap.SugaredLogger
 
+	// StatsReporter is used to send common controller metrics.
+	statsReporter StatsReporter
+
 	// Tracker allows reconcilers to associate a reference with particular key,
 	// such that when the reference changes the key is queued for reconciliation.
 	Tracker tracker.Interface
@@ -221,6 +227,7 @@ type Impl struct {
 type ControllerOptions struct {
 	WorkQueueName string
 	Logger        *zap.SugaredLogger
+	Reporter      StatsReporter
 	RateLimiter   workqueue.TypedRateLimiter[any]
 	Concurrency   int
 }
@@ -231,15 +238,19 @@ func NewContext(ctx context.Context, r Reconciler, options ControllerOptions) *I
 	if options.RateLimiter == nil {
 		options.RateLimiter = workqueue.DefaultTypedControllerRateLimiter[any]()
 	}
+	if options.Reporter == nil {
+		options.Reporter = MustNewStatsReporter(options.WorkQueueName, options.Logger)
+	}
 	if options.Concurrency == 0 {
 		options.Concurrency = DefaultThreadsPerController
 	}
 	i := &Impl{
-		Name:        options.WorkQueueName,
-		Reconciler:  r,
-		workQueue:   newTwoLaneWorkQueue(options.WorkQueueName, options.RateLimiter),
-		logger:      options.Logger,
-		Concurrency: options.Concurrency,
+		Name:          options.WorkQueueName,
+		Reconciler:    r,
+		workQueue:     newTwoLaneWorkQueue(options.WorkQueueName, options.RateLimiter),
+		logger:        options.Logger,
+		statsReporter: options.Reporter,
+		Concurrency:   options.Concurrency,
 	}
 
 	if t := GetTracker(ctx); t != nil {
@@ -270,11 +281,11 @@ func (c *Impl) EnqueueAfter(obj interface{}, after time.Duration) {
 // EnqueueSlowKey takes a resource, converts it into a namespace/name string,
 // and enqueues that key in the slow lane.
 func (c *Impl) EnqueueSlowKey(key types.NamespacedName) {
-	c.workQueue.AddSlow(key)
+	c.workQueue.SlowLane().Add(key)
 
 	if logger := c.logger.Desugar(); logger.Core().Enabled(zapcore.DebugLevel) {
 		logger.Debug(fmt.Sprintf("Adding to the slow queue %s (depth(total/slow): %d/%d)",
-			safeKey(key), c.workQueue.Len(), c.workQueue.SlowLen()),
+			safeKey(key), c.workQueue.Len(), c.workQueue.SlowLane().Len()),
 			zap.String(logkey.Key, key.String()))
 	}
 }
@@ -500,9 +511,17 @@ func (c *Impl) processNextWorkItem() bool {
 	c.logger.Debugf("Processing from queue %s (depth: %d)", safeKey(key), c.workQueue.Len())
 
 	startTime := time.Now()
+	// Send the metrics for the current queue depth
+	c.statsReporter.ReportQueueDepth(int64(c.workQueue.Len()))
 
 	var err error
 	defer func() {
+		status := trueString
+		if err != nil {
+			status = falseString
+		}
+		c.statsReporter.ReportReconcile(time.Since(startTime), status, key)
+
 		// We call Done here so the workqueue knows we have finished
 		// processing this item. We also must remember to call Forget if
 		// reconcile succeeds. If a transient error occurs, we do not call
