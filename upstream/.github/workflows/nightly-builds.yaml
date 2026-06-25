@@ -185,6 +185,7 @@ jobs:
             --workspace name=workarea,volumeClaimTemplateFile=workspace-template.yaml \
             --workspace name=release-secret,secret=release-secret \
             --workspace name=release-images-secret,secret=release-images-secret \
+            --skip-optional-workspace \
             --tasks-timeout 2h \
             --pipeline-timeout 3h \
             --output name) || {

@@ -36,6 +36,16 @@ Further documentation available:
 
 ## Releases
 
+### v0.4
+
+- **Latest Release**: [v0.4.0](https://github.com/tektoncd/pruner/releases/tag/v0.4.0)
+  (2026-05-19)
+  ([docs](https://github.com/tektoncd/pruner/tree/v0.4.0/docs),
+  [tutorials](https://github.com/tektoncd/pruner/tree/v0.4.0/docs/tutorials/README.md))
+- **Initial Release**: [v0.4.0](https://github.com/tektoncd/pruner/releases/tag/v0.4.0)
+  (2026-05-19)
+- **Patch Releases**: [v0.4.0](https://github.com/tektoncd/pruner/releases/tag/v0.4.0)
+
 ### v0.3
 
 - **Latest Release**: [v0.3.5](https://github.com/tektoncd/pruner/releases/tag/v0.3.5)
