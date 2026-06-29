@@ -1871,13 +1871,13 @@ arches:
     name: git-core-doc
     evr: 2.52.0-1.el9
     sourcerpm: git-2.52.0-1.el9.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/g/git-lfs-3.7.1-4.el9_8.x86_64.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/g/git-lfs-3.7.1-4.el9_8.1.x86_64.rpm
     repoid: ubi-9-for-x86_64-appstream-rpms
-    size: 5009758
-    checksum: sha256:f14b714da9234ad6a4fc52b681e1174904610af80656c98d635f3d05d03c4029
+    size: 5025887
+    checksum: sha256:03e7fe309afb1efb7682dc118ab21c20b014426607b7159d3831f32faefd862c
     name: git-lfs
-    evr: 3.7.1-4.el9_8
-    sourcerpm: git-lfs-3.7.1-4.el9_8.src.rpm
+    evr: 3.7.1-4.el9_8.1
+    sourcerpm: git-lfs-3.7.1-4.el9_8.1.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/p/perl-AutoLoader-5.74-481.1.el9_6.noarch.rpm
     repoid: ubi-9-for-x86_64-appstream-rpms
     size: 21344
