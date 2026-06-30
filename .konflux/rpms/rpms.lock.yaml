@@ -25,13 +25,13 @@ arches:
     name: git-core-doc
     evr: 2.52.0-1.el9
     sourcerpm: git-2.52.0-1.el9.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/aarch64/appstream/os/Packages/g/git-lfs-3.7.1-4.el9_8.aarch64.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/aarch64/appstream/os/Packages/g/git-lfs-3.7.1-4.el9_8.1.aarch64.rpm
     repoid: ubi-9-for-aarch64-appstream-rpms
-    size: 4518910
-    checksum: sha256:bbe80766502e3d06906ef6d44b0eb919759fd42d8a13a7d9dc58acff7cdefb41
+    size: 4528408
+    checksum: sha256:046e458a4d9b8781124e65380ffb371435472236d6c06dd382d204d308199d51
     name: git-lfs
-    evr: 3.7.1-4.el9_8
-    sourcerpm: git-lfs-3.7.1-4.el9_8.src.rpm
+    evr: 3.7.1-4.el9_8.1
+    sourcerpm: git-lfs-3.7.1-4.el9_8.1.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/aarch64/appstream/os/Packages/p/perl-AutoLoader-5.74-481.1.el9_6.noarch.rpm
     repoid: ubi-9-for-aarch64-appstream-rpms
     size: 21344
@@ -638,13 +638,13 @@ arches:
     name: git-core-doc
     evr: 2.52.0-1.el9
     sourcerpm: git-2.52.0-1.el9.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/ppc64le/appstream/os/Packages/g/git-lfs-3.7.1-4.el9_8.ppc64le.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/ppc64le/appstream/os/Packages/g/git-lfs-3.7.1-4.el9_8.1.ppc64le.rpm
     repoid: ubi-9-for-ppc64le-appstream-rpms
-    size: 4567223
-    checksum: sha256:2b2d03428690e00479bc500aebf9e2c86eb4fe3bae8053cfbd9dded3b00b202d
+    size: 4573472
+    checksum: sha256:4d493d1a0783f10e345b6e100e96a87d39242137610b10c18cd5006c7cf7b4d1
     name: git-lfs
-    evr: 3.7.1-4.el9_8
-    sourcerpm: git-lfs-3.7.1-4.el9_8.src.rpm
+    evr: 3.7.1-4.el9_8.1
+    sourcerpm: git-lfs-3.7.1-4.el9_8.1.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/ppc64le/appstream/os/Packages/p/perl-AutoLoader-5.74-481.1.el9_6.noarch.rpm
     repoid: ubi-9-for-ppc64le-appstream-rpms
     size: 21344
@@ -1258,13 +1258,13 @@ arches:
     name: git-core-doc
     evr: 2.52.0-1.el9
     sourcerpm: git-2.52.0-1.el9.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/s390x/appstream/os/Packages/g/git-lfs-3.7.1-4.el9_8.s390x.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/s390x/appstream/os/Packages/g/git-lfs-3.7.1-4.el9_8.1.s390x.rpm
     repoid: ubi-9-for-s390x-appstream-rpms
-    size: 4734184
-    checksum: sha256:68e0de0b2f0294b61e6e5616994ae24e5244d3581832d98aefb2963d2cea6389
+    size: 4758964
+    checksum: sha256:c995f662df5482fc90d2ff849aeb158f56a557ca0b4e7053b59deaa43d8284ae
     name: git-lfs
-    evr: 3.7.1-4.el9_8
-    sourcerpm: git-lfs-3.7.1-4.el9_8.src.rpm
+    evr: 3.7.1-4.el9_8.1
+    sourcerpm: git-lfs-3.7.1-4.el9_8.1.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/s390x/appstream/os/Packages/p/perl-AutoLoader-5.74-481.1.el9_6.noarch.rpm
     repoid: ubi-9-for-s390x-appstream-rpms
     size: 21344
