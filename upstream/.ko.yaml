@@ -1,0 +1,6 @@
+defaultBaseImage: cgr.dev/chainguard/static:latest
+
+builds:
+  - id: ko
+    ldflags:
+      - "{{ .Env.LDFLAGS }}"
