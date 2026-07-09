@@ -1,0 +1,83 @@
+version: "2"
+run:
+  build-tags:
+    - e2e
+  modules-download-mode: vendor
+  issues-exit-code: 1
+linters:
+  default: none
+  enable:
+    - errcheck
+    - gomodguard
+    - unconvert
+    - unused
+  settings:
+    depguard:
+      rules:
+        prevent_unmaintained_packages:
+          list-mode: lax
+          files:
+            - $all
+            - '!$test'
+          allow:
+            - $gostd
+          deny:
+            - pkg: io/ioutil
+              desc: 'replaced by io and os packages since Go 1.16: https://tip.golang.org/doc/go1.16#ioutil'
+            - pkg: github.com/ghodss/yaml
+              desc: use sigs.k8s.io/yaml instead, to be consistent
+    errcheck:
+      exclude-functions:
+        - (*github.com/tektoncd/pruner/vendor/go.uber.org/zap.SugaredLogger).Sync
+        - flag.Set
+        - os.Setenv
+        - logger.Sync
+        - fmt.Fprintf
+        - fmt.Fprintln
+        - (io.Closer).Close
+        - updateConfigMap
+    gomodguard:
+      blocked:
+        modules:
+          - github.com/ghodss/yaml:
+              recommendations:
+                - sigs.k8s.io/yaml
+    gosec:
+      excludes:
+        - G601
+  exclusions:
+    generated: lax
+    presets:
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - forbidigo
+        path: main\.go
+      - linters:
+          - dogsled
+          - errcheck
+          - goconst
+          - gosec
+          - ineffassign
+          - maintidx
+        path: _test\.go
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  uniq-by-line: false
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
