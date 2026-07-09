@@ -65,7 +65,7 @@ jobs:
           git diff --stat ${NEW_COMMIT}..${OLD_COMMIT} > /tmp/diff.txt
           git rev-parse HEAD > ../head
           popd
-          rm -rf upstream/.*
+          rm -rf upstream/.git
           git add -f upstream head .konflux
           
           if [[ -z $(git status --porcelain --untracked-files=no) ]]; then
