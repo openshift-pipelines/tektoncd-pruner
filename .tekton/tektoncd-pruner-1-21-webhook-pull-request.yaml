@@ -37,7 +37,7 @@ spec:
     value: .konflux/dockerfiles/webhook.Dockerfile
   - name: additional-tags
     value:
-      - "on-pr-v1.21.3"
+      - "on-pr-v1.21.4"
   - name: build-platforms
     value:
     - linux/x86_64
