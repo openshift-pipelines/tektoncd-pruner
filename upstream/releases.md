@@ -34,9 +34,9 @@ Further documentation available:
 - Standard for
   [release notes](https://github.com/tektoncd/community/blob/main/standards.md#release-notes)
 
-## Releases
+## Release
 
-### v0.4
+### v0.4 (LTS)
 
 - **Latest Release**: [v0.4.0](https://github.com/tektoncd/pruner/releases/tag/v0.4.0)
   (2026-05-19)
@@ -46,7 +46,7 @@ Further documentation available:
   (2026-05-19)
 - **Patch Releases**: [v0.4.0](https://github.com/tektoncd/pruner/releases/tag/v0.4.0)
 
-### v0.3
+### v0.3 (LTS)
 
 - **Latest Release**: [v0.3.5](https://github.com/tektoncd/pruner/releases/tag/v0.3.5)
   (2025-12-23)
