@@ -1,0 +1,63 @@
+# Human-editable source of truth for Dependabot configuration.
+# Active release branches are populated from releases.md by hack/generate-dependabot.sh.
+# Run ./hack/generate-dependabot.sh to regenerate .github/dependabot.yml.
+
+release-branches:
+  - release-v0.4.x
+  - release-v0.3.x
+ecosystems:
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: daily
+    labels:
+      - ok-to-test
+      - dependencies
+      - release-note-none
+      - kind/misc
+    ignore:
+      - dependency-name: "k8s.io/*"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
+    cooldown:
+      default-days: 7
+      semver-major-days: 30
+      semver-minor-days: 7
+      semver-patch-days: 3
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    labels:
+      - ok-to-test
+      - dependencies
+      - release-note-none
+      - kind/misc
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+    cooldown:
+      default-days: 7
+      semver-major-days: 30
+      semver-minor-days: 7
+      semver-patch-days: 3
+  - package-ecosystem: docker
+    directory: /tekton
+    schedule:
+      interval: weekly
+    labels:
+      - ok-to-test
+      - dependencies
+      - release-note-none
+      - kind/misc
+    groups:
+      all:
+        patterns:
+          - "*"
+    cooldown:
+      default-days: 7
+      semver-major-days: 30
+      semver-minor-days: 7
+      semver-patch-days: 3
