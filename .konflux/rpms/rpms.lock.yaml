@@ -25,13 +25,13 @@ arches:
     name: git-core-doc
     evr: 2.52.0-1.el9
     sourcerpm: git-2.52.0-1.el9.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/aarch64/appstream/os/Packages/g/git-lfs-3.7.1-4.el9_8.1.aarch64.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/aarch64/appstream/os/Packages/g/git-lfs-3.7.1-4.el9_8.2.aarch64.rpm
     repoid: ubi-9-for-aarch64-appstream-rpms
-    size: 4528408
-    checksum: sha256:046e458a4d9b8781124e65380ffb371435472236d6c06dd382d204d308199d51
+    size: 4529173
+    checksum: sha256:c5347668e520e0194b6702d60a1d2cafac4ad6aaf8bae14dc6130ab56d25e572
     name: git-lfs
-    evr: 3.7.1-4.el9_8.1
-    sourcerpm: git-lfs-3.7.1-4.el9_8.1.src.rpm
+    evr: 3.7.1-4.el9_8.2
+    sourcerpm: git-lfs-3.7.1-4.el9_8.2.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/aarch64/appstream/os/Packages/p/perl-AutoLoader-5.74-481.1.el9_6.noarch.rpm
     repoid: ubi-9-for-aarch64-appstream-rpms
     size: 21344
@@ -585,13 +585,20 @@ arches:
     name: openssh-clients
     evr: 9.9p1-7.el9_8
     sourcerpm: openssh-9.9p1-7.el9_8.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/aarch64/baseos/os/Packages/o/openssl-3.5.5-4.el9_8.aarch64.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/aarch64/baseos/os/Packages/o/openssl-3.5.5-5.el9_8.aarch64.rpm
     repoid: ubi-9-for-aarch64-baseos-rpms
-    size: 1540982
-    checksum: sha256:b0d7b7d68bdb9ab710ecd3ccd83119173f4d6a7a36c5d475a768bf07d7c69907
+    size: 1540546
+    checksum: sha256:816a01d9e4436ba5ba62c6a391156b8fc02dd78b15587425eb2798d488989dce
     name: openssl
-    evr: 1:3.5.5-4.el9_8
-    sourcerpm: openssl-3.5.5-4.el9_8.src.rpm
+    evr: 1:3.5.5-5.el9_8
+    sourcerpm: openssl-3.5.5-5.el9_8.src.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/aarch64/baseos/os/Packages/o/openssl-libs-3.5.5-5.el9_8.aarch64.rpm
+    repoid: ubi-9-for-aarch64-baseos-rpms
+    size: 2290615
+    checksum: sha256:6becedb7f555a3ece4804bb914d731f3a371c66156aada93cac207c86f1d4f7d
+    name: openssl-libs
+    evr: 1:3.5.5-5.el9_8
+    sourcerpm: openssl-3.5.5-5.el9_8.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/aarch64/baseos/os/Packages/p/pam-1.5.1-28.el9.aarch64.rpm
     repoid: ubi-9-for-aarch64-baseos-rpms
     size: 635826
@@ -638,13 +645,13 @@ arches:
     name: git-core-doc
     evr: 2.52.0-1.el9
     sourcerpm: git-2.52.0-1.el9.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/ppc64le/appstream/os/Packages/g/git-lfs-3.7.1-4.el9_8.1.ppc64le.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/ppc64le/appstream/os/Packages/g/git-lfs-3.7.1-4.el9_8.2.ppc64le.rpm
     repoid: ubi-9-for-ppc64le-appstream-rpms
-    size: 4573472
-    checksum: sha256:4d493d1a0783f10e345b6e100e96a87d39242137610b10c18cd5006c7cf7b4d1
+    size: 4569759
+    checksum: sha256:a736acf30d416a2c25da06b9a23dc4310ae524f2406ac35cccd2e22c80acfdce
     name: git-lfs
-    evr: 3.7.1-4.el9_8.1
-    sourcerpm: git-lfs-3.7.1-4.el9_8.1.src.rpm
+    evr: 3.7.1-4.el9_8.2
+    sourcerpm: git-lfs-3.7.1-4.el9_8.2.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/ppc64le/appstream/os/Packages/p/perl-AutoLoader-5.74-481.1.el9_6.noarch.rpm
     repoid: ubi-9-for-ppc64le-appstream-rpms
     size: 21344
@@ -1205,13 +1212,20 @@ arches:
     name: openssh-clients
     evr: 9.9p1-7.el9_8
     sourcerpm: openssh-9.9p1-7.el9_8.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/ppc64le/baseos/os/Packages/o/openssl-3.5.5-4.el9_8.ppc64le.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/ppc64le/baseos/os/Packages/o/openssl-3.5.5-5.el9_8.ppc64le.rpm
     repoid: ubi-9-for-ppc64le-baseos-rpms
-    size: 1566170
-    checksum: sha256:fe6385b872aa1130135ea046a6baa2bfecb1eba0c15e4d65e0b998f218ef8582
+    size: 1565782
+    checksum: sha256:e9e5911981a7ad800ed4678ebeb2097bc8871cd21467998aad1cbc1ef158a75a
     name: openssl
-    evr: 1:3.5.5-4.el9_8
-    sourcerpm: openssl-3.5.5-4.el9_8.src.rpm
+    evr: 1:3.5.5-5.el9_8
+    sourcerpm: openssl-3.5.5-5.el9_8.src.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/ppc64le/baseos/os/Packages/o/openssl-libs-3.5.5-5.el9_8.ppc64le.rpm
+    repoid: ubi-9-for-ppc64le-baseos-rpms
+    size: 2552572
+    checksum: sha256:a6096ba33e8a0d8a302234e090bd1617ead0efa7e9405c95eb99dbf1584da5ac
+    name: openssl-libs
+    evr: 1:3.5.5-5.el9_8
+    sourcerpm: openssl-3.5.5-5.el9_8.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/ppc64le/baseos/os/Packages/p/pam-1.5.1-28.el9.ppc64le.rpm
     repoid: ubi-9-for-ppc64le-baseos-rpms
     size: 677440
@@ -1258,13 +1272,13 @@ arches:
     name: git-core-doc
     evr: 2.52.0-1.el9
     sourcerpm: git-2.52.0-1.el9.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/s390x/appstream/os/Packages/g/git-lfs-3.7.1-4.el9_8.1.s390x.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/s390x/appstream/os/Packages/g/git-lfs-3.7.1-4.el9_8.2.s390x.rpm
     repoid: ubi-9-for-s390x-appstream-rpms
-    size: 4758964
-    checksum: sha256:c995f662df5482fc90d2ff849aeb158f56a557ca0b4e7053b59deaa43d8284ae
+    size: 4759397
+    checksum: sha256:3ded7b647cc34b8723a763597e4658d1a641bc4ee116838a10ba55d42c9f0b26
     name: git-lfs
-    evr: 3.7.1-4.el9_8.1
-    sourcerpm: git-lfs-3.7.1-4.el9_8.1.src.rpm
+    evr: 3.7.1-4.el9_8.2
+    sourcerpm: git-lfs-3.7.1-4.el9_8.2.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/s390x/appstream/os/Packages/p/perl-AutoLoader-5.74-481.1.el9_6.noarch.rpm
     repoid: ubi-9-for-s390x-appstream-rpms
     size: 21344
@@ -1818,13 +1832,20 @@ arches:
     name: openssh-clients
     evr: 9.9p1-7.el9_8
     sourcerpm: openssh-9.9p1-7.el9_8.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/s390x/baseos/os/Packages/o/openssl-3.5.5-4.el9_8.s390x.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/s390x/baseos/os/Packages/o/openssl-3.5.5-5.el9_8.s390x.rpm
     repoid: ubi-9-for-s390x-baseos-rpms
-    size: 1549244
-    checksum: sha256:8a6e7e6ae963ad5ab00f319c72042f3e9f28cd6196dac258eb5c785be0524bb2
+    size: 1549036
+    checksum: sha256:e7b83a5f90c195583dc6cf2dec685db505a6297f319ed44e3490685ac34091b4
     name: openssl
-    evr: 1:3.5.5-4.el9_8
-    sourcerpm: openssl-3.5.5-4.el9_8.src.rpm
+    evr: 1:3.5.5-5.el9_8
+    sourcerpm: openssl-3.5.5-5.el9_8.src.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/s390x/baseos/os/Packages/o/openssl-libs-3.5.5-5.el9_8.s390x.rpm
+    repoid: ubi-9-for-s390x-baseos-rpms
+    size: 2028642
+    checksum: sha256:25d015af7c7caffc3ca8b7729ea5f7df4f48dd0b7a4e6b9c1c48e96094018198
+    name: openssl-libs
+    evr: 1:3.5.5-5.el9_8
+    sourcerpm: openssl-3.5.5-5.el9_8.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/s390x/baseos/os/Packages/p/pam-1.5.1-28.el9.s390x.rpm
     repoid: ubi-9-for-s390x-baseos-rpms
     size: 630422
@@ -1871,13 +1892,13 @@ arches:
     name: git-core-doc
     evr: 2.52.0-1.el9
     sourcerpm: git-2.52.0-1.el9.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/g/git-lfs-3.7.1-4.el9_8.1.x86_64.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/g/git-lfs-3.7.1-4.el9_8.2.x86_64.rpm
     repoid: ubi-9-for-x86_64-appstream-rpms
-    size: 5025887
-    checksum: sha256:03e7fe309afb1efb7682dc118ab21c20b014426607b7159d3831f32faefd862c
+    size: 5023104
+    checksum: sha256:b2b3eac45360ea20a81a4a72b2bc19790846fc182e8684a0ae034642fab7677c
     name: git-lfs
-    evr: 3.7.1-4.el9_8.1
-    sourcerpm: git-lfs-3.7.1-4.el9_8.1.src.rpm
+    evr: 3.7.1-4.el9_8.2
+    sourcerpm: git-lfs-3.7.1-4.el9_8.2.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/p/perl-AutoLoader-5.74-481.1.el9_6.noarch.rpm
     repoid: ubi-9-for-x86_64-appstream-rpms
     size: 21344
@@ -2431,13 +2452,20 @@ arches:
     name: openssh-clients
     evr: 9.9p1-7.el9_8
     sourcerpm: openssh-9.9p1-7.el9_8.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/baseos/os/Packages/o/openssl-3.5.5-4.el9_8.x86_64.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/baseos/os/Packages/o/openssl-3.5.5-5.el9_8.x86_64.rpm
     repoid: ubi-9-for-x86_64-baseos-rpms
-    size: 1564134
-    checksum: sha256:e0e2c1f901d3f6245ff43f194ac11ba133cf99c630307239722c07a2282a1356
+    size: 1563716
+    checksum: sha256:7d6537b3a4e4e5a1fe0dc17b0d7794e466b3dd20f9dc34356dbbfe12b4ac2d44
     name: openssl
-    evr: 1:3.5.5-4.el9_8
-    sourcerpm: openssl-3.5.5-4.el9_8.src.rpm
+    evr: 1:3.5.5-5.el9_8
+    sourcerpm: openssl-3.5.5-5.el9_8.src.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/baseos/os/Packages/o/openssl-libs-3.5.5-5.el9_8.x86_64.rpm
+    repoid: ubi-9-for-x86_64-baseos-rpms
+    size: 2426444
+    checksum: sha256:3fcfe168496349d7e3daba33a2a51b09bf00443d7fdf3c143b9d9c50c6d4d7af
+    name: openssl-libs
+    evr: 1:3.5.5-5.el9_8
+    sourcerpm: openssl-3.5.5-5.el9_8.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/baseos/os/Packages/p/pam-1.5.1-28.el9.x86_64.rpm
     repoid: ubi-9-for-x86_64-baseos-rpms
     size: 637912
