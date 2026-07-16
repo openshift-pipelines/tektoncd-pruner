@@ -2,7 +2,6 @@ package tektonpruner
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -11,12 +10,17 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
+	k8stesting "k8s.io/client-go/testing"
 	kubeclient "knative.dev/pkg/client/injection/kube/client"
 	"knative.dev/pkg/configmap"
 	"knative.dev/pkg/logging"
 	logtesting "knative.dev/pkg/logging/testing"
+	"knative.dev/pkg/system"
 	_ "knative.dev/pkg/system/testing" // Required for setting system namespace in tests
 
+	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
+	pipelinefake "github.com/tektoncd/pipeline/pkg/client/clientset/versioned/fake"
+	pipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client"
 	"github.com/tektoncd/pruner/pkg/config"
 )
 
@@ -136,66 +140,91 @@ failedHistoryLimit: 2`,
 	}
 }
 
+// TestSafeRunGarbageCollector verifies that concurrent triggers never produce
+// overlapping sweeps: the ConfigMap watcher starts one goroutine per update, so a
+// burst of updates must not fan out into concurrent cluster-wide sweeps.
+//
+// Overlap is observed across the two fake clients on purpose. A fake clientset
+// serializes its whole reaction chain under one lock, so a counter kept inside a
+// single client can never see more than one caller at a time. Instead a sweep is
+// counted as in flight when it lists the namespaces (kube client) and counted out
+// when it lists the TaskRuns of the last namespace (pipeline client), and the delay
+// sits in the pipeline client. Unserialized sweeps therefore pile up in the counter,
+// while serialized ones cannot.
 func TestSafeRunGarbageCollector(t *testing.T) {
-	// Create a context with timeout and logging
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	logger := logtesting.TestLogger(t)
 	ctx = logging.WithLogger(ctx, logger)
 
-	// Setup fake client
+	// The sweep loads the ConfigMap from the system namespace; a ConfigMap anywhere
+	// else would make every sweep bail out before doing any work.
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      config.PrunerConfigMapName,
-			Namespace: "tekton-pipelines",
+			Namespace: system.Namespace(),
 		},
 		Data: map[string]string{
 			"global-config": `enforcedConfigLevel: global
 ttlSecondsAfterFinished: 60`,
 		},
 	}
-	client := fake.NewSimpleClientset(cm)
+	ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}}
 
-	// Inject client into context
-	ctx = context.WithValue(ctx, kubeclient.Key{}, client)
+	kubeClient := fake.NewSimpleClientset(cm, ns)
+	pipelineClient := pipelinefake.NewSimpleClientset()
 
-	// Create a WaitGroup to track goroutines
-	var wg sync.WaitGroup
-	doneChan := make(chan struct{})
-	errChan := make(chan error, 5)
+	var (
+		mu       sync.Mutex
+		inFlight int
+		maxSeen  int
+		sweeps   int
+	)
 
-	// Test concurrent execution safety with error handling
-	for i := 0; i < 5; i++ {
-		wg.Add(1)
-		go func(id int) {
-			defer wg.Done()
-			defer func() {
-				if r := recover(); r != nil {
-					errChan <- fmt.Errorf("goroutine %d panicked: %v", id, r)
-				}
-			}()
-			safeRunGarbageCollector(ctx, logger)
-		}(i)
-	}
-
-	// Wait for goroutines in a separate goroutine
-	go func() {
-		wg.Wait()
-		close(doneChan)
-	}()
-
-	// Wait with timeout and error collection
-	select {
-	case <-doneChan:
-		// Check for any errors
-		close(errChan)
-		for err := range errChan {
-			t.Error(err)
+	kubeClient.PrependReactor("list", "namespaces", func(k8stesting.Action) (bool, runtime.Object, error) {
+		mu.Lock()
+		defer mu.Unlock()
+		inFlight++
+		sweeps++
+		if inFlight > maxSeen {
+			maxSeen = inFlight
 		}
-	case <-ctx.Done():
-		t.Log("Context cancelled as expected")
-	case <-time.After(3 * time.Second):
-		t.Fatal("Test timed out waiting for garbage collectors to complete")
+		return false, nil, nil // fall through to the tracker
+	})
+
+	pipelineClient.PrependReactor("list", "taskruns", func(k8stesting.Action) (bool, runtime.Object, error) {
+		// Linger here, outside the kube client's lock, so any sweep that was not
+		// serialized shows up in the counter above while this one is still running.
+		time.Sleep(50 * time.Millisecond)
+
+		mu.Lock()
+		defer mu.Unlock()
+		inFlight--
+		return true, &pipelinev1.TaskRunList{}, nil
+	})
+
+	ctx = context.WithValue(ctx, kubeclient.Key{}, kubeClient)
+	ctx = context.WithValue(ctx, pipelineclient.Key{}, pipelineClient)
+
+	const triggers = 5
+
+	var wg sync.WaitGroup
+	for i := 0; i < triggers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			safeRunGarbageCollector(ctx, logger)
+		}()
+	}
+	wg.Wait()
+
+	mu.Lock()
+	defer mu.Unlock()
+	if maxSeen != 1 {
+		t.Errorf("concurrent garbage collection sweeps = %d, want 1", maxSeen)
+	}
+	if sweeps != triggers {
+		t.Errorf("garbage collection sweeps = %d, want %d (one per trigger)", sweeps, triggers)
 	}
 }
 
