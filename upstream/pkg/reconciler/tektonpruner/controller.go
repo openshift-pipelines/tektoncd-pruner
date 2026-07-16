@@ -62,10 +62,14 @@ func NewController(ctx context.Context, cmw configmap.Watcher) *controller.Impl 
 	return impl
 }
 
+// gcMutex serializes garbage collection. The ConfigMap watcher starts one
+// goroutine per update, so the mutex must be shared by all of them: declaring it
+// inside safeRunGarbageCollector gave every goroutine a mutex of its own, which
+// serialized nothing and let cluster-wide sweeps run concurrently.
+var gcMutex sync.Mutex
+
 // safeRunGarbageCollector is a thread-safe wrapper around the garbage collection process.
 func safeRunGarbageCollector(ctx context.Context, logger *zap.SugaredLogger) {
-	var gcMutex sync.Mutex
-
 	logger.Debug("Waiting to acquire cleanup thread lock")
 	gcMutex.Lock()
 	defer gcMutex.Unlock()
