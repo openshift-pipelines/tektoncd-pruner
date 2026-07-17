@@ -255,8 +255,19 @@ func (v *ValidateConfigMap) Admit(ctx context.Context, request *admissionv1.Admi
 
 	// Handle DELETE operations
 	if request.Operation == admissionv1.Delete {
-		// Prevent deletion of global config if namespace configs still exist
+		// Allow deletion of operator-managed global ConfigMaps (owned by a
+		// TektonInstallerSet) — the operator recreates them during config
+		// updates and version upgrades. Otherwise, block deletion if
+		// namespace configs still depend on the global config.
 		if isGlobalConfig {
+			for _, ref := range cm.OwnerReferences {
+				if ref.Kind == "TektonInstallerSet" {
+					logger.Infow("Allowing deletion of operator-managed global config",
+						"name", cm.Name, "owner", ref.Name)
+					return &admissionv1.AdmissionResponse{Allowed: true}
+				}
+			}
+
 			nsList, err := v.Client.CoreV1().ConfigMaps("").List(ctx, metav1.ListOptions{
 				FieldSelector: "metadata.name=tekton-pruner-namespace-spec",
 			})
