@@ -28,7 +28,7 @@ LABEL \
     maintainer="pipelines-extcomm@redhat.com" \
     name="openshift-pipelines/pipelines-pruner-controller-rhel9" \
     summary="Red Hat OpenShift Pipelines tektoncd-pruner controller" \
-    version="v1.23.0"
+    version="v1.23.1"
 
 RUN groupadd -r -g 65532 nonroot && useradd --no-log-init -r -u 65532 -g nonroot nonroot
 USER 65532
