@@ -56,7 +56,7 @@ jobs:
         # Approve and merge pull-request with no reviews
         for p in $success_pr_list; do
           echo "Merging  PR $p"
-          gh pr merge --rebase --delete-branch --auto $p
+          gh pr merge --rebase --delete-branch $p
         done
       env:
         success_pr_list: ${{ steps.list-prs.outputs.success_pr_list }} 
