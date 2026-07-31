@@ -1198,20 +1198,20 @@ arches:
     name: ncurses
     evr: 6.2-12.20210508.el9
     sourcerpm: ncurses-6.2-12.20210508.el9.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/ppc64le/baseos/os/Packages/o/openssh-9.9p1-7.el9_8.ppc64le.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/ppc64le/baseos/os/Packages/o/openssh-9.9p1-9.el9_8.ppc64le.rpm
     repoid: ubi-9-for-ppc64le-baseos-rpms
-    size: 459344
-    checksum: sha256:b9cc1feca459e05b0b195fa751f9f8d2001961d228490b0a111225a53f4c46b0
+    size: 459345
+    checksum: sha256:250b4ca1d479233026b7996acfe3a078e1eb2624bf4f4d69c2dcbec1859e731a
     name: openssh
-    evr: 9.9p1-7.el9_8
-    sourcerpm: openssh-9.9p1-7.el9_8.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/ppc64le/baseos/os/Packages/o/openssh-clients-9.9p1-7.el9_8.ppc64le.rpm
+    evr: 9.9p1-9.el9_8
+    sourcerpm: openssh-9.9p1-9.el9_8.src.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/ppc64le/baseos/os/Packages/o/openssh-clients-9.9p1-9.el9_8.ppc64le.rpm
     repoid: ubi-9-for-ppc64le-baseos-rpms
-    size: 836414
-    checksum: sha256:7dac2419a7e69b88195151a65523740d7d144486646c0fbe6d82461734a8130e
+    size: 835489
+    checksum: sha256:12bbf8f9506455ab50df66383e08c32b83dd5b4a8afe071f34209c57d95116a5
     name: openssh-clients
-    evr: 9.9p1-7.el9_8
-    sourcerpm: openssh-9.9p1-7.el9_8.src.rpm
+    evr: 9.9p1-9.el9_8
+    sourcerpm: openssh-9.9p1-9.el9_8.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/ppc64le/baseos/os/Packages/o/openssl-3.5.5-6.el9_8.ppc64le.rpm
     repoid: ubi-9-for-ppc64le-baseos-rpms
     size: 1566179
