@@ -10,16 +10,16 @@ metadata:
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
-      == "next" &&
+      == "release-v1.24.x" &&
       ("upstream/***".pathChanged() || ".konflux/patches/***".pathChanged() || ".konflux/rpms/***".pathChanged() ||
       ".konflux/dockerfiles/webhook.Dockerfile".pathChanged() ||
-      ".tekton/tektoncd-pruner-next-webhook-push.yaml".pathChanged())
+      ".tekton/tektoncd-pruner-1-24-webhook-push.yaml".pathChanged())
   creationTimestamp: null
   labels:
-    appstudio.openshift.io/application: openshift-pipelines-core-next
-    appstudio.openshift.io/component: tektoncd-pruner-next-webhook
+    appstudio.openshift.io/application: openshift-pipelines-core-1-24
+    appstudio.openshift.io/component: tektoncd-pruner-1-24-webhook
     pipelines.appstudio.openshift.io/type: build
-  name: tektoncd-pruner-next-webhook-on-push
+  name: tektoncd-pruner-1-24-webhook-on-push
   namespace: tekton-ecosystem-tenant
 spec:
   params:
@@ -35,7 +35,7 @@ spec:
     value: .konflux/dockerfiles/webhook.Dockerfile
   - name: additional-tags
     value:
-      - "next"
+      - "v1.24.0-RC-1"
   - name: prefetch-input
     value: |
       {"type": "rpm", "path": ".konflux/rpms"}
@@ -47,7 +47,7 @@ spec:
   pipelineRef:
     name: docker-build-ta
   taskRunTemplate:
-    serviceAccountName: build-pipeline-tektoncd-pruner-next-webhook
+    serviceAccountName: build-pipeline-tektoncd-pruner-1-24-webhook
   workspaces:
   - name: git-auth
     secret:
