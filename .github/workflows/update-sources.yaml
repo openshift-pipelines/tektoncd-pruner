@@ -37,6 +37,7 @@ jobs:
             -e BASE_IMAGE=$BASE_IMAGE \
             -v ./.konflux/rpms/:/rpms -w /rpms $BASE_IMAGE  sh -c "
               cp -f /etc/yum.repos.d/*.repo ./
+              sed -i 's/^\[ubi-8-/\[ubi-8-for-\$basearch-/' *.repo
               sed -i 's/^\[ubi-9-/\[ubi-9-for-\$basearch-/' *.repo
           "
           docker run  --rm\
