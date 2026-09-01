@@ -2,7 +2,6 @@ package taskrun
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"go.uber.org/zap"
@@ -72,7 +71,7 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, tr *pipelinev1.TaskRun) 
 		errorType := metrics.ClassifyError(err)
 		metricsRecorder.RecordResourceError(ctx, metrics.ResourceTypeTaskRun, tr.Namespace, errorType, "history_processing_failed")
 		logger.Errorw("Error on processing history limiting for a TaskRun",
-			"namespace", tr.Namespace, "name", tr.Name,
+			"namespace", tr.Namespace, "name", tr.Name, "uid", tr.UID, "creationTimestamp", tr.CreationTimestamp,
 			zap.Error(err),
 		)
 		return err
@@ -90,10 +89,8 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, tr *pipelinev1.TaskRun) 
 			status = metrics.StatusError
 			errorType := metrics.ClassifyError(err)
 			metricsRecorder.RecordResourceError(ctx, metrics.ResourceTypeTaskRun, tr.Namespace, errorType, "ttl_processing_failed")
-			data, _ := json.Marshal(tr)
 			logger.Errorw("Error on processing ttl for a TaskRun",
-				"namespace", tr.Namespace, "name", tr.Name,
-				"resource", string(data),
+				"namespace", tr.Namespace, "name", tr.Name, "uid", tr.UID, "creationTimestamp", tr.CreationTimestamp,
 				zap.Error(err),
 			)
 		}
