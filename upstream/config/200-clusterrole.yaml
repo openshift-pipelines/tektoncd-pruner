@@ -46,22 +46,18 @@ rules:
       - "patch"
       - "watch"
 
-  # used in webhook
+  # used in webhook — scoped to the single ValidatingWebhookConfiguration
   - apiGroups:
       - admissionregistration.k8s.io
     resources:
-      - mutatingwebhookconfigurations
       - validatingwebhookconfigurations
+    resourceNames:
+      - validation.webhook.pruner.tekton.dev
     verbs:
       - get
-      - list
-      - create
       - update
-      - delete
-      - patch
-      - watch
 
-  # used in webhook
+  # namespace informer (read-only)
   - apiGroups:
       - ""
     resources:
@@ -69,18 +65,7 @@ rules:
     verbs:
       - get
       - list
-      - create
-      - update
-      - delete
-      - patch
       - watch
-
-  - apiGroups:
-      - ""
-    resources:
-      - namespaces/finalizers
-    verbs:
-      - update
 
   - apiGroups:
       - ""
@@ -99,13 +84,3 @@ rules:
       - tekton-pruner-namespace-spec
     verbs:
       - get
-
-  # used in webhook for certificate management
-  - apiGroups:
-      - ""
-    resources:
-      - secrets
-    verbs:
-      - get
-      - list
-      - watch
