@@ -2,7 +2,6 @@ package pipelinerun
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	pipelinev1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
@@ -62,7 +61,7 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, pr *pipelinev1.PipelineR
 		status = metrics.StatusError
 		errorType := metrics.ClassifyError(err)
 		metricsRecorder.RecordResourceError(ctx, metrics.ResourceTypePipelineRun, pr.Namespace, errorType, "history_processing_failed")
-		logger.Errorw("Error on processing history limiting for a PipelineRun", "namespace", pr.Namespace, "name", pr.Name, zap.Error(err))
+		logger.Errorw("Error on processing history limiting for a PipelineRun", "namespace", pr.Namespace, "name", pr.Name, "uid", pr.UID, "creationTimestamp", pr.CreationTimestamp, zap.Error(err))
 		return err
 	}
 
@@ -78,8 +77,7 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, pr *pipelinev1.PipelineR
 			status = metrics.StatusError
 			errorType := metrics.ClassifyError(err)
 			metricsRecorder.RecordResourceError(ctx, metrics.ResourceTypePipelineRun, pr.Namespace, errorType, "ttl_processing_failed")
-			data, _ := json.Marshal(pr)
-			logger.Errorw("Error on processing ttl for a PipelineRun", "namespace", pr.Namespace, "name", pr.Name, "resource", string(data), zap.Error(err))
+			logger.Errorw("Error on processing ttl for a PipelineRun", "namespace", pr.Namespace, "name", pr.Name, "uid", pr.UID, "creationTimestamp", pr.CreationTimestamp, zap.Error(err))
 		}
 		return err
 	}
