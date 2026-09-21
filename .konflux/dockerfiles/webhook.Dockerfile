@@ -1,4 +1,4 @@
-ARG GO_BUILDER=registry.access.redhat.com/ubi10/go-toolset:latest@sha256:c468f485f6bdc8ba6b106d63d4019851eaf1912182f7e67ff1a185234d58ebf7
+ARG GO_BUILDER=registry.access.redhat.com/ubi10/go-toolset:latest@sha256:be70aa468168f1ecd46e56d5f362e697243bcf9d3a2d98819597e43471a5d0e4
 ARG RUNTIME=registry.access.redhat.com/ubi9/ubi-minimal:latest
 
 FROM $GO_BUILDER AS builder
