@@ -1,4 +1,4 @@
-ARG GO_BUILDER=registry.access.redhat.com/ubi9/go-toolset:latest@sha256:0a4666f7a4eb0644c97a73cba198eb268691b270d97831822689e7a2088f87be
+ARG GO_BUILDER=registry.access.redhat.com/ubi9/go-toolset:latest@sha256:5e68f09a652ac6627a83c57655e42e24575efb278b54336039c9308607fc6b21
 ARG RUNTIME=registry.access.redhat.com/ubi9/ubi-minimal:latest@sha256:8ebe2ad8fdf3cab3e5a53c1edc69194c98209cfadab24b884f4ad9ebcf7bbbfc
 
 FROM $GO_BUILDER AS builder
@@ -28,7 +28,7 @@ LABEL \
     maintainer="pipelines-extcomm@redhat.com" \
     name="openshift-pipelines/pipelines-pruner-webhook-rhel9" \
     summary="Red Hat OpenShift Pipelines tektoncd-pruner webhook" \
-    version="v1.23.2"
+    version="v1.23.3"
 
 RUN groupadd -r -g 65532 nonroot && useradd --no-log-init -r -u 65532 -g nonroot nonroot
 USER 65532
