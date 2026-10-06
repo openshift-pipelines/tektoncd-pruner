@@ -73,20 +73,18 @@ data:
     ttlSecondsAfterFinished: 3600
     pipelineRuns:
       - selector:
-        - matchLabels:
+          matchLabels:
             pipeline-type: release
         ttlSecondsAfterFinished: 604800
       - selector:
-        - matchLabels:
+          matchLabels:
             pipeline-type: test
         ttlSecondsAfterFinished: 300
 ```
 
 ## Combining TTL with History Limits
 
-> **Important**: Setting a history limit does NOT prevent TTL from deleting runs.
-
-If you set both TTL and history limit, they run separately. TTL will still delete runs after the time passes, even if you're under the history limit.
+History limits override TTL to guarantee minimum retention:
 
 ```yaml
 data:
@@ -96,9 +94,7 @@ data:
     failedHistoryLimit: 10
 ```
 
-**Example**: With the config above, if you only have 3 successful runs and 2 failed runs, and they're all older than 5 minutes, all 5 will be deleted by TTL.
-
-If you want to delete runs purely based on time, **don't set history limits** - just use TTL alone.
+**Result**: Runs are deleted after 5 minutes UNLESS they're in the last 5 successful or last 10 failed.
 
 ## Verification
 

@@ -6,13 +6,13 @@ import (
 	"context"
 
 	corev1 "k8s.io/api/core/v1"
-	o11yconfigmap "knative.dev/pkg/observability/configmap"
+	"knative.dev/pkg/metrics"
 )
 
 // GetMetricsConfigName returns the name of the configmap containing all
 // customizations for the storage bucket.
 func GetMetricsConfigName() string {
-	return o11yconfigmap.Name()
+	return metrics.ConfigMapName()
 }
 
 // NewFeatureFlagsFromConfigMap returns a Config for the given configmap

@@ -336,19 +336,6 @@ func (pt PipelineTask) validateRefOrSpec(ctx context.Context) (errs *apis.FieldE
 	return errs
 }
 
-// isValidAPIVersion validates the format of an apiVersion string.
-// Valid formats are "group/version" where both group and version are non-empty.
-// For custom tasks, apiVersion must always be in the "group/version" format.
-func isValidAPIVersion(apiVersion string) bool {
-	parts := strings.Split(apiVersion, "/")
-	if len(parts) != 2 {
-		return false
-	}
-	group := parts[0]
-	version := parts[1]
-	return group != "" && version != ""
-}
-
 // validateCustomTask validates custom task specifications - checking kind and fail if not yet supported features specified
 func (pt PipelineTask) validateCustomTask() (errs *apis.FieldError) {
 	if pt.TaskRef != nil && pt.TaskRef.Kind == "" {
@@ -357,19 +344,10 @@ func (pt PipelineTask) validateCustomTask() (errs *apis.FieldError) {
 	if pt.TaskSpec != nil && pt.TaskSpec.Kind == "" {
 		errs = errs.Also(apis.ErrInvalidValue("custom task spec must specify kind", "taskSpec.kind"))
 	}
-	// Validate apiVersion format for custom tasks
-	if pt.TaskRef != nil && pt.TaskRef.APIVersion != "" {
-		if !isValidAPIVersion(pt.TaskRef.APIVersion) {
-			errs = errs.Also(apis.ErrInvalidValue(fmt.Sprintf("invalid apiVersion format %q, must be in the format \"group/version\"", pt.TaskRef.APIVersion), "taskRef.apiVersion"))
-		}
-	} else if pt.TaskRef != nil {
+	if pt.TaskRef != nil && pt.TaskRef.APIVersion == "" {
 		errs = errs.Also(apis.ErrInvalidValue("custom task ref must specify apiVersion", "taskRef.apiVersion"))
 	}
-	if pt.TaskSpec != nil && pt.TaskSpec.APIVersion != "" {
-		if !isValidAPIVersion(pt.TaskSpec.APIVersion) {
-			errs = errs.Also(apis.ErrInvalidValue(fmt.Sprintf("invalid apiVersion format %q, must be in the format \"group/version\"", pt.TaskSpec.APIVersion), "taskSpec.apiVersion"))
-		}
-	} else if pt.TaskSpec != nil {
+	if pt.TaskSpec != nil && pt.TaskSpec.APIVersion == "" {
 		errs = errs.Also(apis.ErrInvalidValue("custom task spec must specify apiVersion", "taskSpec.apiVersion"))
 	}
 	return errs
