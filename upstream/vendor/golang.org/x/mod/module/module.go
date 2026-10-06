@@ -802,8 +802,8 @@ func MatchPrefixPatterns(globs, target string) bool {
 	for globs != "" {
 		// Extract next non-empty glob in comma-separated list.
 		var glob string
-		if before, after, ok := strings.Cut(globs, ","); ok {
-			glob, globs = before, after
+		if i := strings.Index(globs, ","); i >= 0 {
+			glob, globs = globs[:i], globs[i+1:]
 		} else {
 			glob, globs = globs, ""
 		}

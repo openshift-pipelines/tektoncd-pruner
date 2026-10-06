@@ -712,12 +712,19 @@ func canRetryError(err error) bool {
 		return true
 	}
 	if se, ok := err.(StreamError); ok {
+		if se.Code == ErrCodeProtocol && se.Cause == errFromPeer {
+			// See golang/go#47635, golang/go#42777
+			return true
+		}
 		return se.Code == ErrCodeRefusedStream
 	}
 	return false
 }
 
 func (t *Transport) dialClientConn(ctx context.Context, addr string, singleUse bool) (*ClientConn, error) {
+	if t.transportTestHooks != nil {
+		return t.newClientConn(nil, singleUse, nil)
+	}
 	host, _, err := net.SplitHostPort(addr)
 	if err != nil {
 		return nil, err
@@ -2772,11 +2779,6 @@ func (rl *clientConnReadLoop) endStreamError(cs *clientStream, err error) {
 	cs.abortStream(err)
 }
 
-func (rl *clientConnReadLoop) endStreamErrorLocked(cs *clientStream, err error) {
-	cs.readAborted = true
-	cs.abortStreamLocked(err)
-}
-
 // Constants passed to streamByID for documentation purposes.
 const (
 	headerOrDataFrame    = true
@@ -2858,9 +2860,6 @@ func (rl *clientConnReadLoop) processSettingsNoWrite(f *SettingsFrame) error {
 
 	var seenMaxConcurrentStreams bool
 	err := f.ForeachSetting(func(s Setting) error {
-		if err := s.Valid(); err != nil {
-			return err
-		}
 		switch s.ID {
 		case SettingMaxFrameSize:
 			cc.maxFrameSize = s.Val
@@ -2892,6 +2891,9 @@ func (rl *clientConnReadLoop) processSettingsNoWrite(f *SettingsFrame) error {
 			cc.henc.SetMaxDynamicTableSize(s.Val)
 			cc.peerMaxHeaderTableSize = s.Val
 		case SettingEnableConnectProtocol:
+			if err := s.Valid(); err != nil {
+				return err
+			}
 			// If the peer wants to send us SETTINGS_ENABLE_CONNECT_PROTOCOL,
 			// we require that it do so in the first SETTINGS frame.
 			//
@@ -2944,7 +2946,7 @@ func (rl *clientConnReadLoop) processWindowUpdate(f *WindowUpdateFrame) error {
 	if !fl.add(int32(f.Increment)) {
 		// For stream, the sender sends RST_STREAM with an error code of FLOW_CONTROL_ERROR
 		if cs != nil {
-			rl.endStreamErrorLocked(cs, StreamError{
+			rl.endStreamError(cs, StreamError{
 				StreamID: f.StreamID,
 				Code:     ErrCodeFlowControl,
 			})
@@ -3225,6 +3227,10 @@ func (gz *gzipReader) Close() error {
 
 	return gz.body.Close()
 }
+
+type errorReader struct{ err error }
+
+func (r errorReader) Read(p []byte) (int, error) { return 0, r.err }
 
 // isConnectionCloseRequest reports whether req should use its own
 // connection for a single request and then close the connection.

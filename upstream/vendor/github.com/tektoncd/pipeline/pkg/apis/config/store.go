@@ -82,7 +82,7 @@ type Store struct {
 func NewStore(logger configmap.Logger, onAfterStore ...func(name string, value interface{})) *Store {
 	store := &Store{
 		UntypedStore: configmap.NewUntypedStore(
-			"defaults/features/metrics/spire/events",
+			"defaults/features/artifacts",
 			logger,
 			configmap.Constructors{
 				GetDefaultsConfigName():               NewDefaultsFromConfigMap,

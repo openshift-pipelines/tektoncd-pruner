@@ -231,21 +231,7 @@ func (i *InformedWatcher) updateConfigMapEvent(o, n interface{}) {
 }
 
 func (i *InformedWatcher) deleteConfigMapEvent(obj interface{}) {
-	// Handle DeletedFinalStateUnknown which can occur when the final state
-	// of the deleted object is not known.
-	tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
-	if ok {
-		obj = tombstone.Obj
-	}
-
-	// Safely extract the ConfigMap from the object.
-	configMap, ok := obj.(*corev1.ConfigMap)
-	if !ok {
-		// If the object is not a ConfigMap, gracefully return.
-		// This can happen if the tombstone contains an invalid object.
-		return
-	}
-
+	configMap := obj.(*corev1.ConfigMap)
 	if def, ok := i.defaults[configMap.Name]; ok {
 		i.OnChange(def)
 	}
