@@ -34,7 +34,7 @@ data:
   ns-config: |
     pipelineRuns:
       - selector:
-          matchLabels:
+        - matchLabels:
             environment: production
             tier: frontend
         ttlSecondsAfterFinished: 604800
@@ -47,7 +47,7 @@ data:
   ns-config: |
     pipelineRuns:
       - selector:
-          matchAnnotations:
+        - matchAnnotations:
             tekton.dev/release: "true"
         ttlSecondsAfterFinished: 2592000
 ```
@@ -58,7 +58,7 @@ data:
   ns-config: |
     pipelineRuns:
       - selector:
-          matchLabels:
+        - matchLabels:
             app: myapp
           matchAnnotations:
             critical: "true"
@@ -82,15 +82,15 @@ data:
     ttlSecondsAfterFinished: 3600
     pipelineRuns:
       - selector:
-          matchLabels:
+        - matchLabels:
             pipeline-type: build
         ttlSecondsAfterFinished: 300
       - selector:
-          matchLabels:
+        - matchLabels:
             pipeline-type: test
         ttlSecondsAfterFinished: 3600
       - selector:
-          matchLabels:
+        - matchLabels:
             pipeline-type: release
         ttlSecondsAfterFinished: 604800
         successfulHistoryLimit: 20
@@ -102,15 +102,15 @@ data:
   ns-config: |
     pipelineRuns:
       - selector:
-          matchLabels:
+        - matchLabels:
             env: dev
         ttlSecondsAfterFinished: 300
       - selector:
-          matchLabels:
+        - matchLabels:
             env: staging
         ttlSecondsAfterFinished: 86400
       - selector:
-          matchLabels:
+        - matchLabels:
             env: prod
         ttlSecondsAfterFinished: 604800
 ```
@@ -121,12 +121,12 @@ data:
   ns-config: |
     pipelineRuns:
       - selector:
-          matchLabels:
+        - matchLabels:
             critical: "true"
         ttlSecondsAfterFinished: 2592000
         successfulHistoryLimit: 50
       - selector:
-          matchLabels:
+        - matchLabels:
             critical: "false"
         ttlSecondsAfterFinished: 3600
         successfulHistoryLimit: 3
@@ -141,16 +141,16 @@ data:
   ns-config: |
     pipelineRuns:
       - selector:
-          matchLabels:
+        - matchLabels:
             env: prod
             critical: "true"
         ttlSecondsAfterFinished: 2592000
       - selector:
-          matchLabels:
+        - matchLabels:
             env: prod
         ttlSecondsAfterFinished: 604800
       - selector:
-          matchLabels:
+        - matchLabels:
             app: myapp
         ttlSecondsAfterFinished: 3600
 ```
@@ -172,17 +172,17 @@ data:
   ns-config: |
     pipelineRuns:
       - selector:
-          matchLabels:
+        - matchLabels:
             tier: frontend
         ttlSecondsAfterFinished: 604800
         successfulHistoryLimit: 10
       - selector:
-          matchLabels:
+        - matchLabels:
             tier: backend
         ttlSecondsAfterFinished: 1209600
         successfulHistoryLimit: 15
       - selector:
-          matchLabels:
+        - matchLabels:
             tier: database
         ttlSecondsAfterFinished: 2592000
         successfulHistoryLimit: 30
@@ -195,45 +195,17 @@ data:
   ns-config: |
     pipelineRuns:
       - selector:
-          matchLabels:
+        - matchLabels:
             release-type: feature
         ttlSecondsAfterFinished: 604800
       - selector:
-          matchLabels:
+        - matchLabels:
             release-type: hotfix
         ttlSecondsAfterFinished: 2592000
       - selector:
-          matchLabels:
+        - matchLabels:
             release-type: major
         ttlSecondsAfterFinished: 7776000
-```
-
-## Labeling Your Pipelines
-
-Add labels to PipelineRuns for grouping:
-
-```yaml
-apiVersion: tekton.dev/v1beta1
-kind: PipelineRun
-metadata:
-  generateName: my-pipeline-
-  labels:
-    pipeline-type: release
-    env: prod
-    critical: "true"
-spec:
-  pipelineRef:
-    name: my-pipeline
-```
-
-## Verification
-
-```bash
-# Check labels on runs
-kubectl get pr --show-labels
-
-# Monitor which group matched
-kubectl logs -n tekton-pipelines -l app=tekton-pruner-controller | grep "selector"
 ```
 
 ## Labeling Your Pipelines

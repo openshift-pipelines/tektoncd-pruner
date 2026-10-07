@@ -27,7 +27,7 @@ Tekton Pruner provides event-driven and configuration-based cleanup through four
 - **TaskRun Controller**: Handles standalone TaskRun events
 
 <p align="center">
-<img src="docs/images/pruner_functional_abstract.png" alt="Tekton Pruner overview"></img>
+<img src="pruner_functional_abstract.png" alt="Tekton Pruner overview"></img>
 </p>
 
 ## Key Features
@@ -55,7 +55,7 @@ kubectl get pods -n tekton-pipelines -l app=tekton-pruner-controller
 
 ### Important: v0.3.2 Retraction
 
-**Version v0.3.2 has been retracted** from the Go module registry due to it being an unintended release. Users are recommended not to use v0.3.2
+**Version v0.3.2 has been retracted** from the Go module registry due to it being an unintended release. Users are recommended not to use v0.3.2.
 
 ## Configuration
 
@@ -69,7 +69,7 @@ kubectl get pods -n tekton-pipelines -l app=tekton-pruner-controller
 > 
 > **System Boundaries**: Do NOT create namespace-level ConfigMaps in:
 > - System namespaces (`kube-*`, `openshift-*`)
-> - Tekton controller namespaces (`tekton-pipelines`, `tekton-*`)
+> - Tekton controller namespaces (`tekton-pipelines`, `tekton-operator`)
 
 ### Configuration Hierarchy
 

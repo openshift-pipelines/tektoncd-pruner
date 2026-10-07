@@ -11,7 +11,7 @@ Retain a fixed number of runs based on their status, regardless of age.
 
 ## How It Works
 
-History limits **override TTL** to guarantee minimum retention. Always keeps the N most recent runs.
+History limits work independently from TTL. When a new run completes and the count exceeds the limit, the oldest runs are deleted. Always keeps the N most recent runs of each status.
 
 ## Configuration Options
 
@@ -82,12 +82,12 @@ data:
     successfulHistoryLimit: 3
     pipelineRuns:
       - selector:
-          matchLabels:
+        - matchLabels:
             critical: "true"
         successfulHistoryLimit: 20
         failedHistoryLimit: 30
       - selector:
-          matchLabels:
+        - matchLabels:
             pipeline-type: test
         successfulHistoryLimit: 3
         failedHistoryLimit: 5
@@ -95,7 +95,9 @@ data:
 
 ## Interaction with TTL
 
-History limits take priority over TTL:
+> **Important**: Setting a history limit does NOT prevent TTL from deleting runs.
+
+If you set both TTL and history limit, they run separately. TTL will still delete runs after the time passes, even if you're under the history limit.
 
 ```yaml
 data:
@@ -105,7 +107,9 @@ data:
     failedHistoryLimit: 10
 ```
 
-**Result**: The 5 most recent successful and 10 most recent failed runs are kept indefinitely, regardless of age.
+**Example**: With the config above, if you only have 3 successful runs and 2 failed runs, and they're all older than 5 minutes, all 5 will be deleted by TTL.
+
+If you want to keep N runs regardless of age, **don't set a TTL** - just use history limits alone.
 
 ## Verification
 

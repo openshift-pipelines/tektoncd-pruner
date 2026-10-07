@@ -53,7 +53,7 @@ metadata:
     app.kubernetes.io/part-of: tekton-pruner
     pruner.tekton.dev/config-type: namespace
 data:
-  namespace-config: |
+  ns-config: |
     pipelineRuns:
       - selector:                  # OK - This is a namespace ConfigMap
           - matchLabels:
@@ -117,7 +117,7 @@ Global config must be named 'tekton-pruner-default-spec', got: my-custom-name
 Namespace config must be named 'tekton-pruner-namespace-spec', got: pruner-config
 ```
 
-### 3. Namespace Restrictions
+### 4. Namespace Restrictions
 
 **Forbidden namespaces for namespace-level configs:**
 - System namespaces: `kube-*`, `openshift-*`
@@ -130,7 +130,7 @@ Attempting to create a namespace-level config in these locations will be rejecte
 Invalid pruner ConfigMap configuration: wrong config-type label or namespace combination
 ```
 
-### 4. Configuration Content Validation
+### 5. Configuration Content Validation
 
 The webhook validates configuration data including:
 
@@ -140,11 +140,11 @@ The webhook validates configuration data including:
 
 **Note:** Selectors (pipelineRuns, taskRuns arrays with matchLabels/matchAnnotations) are only processed in namespace-level ConfigMaps. They are ignored in global ConfigMaps.
 
-### 5. Deletion Protection
+### 6. Deletion Protection
 
 The webhook prevents deletion of the global config if namespace-level configs still exist. You must delete all namespace configs before deleting the global config. Namespace configs can be deleted without restrictions.
 
-### 6. Global Config Enforcement
+### 7. Global Config Enforcement
 
 When creating or updating namespace-level configs, the webhook fetches the global config and validates that namespace values do not exceed global maximums if defined (e.g., maxTTLSecondsAfterFinished, maxHistoryLimit).
 

@@ -1,14 +1,14 @@
 name: Pruner kind E2E Tests
 
+permissions:
+  contents: read
+
 'on':
   push:
     branches:
       - main
       - release-*
-  pull_request:
-    branches:
-      - main
-      - release-*
+  workflow_call: {}
 
 defaults:
   run:
@@ -23,11 +23,11 @@ jobs:
         # Keep in sync with the list of supported releases: https://kubernetes.io/releases/
         k8s-version:
         - v1.28.x
-        - v1.32.x
+        - v1.34.x
     uses: ./.github/workflows/reusable-e2e.yaml
     with:
       k8s-version: ${{ matrix.k8s-version }}
-      pipelines-release: v0.65.0
+      pipelines-release: v1.12.0
   # This job is for testing the latest LTS version of Tekton Pipelines
   pipelines-lts:
     strategy:
@@ -35,10 +35,9 @@ jobs:
       matrix:
         pipelines-release:
         # This should follow the list of versions from https://github.com/tektoncd/pipeline/blob/main/releases.md#release
-        - v1.6.0
-        - v1.3.2
-        - v1.0.0
-        - v0.68.1
+        - v1.9.3
+        - v1.6.2
+
     uses: ./.github/workflows/reusable-e2e.yaml
     with:
       k8s-version: v1.29.x
