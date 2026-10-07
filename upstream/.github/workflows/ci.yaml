@@ -2,9 +2,10 @@ name: ci
 
 'on':
   pull_request: {}
+  merge_group: {}
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.merge_group.head_ref || github.ref }}
   cancel-in-progress: true
 
 defaults:
@@ -13,15 +14,16 @@ defaults:
 
 permissions:
   contents: read
-  checks: write  # Used to annotate code in the PR
 
 jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3  # v6.0.0
-    - uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c  # v6.1.0
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+      with:
+        persist-credentials: false
+    - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c  # v6.4.0
       with:
         go-version-file: "go.mod"
     - name: Build binaries
@@ -33,8 +35,10 @@ jobs:
     needs: [build]
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3  # v6.0.0
-    - uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c  # v6.1.0
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+      with:
+        persist-credentials: false
+    - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c  # v6.4.0
       with:
         go-version-file: "go.mod"
     - name: Run unit tests
@@ -45,9 +49,14 @@ jobs:
     name: Linting
     needs: [build]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write  # Used by golangci-lint-action to annotate code in the PR
     steps:
-    - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3  # v6.0.0
-    - uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c  # v6.1.0
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+      with:
+        persist-credentials: false
+    - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c  # v6.4.0
       with:
         go-version-file: "go.mod"
     - name: Check Go formatting
@@ -60,7 +69,7 @@ jobs:
         fi
         echo "All Go files are properly formatted."
     - name: golangci-lint
-      uses: golangci/golangci-lint-action@e7fa5ac41e1cf5b7d48e45e42232ce7ada589601  # v9.1.0
+      uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20  # v9.2.0
       with:
         only-new-issues: true
         args: --timeout=10m
@@ -75,8 +84,10 @@ jobs:
     needs: [build]
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3  # v6.0.0
-    - uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c  # v6.1.0
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+      with:
+        persist-credentials: false
+    - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c  # v6.4.0
       with:
         go-version-file: "go.mod"
     - name: Check licenses
@@ -89,8 +100,10 @@ jobs:
     needs: [build]
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3  # v6.0.0
-    - uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c  # v6.1.0
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+      with:
+        persist-credentials: false
+    - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c  # v6.4.0
       with:
         go-version-file: "go.mod"
     - uses: ko-build/setup-ko@d006021bd0c28d1ce33a07e7943d48b079944c8d  # v0.9
@@ -103,20 +116,32 @@ jobs:
         KO_DOCKER_REPO=example.com ko resolve --platform=linux/amd64,linux/arm64 --push=false -R -f config 1>/dev/null
         echo "Ko resolve succeeded for multi-arch build."
 
+  e2e-tests:
+    needs: [build]
+    uses: ./.github/workflows/kind-e2e.yaml
+
   ci-summary:
     name: CI summary
-    needs: [build, unit-tests, linting, check-licenses, ko-resolve]
+    needs: [build, unit-tests, linting, check-licenses, ko-resolve, e2e-tests]
     runs-on: ubuntu-latest
     if: always()
     steps:
     - name: Check CI results
+      env:
+        BUILD_RESULT: ${{ needs.build.result }}
+        UNIT_TESTS_RESULT: ${{ needs.unit-tests.result }}
+        LINTING_RESULT: ${{ needs.linting.result }}
+        CHECK_LICENSES_RESULT: ${{ needs.check-licenses.result }}
+        KO_RESOLVE_RESULT: ${{ needs.ko-resolve.result }}
+        E2E_TESTS_RESULT: ${{ needs.e2e-tests.result }}
       run: |
         results=(
-          "build=${{ needs.build.result }}"
-          "unit-tests=${{ needs.unit-tests.result }}"
-          "linting=${{ needs.linting.result }}"
-          "check-licenses=${{ needs.check-licenses.result }}"
-          "ko-resolve=${{ needs.ko-resolve.result }}"
+          "build=${BUILD_RESULT}"
+          "unit-tests=${UNIT_TESTS_RESULT}"
+          "linting=${LINTING_RESULT}"
+          "check-licenses=${CHECK_LICENSES_RESULT}"
+          "ko-resolve=${KO_RESOLVE_RESULT}"
+          "e2e-tests=${E2E_TESTS_RESULT}"
         )
         failed=0
         for r in "${results[@]}"; do
