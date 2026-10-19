@@ -361,13 +361,20 @@ arches:
     name: perl-Time-Local
     evr: 2:1.300-7.el9
     sourcerpm: perl-Time-Local-1.300-7.el9.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/aarch64/appstream/os/Packages/p/perl-URI-5.09-3.el9.noarch.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/aarch64/appstream/os/Packages/p/perl-URI-5.09-3.el9_8.1.noarch.rpm
     repoid: ubi-9-for-aarch64-appstream-rpms
-    size: 128279
-    checksum: sha256:1635b7d818e4f70445f7207f13e058c63c5d1f5aa081cfd2583912ae45f8e1bd
+    size: 130351
+    checksum: sha256:5dc2921a96c8dac9acbb3b2c36a45cf71c6c9bc81b12b01d08488692f7ff5bad
     name: perl-URI
-    evr: 5.09-3.el9
-    sourcerpm: perl-URI-5.09-3.el9.src.rpm
+    evr: 5.09-3.el9_8.1
+    sourcerpm: perl-URI-5.09-3.el9_8.1.src.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/aarch64/appstream/os/Packages/p/perl-Unicode-Normalize-1.27-461.el9.aarch64.rpm
+    repoid: ubi-9-for-aarch64-appstream-rpms
+    size: 92474
+    checksum: sha256:7ca97e263d79d5a0e5f2093c54bcb73399532562e5bd15b30f1762cf8b1c3359
+    name: perl-Unicode-Normalize
+    evr: 1.27-461.el9
+    sourcerpm: perl-Unicode-Normalize-1.27-461.el9.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/aarch64/appstream/os/Packages/p/perl-base-2.27-484.el9_8.noarch.rpm
     repoid: ubi-9-for-aarch64-appstream-rpms
     size: 21601
@@ -1594,13 +1601,20 @@ arches:
     name: perl-Time-Local
     evr: 2:1.300-7.el9
     sourcerpm: perl-Time-Local-1.300-7.el9.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/s390x/appstream/os/Packages/p/perl-URI-5.09-3.el9.noarch.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/s390x/appstream/os/Packages/p/perl-URI-5.09-3.el9_8.1.noarch.rpm
     repoid: ubi-9-for-s390x-appstream-rpms
-    size: 128279
-    checksum: sha256:1635b7d818e4f70445f7207f13e058c63c5d1f5aa081cfd2583912ae45f8e1bd
+    size: 130351
+    checksum: sha256:5dc2921a96c8dac9acbb3b2c36a45cf71c6c9bc81b12b01d08488692f7ff5bad
     name: perl-URI
-    evr: 5.09-3.el9
-    sourcerpm: perl-URI-5.09-3.el9.src.rpm
+    evr: 5.09-3.el9_8.1
+    sourcerpm: perl-URI-5.09-3.el9_8.1.src.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/s390x/appstream/os/Packages/p/perl-Unicode-Normalize-1.27-461.el9.s390x.rpm
+    repoid: ubi-9-for-s390x-appstream-rpms
+    size: 96377
+    checksum: sha256:be1da9f35d5c829879d150b3c8c025aec5d8255c6cf6301cf81555ece69a03ed
+    name: perl-Unicode-Normalize
+    evr: 1.27-461.el9
+    sourcerpm: perl-Unicode-Normalize-1.27-461.el9.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/s390x/appstream/os/Packages/p/perl-base-2.27-484.el9_8.noarch.rpm
     repoid: ubi-9-for-s390x-appstream-rpms
     size: 21601
