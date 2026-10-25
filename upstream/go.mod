@@ -1,6 +1,6 @@
 module github.com/tektoncd/pruner
 
-go 1.25.0
+go 1.26.10
 
 // Retract v0.3.2 as it was an unintended release
 retract v0.3.2
