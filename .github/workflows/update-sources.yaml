@@ -32,7 +32,7 @@ jobs:
         continue-on-error: true
         run: |
           set -x
-          export BASE_IMAGE=$(grep -h "RUNTIME=" .konflux/dockerfiles/* | sed -E 's/.*RUNTIME=["'\'']?([^"'\'' ]+).*/\1/' | head -n 1)
+          export BASE_IMAGE=$(grep -h "_RUNTIME=" .konflux/dockerfiles/* | sed -E 's/.*_RUNTIME=["'\'']?([^"'\'' ]+).*/\1/' | head -n 1)
           docker run --rm\
             -e BASE_IMAGE=$BASE_IMAGE \
             -v ./.konflux/rpms/:/rpms -w /rpms $BASE_IMAGE  sh -c "
