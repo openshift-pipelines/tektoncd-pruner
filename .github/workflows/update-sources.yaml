@@ -28,6 +28,14 @@ jobs:
           pushd upstream
           git checkout -B main origin/main
           popd
+      - name: Generate patches
+        run: |
+          pushd upstream
+            sed -i "s/go 1.27.3/go 1.26.10/g" go.mod
+
+            sed -i "s/go 1.27.3/go 1.26.10/g" vendor/modules.txt
+
+          popd
       - name: update-rpms
         continue-on-error: true
         run: |
