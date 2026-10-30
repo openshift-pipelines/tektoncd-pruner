@@ -30,7 +30,9 @@ LABEL \
     summary="Red Hat OpenShift Pipelines tektoncd-pruner webhook" \
     version="nightly"
 
-RUN groupadd -r -g 65532 nonroot && useradd --no-log-init -r -u 65532 -g nonroot nonroot
+# ubi10/ubi-minimal does not ship shadow-utils, which provides groupadd/useradd
+RUN microdnf install -y shadow-utils && \
+    groupadd -r -g 65532 nonroot && useradd --no-log-init -r -u 65532 -g nonroot nonroot
 USER 65532
 
 ENTRYPOINT $WEBHOOK
