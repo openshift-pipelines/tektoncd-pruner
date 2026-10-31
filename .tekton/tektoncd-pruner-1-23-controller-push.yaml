@@ -12,8 +12,8 @@ metadata:
     pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
       == "release-v1.23.x" &&
       ("upstream/***".pathChanged() || ".konflux/patches/***".pathChanged() || ".konflux/rpms/***".pathChanged() ||
-      ".konflux/dockerfiles/controller.Dockerfile".pathChanged() ||
-      ".tekton/tektoncd-pruner-1-23-controller-push.yaml".pathChanged())
+      ".konflux/dockerfiles/***".pathChanged() ||
+      ".tekton/***".pathChanged())
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: openshift-pipelines-core-1-23
