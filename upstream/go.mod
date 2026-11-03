@@ -12,10 +12,10 @@ require (
 	go.opentelemetry.io/otel v1.47.0
 	go.opentelemetry.io/otel/metric v1.47.0
 	go.uber.org/zap v1.28.0
-	k8s.io/api v0.35.9
-	k8s.io/apimachinery v0.37.1
-	k8s.io/client-go v0.35.9
-	k8s.io/code-generator v0.35.9
+	k8s.io/api v0.35.10
+	k8s.io/apimachinery v0.37.2
+	k8s.io/client-go v0.35.10
+	k8s.io/code-generator v0.35.10
 	k8s.io/kube-openapi v0.0.0-20260821135717-be32def86098
 	k8s.io/utils v0.0.0-20260626114624-be93311217bd
 	knative.dev/pkg v0.0.0-20260622140654-39ebae2ee2dc
