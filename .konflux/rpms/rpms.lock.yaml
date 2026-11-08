@@ -641,13 +641,6 @@ arches:
     name: less
     evr: 661-3.el10
     sourcerpm: less-661-3.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/aarch64/baseos/os/Packages/l/libblkid-2.40.2-18.el10_2.20.aarch64.rpm
-    repoid: ubi-10-baseos-rpms
-    size: 132252
-    checksum: sha256:e1c6bac98c7be26077be782e0eab6b6647371078bb9cad542bd4f3da6862652f
-    name: libblkid
-    evr: 2.40.2-18.el10_2.20
-    sourcerpm: util-linux-2.40.2-18.el10_2.20.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/aarch64/baseos/os/Packages/l/libbpf-1.7.0-1.el10.aarch64.rpm
     repoid: ubi-10-baseos-rpms
     size: 197607
@@ -683,13 +676,6 @@ arches:
     name: libfido2
     evr: 1.14.0-7.el10
     sourcerpm: libfido2-1.14.0-7.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/aarch64/baseos/os/Packages/l/libmount-2.40.2-18.el10_2.20.aarch64.rpm
-    repoid: ubi-10-baseos-rpms
-    size: 165158
-    checksum: sha256:c08d554b4ca79aeeaf4dcde9f64a6c898f98a6d351f3ebedc6dda5510eccd77f
-    name: libmount
-    evr: 2.40.2-18.el10_2.20
-    sourcerpm: util-linux-2.40.2-18.el10_2.20.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/aarch64/baseos/os/Packages/l/libpwquality-1.4.5-12.el10.aarch64.rpm
     repoid: ubi-10-baseos-rpms
     size: 130070
@@ -711,13 +697,6 @@ arches:
     name: libsemanage
     evr: 3.10-1.el10
     sourcerpm: libsemanage-3.10-1.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/aarch64/baseos/os/Packages/l/libsmartcols-2.40.2-18.el10_2.20.aarch64.rpm
-    repoid: ubi-10-baseos-rpms
-    size: 89761
-    checksum: sha256:cdbabc93c71729d61ab8a7e591e85787443ad9bcc65b5a780f4a8cb01bc9b3d7
-    name: libsmartcols
-    evr: 2.40.2-18.el10_2.20
-    sourcerpm: util-linux-2.40.2-18.el10_2.20.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/aarch64/baseos/os/Packages/l/libutempter-1.2.1-15.el10.aarch64.rpm
     repoid: ubi-10-baseos-rpms
     size: 31354
@@ -725,13 +704,6 @@ arches:
     name: libutempter
     evr: 1.2.1-15.el10
     sourcerpm: libutempter-1.2.1-15.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/aarch64/baseos/os/Packages/l/libuuid-2.40.2-18.el10_2.20.aarch64.rpm
-    repoid: ubi-10-baseos-rpms
-    size: 34879
-    checksum: sha256:6d779ce974577c4887b70a403a7f53dce36fb5ab0bb44ad70ce2a563060df614
-    name: libuuid
-    evr: 2.40.2-18.el10_2.20
-    sourcerpm: util-linux-2.40.2-18.el10_2.20.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/aarch64/baseos/os/Packages/l/libxcrypt-4.4.36-10.el10.aarch64.rpm
     repoid: ubi-10-baseos-rpms
     size: 130795
@@ -1443,13 +1415,6 @@ arches:
     name: less
     evr: 661-3.el10
     sourcerpm: less-661-3.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/ppc64le/baseos/os/Packages/l/libblkid-2.40.2-18.el10_2.20.ppc64le.rpm
-    repoid: ubi-10-baseos-rpms
-    size: 148776
-    checksum: sha256:9aa0e0b2dabc3ee01ef1250d97fe26f4d08f584a0fc269d88acc2824ba0a093d
-    name: libblkid
-    evr: 2.40.2-18.el10_2.20
-    sourcerpm: util-linux-2.40.2-18.el10_2.20.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/ppc64le/baseos/os/Packages/l/libbpf-1.7.0-1.el10.ppc64le.rpm
     repoid: ubi-10-baseos-rpms
     size: 231717
@@ -1485,13 +1450,6 @@ arches:
     name: libfido2
     evr: 1.14.0-7.el10
     sourcerpm: libfido2-1.14.0-7.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/ppc64le/baseos/os/Packages/l/libmount-2.40.2-18.el10_2.20.ppc64le.rpm
-    repoid: ubi-10-baseos-rpms
-    size: 188484
-    checksum: sha256:ef9e65ae9f7e40554359f3633190dca38a3c760bdec96020080c4cdabb95d230
-    name: libmount
-    evr: 2.40.2-18.el10_2.20
-    sourcerpm: util-linux-2.40.2-18.el10_2.20.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/ppc64le/baseos/os/Packages/l/libpwquality-1.4.5-12.el10.ppc64le.rpm
     repoid: ubi-10-baseos-rpms
     size: 132291
@@ -1520,13 +1478,6 @@ arches:
     name: libsemanage
     evr: 3.10-1.el10
     sourcerpm: libsemanage-3.10-1.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/ppc64le/baseos/os/Packages/l/libsmartcols-2.40.2-18.el10_2.20.ppc64le.rpm
-    repoid: ubi-10-baseos-rpms
-    size: 97333
-    checksum: sha256:7d160a8b60676418467d6f61e1bec02b4325f75039e5752ee8c96d2ab0206218
-    name: libsmartcols
-    evr: 2.40.2-18.el10_2.20
-    sourcerpm: util-linux-2.40.2-18.el10_2.20.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/ppc64le/baseos/os/Packages/l/libutempter-1.2.1-15.el10.ppc64le.rpm
     repoid: ubi-10-baseos-rpms
     size: 31351
@@ -1534,13 +1485,6 @@ arches:
     name: libutempter
     evr: 1.2.1-15.el10
     sourcerpm: libutempter-1.2.1-15.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/ppc64le/baseos/os/Packages/l/libuuid-2.40.2-18.el10_2.20.ppc64le.rpm
-    repoid: ubi-10-baseos-rpms
-    size: 36411
-    checksum: sha256:d612b073c1b1518729df4d08c4c18231d0f373107d647db5989f643637d1ad06
-    name: libuuid
-    evr: 2.40.2-18.el10_2.20
-    sourcerpm: util-linux-2.40.2-18.el10_2.20.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/ppc64le/baseos/os/Packages/l/libxcrypt-4.4.36-10.el10.ppc64le.rpm
     repoid: ubi-10-baseos-rpms
     size: 138025
@@ -2252,13 +2196,6 @@ arches:
     name: less
     evr: 661-3.el10
     sourcerpm: less-661-3.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/s390x/baseos/os/Packages/l/libblkid-2.40.2-18.el10_2.20.s390x.rpm
-    repoid: ubi-10-baseos-rpms
-    size: 139644
-    checksum: sha256:b3fdc10e2ce7d759bc19e5d2a4aa282e6533b4d8eda34f8dd7121097a3d36d7b
-    name: libblkid
-    evr: 2.40.2-18.el10_2.20
-    sourcerpm: util-linux-2.40.2-18.el10_2.20.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/s390x/baseos/os/Packages/l/libbpf-1.7.0-1.el10.s390x.rpm
     repoid: ubi-10-baseos-rpms
     size: 208819
@@ -2294,13 +2231,6 @@ arches:
     name: libfido2
     evr: 1.14.0-7.el10
     sourcerpm: libfido2-1.14.0-7.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/s390x/baseos/os/Packages/l/libmount-2.40.2-18.el10_2.20.s390x.rpm
-    repoid: ubi-10-baseos-rpms
-    size: 171496
-    checksum: sha256:fe9890303be8faba909dd11d15e4b7c959c0b8ce4fb79fa40b39f5be2e784087
-    name: libmount
-    evr: 2.40.2-18.el10_2.20
-    sourcerpm: util-linux-2.40.2-18.el10_2.20.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/s390x/baseos/os/Packages/l/libpwquality-1.4.5-12.el10.s390x.rpm
     repoid: ubi-10-baseos-rpms
     size: 130306
@@ -2322,13 +2252,6 @@ arches:
     name: libsemanage
     evr: 3.10-1.el10
     sourcerpm: libsemanage-3.10-1.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/s390x/baseos/os/Packages/l/libsmartcols-2.40.2-18.el10_2.20.s390x.rpm
-    repoid: ubi-10-baseos-rpms
-    size: 93717
-    checksum: sha256:949cb78e7af60b2f6ff6cebd072459d78a074382be48a8e3448e402f4e771379
-    name: libsmartcols
-    evr: 2.40.2-18.el10_2.20
-    sourcerpm: util-linux-2.40.2-18.el10_2.20.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/s390x/baseos/os/Packages/l/libutempter-1.2.1-15.el10.s390x.rpm
     repoid: ubi-10-baseos-rpms
     size: 30901
@@ -2336,13 +2259,6 @@ arches:
     name: libutempter
     evr: 1.2.1-15.el10
     sourcerpm: libutempter-1.2.1-15.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/s390x/baseos/os/Packages/l/libuuid-2.40.2-18.el10_2.20.s390x.rpm
-    repoid: ubi-10-baseos-rpms
-    size: 34839
-    checksum: sha256:a0922ef790531ae307d029bc6280499408660716aaeab5c7d57f5f010c00cb09
-    name: libuuid
-    evr: 2.40.2-18.el10_2.20
-    sourcerpm: util-linux-2.40.2-18.el10_2.20.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/s390x/baseos/os/Packages/l/libxcrypt-4.4.36-10.el10.s390x.rpm
     repoid: ubi-10-baseos-rpms
     size: 132147
@@ -3054,13 +2970,6 @@ arches:
     name: less
     evr: 661-3.el10
     sourcerpm: less-661-3.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os/Packages/l/libblkid-2.40.2-18.el10_2.20.x86_64.rpm
-    repoid: ubi-10-baseos-rpms
-    size: 133611
-    checksum: sha256:4c23cddef435563dffda6bea6ce2085db8582257315b73d9dfc1bfdbb9b4ff70
-    name: libblkid
-    evr: 2.40.2-18.el10_2.20
-    sourcerpm: util-linux-2.40.2-18.el10_2.20.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os/Packages/l/libbpf-1.7.0-1.el10.x86_64.rpm
     repoid: ubi-10-baseos-rpms
     size: 197769
@@ -3096,13 +3005,6 @@ arches:
     name: libfido2
     evr: 1.14.0-7.el10
     sourcerpm: libfido2-1.14.0-7.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os/Packages/l/libmount-2.40.2-18.el10_2.20.x86_64.rpm
-    repoid: ubi-10-baseos-rpms
-    size: 167161
-    checksum: sha256:deb26784e1bc939c7aebf179870e3ae7b118537f264e621b52775442469a3939
-    name: libmount
-    evr: 2.40.2-18.el10_2.20
-    sourcerpm: util-linux-2.40.2-18.el10_2.20.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os/Packages/l/libpwquality-1.4.5-12.el10.x86_64.rpm
     repoid: ubi-10-baseos-rpms
     size: 129792
@@ -3124,13 +3026,6 @@ arches:
     name: libsemanage
     evr: 3.10-1.el10
     sourcerpm: libsemanage-3.10-1.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os/Packages/l/libsmartcols-2.40.2-18.el10_2.20.x86_64.rpm
-    repoid: ubi-10-baseos-rpms
-    size: 90837
-    checksum: sha256:f0577273a348bf86c0cf36a8b21570d0a2fd9b6383425c70d1f55d35e98001f8
-    name: libsmartcols
-    evr: 2.40.2-18.el10_2.20
-    sourcerpm: util-linux-2.40.2-18.el10_2.20.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os/Packages/l/libutempter-1.2.1-15.el10.x86_64.rpm
     repoid: ubi-10-baseos-rpms
     size: 31124
@@ -3138,13 +3033,6 @@ arches:
     name: libutempter
     evr: 1.2.1-15.el10
     sourcerpm: libutempter-1.2.1-15.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os/Packages/l/libuuid-2.40.2-18.el10_2.20.x86_64.rpm
-    repoid: ubi-10-baseos-rpms
-    size: 34725
-    checksum: sha256:8e7c508316f4d5cd8cacf3b9652ade09ab1836e05ae98619a707b9af22c9500e
-    name: libuuid
-    evr: 2.40.2-18.el10_2.20
-    sourcerpm: util-linux-2.40.2-18.el10_2.20.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os/Packages/l/libxcrypt-4.4.36-10.el10.x86_64.rpm
     repoid: ubi-10-baseos-rpms
     size: 127002
