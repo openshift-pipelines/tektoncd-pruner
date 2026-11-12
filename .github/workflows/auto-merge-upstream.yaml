@@ -25,14 +25,14 @@ jobs:
         pr_list=$(gh pr list \
           --state open \
           --base next \
-          --search 'label:upstream,hack,automated -label:do-not-merge/hold' \
+          --search 'label:upstream,hack,automated -label:do-not-merge/hold -label:hold' \
           --json number \
           --jq '[.[]|.number | tostring ]| join(" ")')
         
         success_pr_list=$(gh pr list \
           --state open \
           --base next \
-          --search 'label:upstream,hack,automated -label:do-not-merge/hold' \
+          --search 'label:upstream,hack,automated -label:do-not-merge/hold -label:hold' \
           --json number,title,statusCheckRollup \
           --jq '[.[]| select((.statusCheckRollup // [])| all(.conclusion == "SUCCESS" or .conclusion == "SKIPPED" or .conclusion == "NEUTRAL"))| .number | tostring ]| join(" ")')   
         
