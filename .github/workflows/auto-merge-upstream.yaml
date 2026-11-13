@@ -22,6 +22,22 @@ jobs:
           echo "Found branches:"
           echo "$branches"
 
+          frozen='release-v1.23.x'
+          echo "Skipping frozen branches: $frozen"
+          filtered=""
+          while read -r b; do
+            [ -z "$b" ] && continue
+            skip=false
+            for f in $frozen; do
+              if [ "$b" = "$f" ]; then skip=true; break; fi
+            done
+            if [ "$skip" = false ]; then
+              filtered="${filtered}${b}"$'\n'
+            fi
+          done <<< "$branches"
+          branches=$(printf '%s' "$filtered")
+          echo "Branches after freeze filter:"
+          echo "$branches"
           # Convert to JSON array for matrix
           json=$(printf '%s\n' "$branches" | jq -R -s 'split("\n") | map(select(. != "")) | {branch: .}')
           echo "Matrix JSON: $json"
