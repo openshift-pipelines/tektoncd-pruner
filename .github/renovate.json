@@ -19,6 +19,10 @@
   "ignorePaths": ["upstream/**"],
   "packageRules": [
     {
+      "matchBaseBranches": ["release-v1.23.x"],
+      "enabled": false
+    },
+    {
       "matchPackageNames": ["*"],
       "automerge": true
     }
