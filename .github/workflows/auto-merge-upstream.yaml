@@ -39,7 +39,7 @@ jobs:
           echo "Branches after freeze filter:"
           echo "$branches"
           # Convert to JSON array for matrix
-          json=$(printf '%s\n' "$branches" | jq -R -s 'split("\n") | map(select(. != "")) | {branch: .}')
+          json=$(printf '%s\n' "$branches" | jq -R -s -c 'split("\n") | map(select(. != "")) | {branch: .}')
           echo "Matrix JSON: $json"
           echo "matrix=$json" >> $GITHUB_OUTPUT
           if [ "$(echo "$json" | jq '.branch | length')" -eq 0 ]; then
