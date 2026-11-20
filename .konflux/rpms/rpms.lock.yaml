@@ -501,13 +501,13 @@ arches:
     name: cracklib-dicts
     evr: 2.9.11-8.el10
     sourcerpm: cracklib-2.9.11-8.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/aarch64/baseos/os/Packages/e/expat-2.7.3-2.el10_3.4.aarch64.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/aarch64/baseos/os/Packages/e/expat-2.7.3-2.el10_3.8.aarch64.rpm
     repoid: ubi-10-baseos-rpms
-    size: 126905
-    checksum: sha256:3f7b6cc830c346a1b0b092ee3f12d2b5f38d5ea93d80974b7c68f887fba8d633
+    size: 129985
+    checksum: sha256:cf0fe8dbae89e5e61df5b601bf0bb930f5039ac59adc7cf950c10bff5aaba016
     name: expat
-    evr: 2.7.3-2.el10_3.4
-    sourcerpm: expat-2.7.3-2.el10_3.4.src.rpm
+    evr: 2.7.3-2.el10_3.8
+    sourcerpm: expat-2.7.3-2.el10_3.8.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/aarch64/baseos/os/Packages/g/gdbm-1.23-12.el10_0.aarch64.rpm
     repoid: ubi-10-baseos-rpms
     size: 158080
@@ -592,13 +592,6 @@ arches:
     name: libpwquality
     evr: 1.4.5-13.el10
     sourcerpm: libpwquality-1.4.5-13.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/aarch64/baseos/os/Packages/l/libselinux-3.11-2.el10.aarch64.rpm
-    repoid: ubi-10-baseos-rpms
-    size: 106672
-    checksum: sha256:e62a3a0ad4bef2517e51130c6e5a9ca684ac041636b52ea5d9cfec34384b44ea
-    name: libselinux
-    evr: 3.11-2.el10
-    sourcerpm: libselinux-3.11-2.el10.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/aarch64/baseos/os/Packages/l/libsemanage-3.11-1.el10.aarch64.rpm
     repoid: ubi-10-baseos-rpms
     size: 128157
@@ -606,13 +599,6 @@ arches:
     name: libsemanage
     evr: 3.11-1.el10
     sourcerpm: libsemanage-3.11-1.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/aarch64/baseos/os/Packages/l/libsepol-3.11-2.el10.aarch64.rpm
-    repoid: ubi-10-baseos-rpms
-    size: 347674
-    checksum: sha256:c62c2bbc4dee727dffc20b1ff851bbf6f46438f5e29bb44b84f5bf8389d7d736
-    name: libsepol
-    evr: 3.11-2.el10
-    sourcerpm: libsepol-3.11-2.el10.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/aarch64/baseos/os/Packages/l/libsmartcols-2.40.2-24.el10_3.24.aarch64.rpm
     repoid: ubi-10-baseos-rpms
     size: 89492
@@ -667,13 +653,6 @@ arches:
     size: 610502
     checksum: sha256:57375f1257523525908585949f31666d44436e3fa7d2f8eeba3b5de587b53344
     name: pam
-    evr: 1.6.1-11.el10
-    sourcerpm: pam-1.6.1-11.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/aarch64/baseos/os/Packages/p/pam-libs-1.6.1-11.el10.aarch64.rpm
-    repoid: ubi-10-baseos-rpms
-    size: 63842
-    checksum: sha256:9025aa8cb767adc51452e517141eed20be22fcfb0cde161118783e0bb12042b3
-    name: pam-libs
     evr: 1.6.1-11.el10
     sourcerpm: pam-1.6.1-11.el10.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/aarch64/baseos/os/Packages/s/shadow-utils-4.15.0-13.el10.aarch64.rpm
@@ -1198,13 +1177,13 @@ arches:
     name: cracklib-dicts
     evr: 2.9.11-8.el10
     sourcerpm: cracklib-2.9.11-8.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/ppc64le/baseos/os/Packages/e/expat-2.7.3-2.el10_3.4.ppc64le.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/ppc64le/baseos/os/Packages/e/expat-2.7.3-2.el10_3.8.ppc64le.rpm
     repoid: ubi-10-baseos-rpms
-    size: 137960
-    checksum: sha256:e7680128d721355b3d846032375faa0d34f9d4fc998596e7e31fc8e770dff84d
+    size: 141486
+    checksum: sha256:ca2869d3337d9790b3564507cb36c31c73af6148bd6151e21d7ab1b487f93a6c
     name: expat
-    evr: 2.7.3-2.el10_3.4
-    sourcerpm: expat-2.7.3-2.el10_3.4.src.rpm
+    evr: 2.7.3-2.el10_3.8
+    sourcerpm: expat-2.7.3-2.el10_3.8.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/ppc64le/baseos/os/Packages/g/gdbm-1.23-12.el10_0.ppc64le.rpm
     repoid: ubi-10-baseos-rpms
     size: 165190
@@ -1296,13 +1275,6 @@ arches:
     name: librtas
     evr: 2.0.6-4.el10
     sourcerpm: librtas-2.0.6-4.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/ppc64le/baseos/os/Packages/l/libselinux-3.11-2.el10.ppc64le.rpm
-    repoid: ubi-10-baseos-rpms
-    size: 119414
-    checksum: sha256:be29903177e848237cf9fb69ffe87777af7734d02aa962043a953a35d37faf94
-    name: libselinux
-    evr: 3.11-2.el10
-    sourcerpm: libselinux-3.11-2.el10.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/ppc64le/baseos/os/Packages/l/libsemanage-3.11-1.el10.ppc64le.rpm
     repoid: ubi-10-baseos-rpms
     size: 144016
@@ -1310,13 +1282,6 @@ arches:
     name: libsemanage
     evr: 3.11-1.el10
     sourcerpm: libsemanage-3.11-1.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/ppc64le/baseos/os/Packages/l/libsepol-3.11-2.el10.ppc64le.rpm
-    repoid: ubi-10-baseos-rpms
-    size: 392537
-    checksum: sha256:db5f7691596837af519b4053600456c577ebbe1b61637fd709e1a697c8c19669
-    name: libsepol
-    evr: 3.11-2.el10
-    sourcerpm: libsepol-3.11-2.el10.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/ppc64le/baseos/os/Packages/l/libsmartcols-2.40.2-24.el10_3.24.ppc64le.rpm
     repoid: ubi-10-baseos-rpms
     size: 97045
@@ -1371,13 +1336,6 @@ arches:
     size: 643377
     checksum: sha256:4a854de7cec5bd7e7a7a2e8e5b693720a932d62d1c11e0de04a9967f6043d0e1
     name: pam
-    evr: 1.6.1-11.el10
-    sourcerpm: pam-1.6.1-11.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/ppc64le/baseos/os/Packages/p/pam-libs-1.6.1-11.el10.ppc64le.rpm
-    repoid: ubi-10-baseos-rpms
-    size: 69423
-    checksum: sha256:f80607cbe962edb979f90637fa684312138fed6d707c8c27dc83bbbcde0053ab
-    name: pam-libs
     evr: 1.6.1-11.el10
     sourcerpm: pam-1.6.1-11.el10.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/ppc64le/baseos/os/Packages/s/shadow-utils-4.15.0-13.el10.ppc64le.rpm
@@ -1902,13 +1860,13 @@ arches:
     name: cracklib-dicts
     evr: 2.9.11-8.el10
     sourcerpm: cracklib-2.9.11-8.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/s390x/baseos/os/Packages/e/expat-2.7.3-2.el10_3.4.s390x.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/s390x/baseos/os/Packages/e/expat-2.7.3-2.el10_3.8.s390x.rpm
     repoid: ubi-10-baseos-rpms
-    size: 136106
-    checksum: sha256:45b5afb9a3bc1c11c6548d95f047a0e35ec48db30339627b865f6686ee861daf
+    size: 140073
+    checksum: sha256:094bddeea922ef3d8e4cee8d8965944e81845639425cc78171f68a483e2dcd22
     name: expat
-    evr: 2.7.3-2.el10_3.4
-    sourcerpm: expat-2.7.3-2.el10_3.4.src.rpm
+    evr: 2.7.3-2.el10_3.8
+    sourcerpm: expat-2.7.3-2.el10_3.8.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/s390x/baseos/os/Packages/g/gdbm-1.23-12.el10_0.s390x.rpm
     repoid: ubi-10-baseos-rpms
     size: 163369
@@ -1993,13 +1951,6 @@ arches:
     name: libpwquality
     evr: 1.4.5-13.el10
     sourcerpm: libpwquality-1.4.5-13.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/s390x/baseos/os/Packages/l/libselinux-3.11-2.el10.s390x.rpm
-    repoid: ubi-10-baseos-rpms
-    size: 112374
-    checksum: sha256:fb6d94670534ba0ad6c009b72e309ee4456045b541d6c837a5d9d8ab53bba216
-    name: libselinux
-    evr: 3.11-2.el10
-    sourcerpm: libselinux-3.11-2.el10.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/s390x/baseos/os/Packages/l/libsemanage-3.11-1.el10.s390x.rpm
     repoid: ubi-10-baseos-rpms
     size: 133648
@@ -2007,13 +1958,6 @@ arches:
     name: libsemanage
     evr: 3.11-1.el10
     sourcerpm: libsemanage-3.11-1.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/s390x/baseos/os/Packages/l/libsepol-3.11-2.el10.s390x.rpm
-    repoid: ubi-10-baseos-rpms
-    size: 370495
-    checksum: sha256:d3e31983a6f06642d0f3f07f753131515d01dd8de99b9422b3be4180c16032a6
-    name: libsepol
-    evr: 3.11-2.el10
-    sourcerpm: libsepol-3.11-2.el10.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/s390x/baseos/os/Packages/l/libsmartcols-2.40.2-24.el10_3.24.s390x.rpm
     repoid: ubi-10-baseos-rpms
     size: 93531
@@ -2068,13 +2012,6 @@ arches:
     size: 614121
     checksum: sha256:f151636dfd7d5686904b695eab43589e7e4ec71e3919078df74b8b28d8216642
     name: pam
-    evr: 1.6.1-11.el10
-    sourcerpm: pam-1.6.1-11.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/s390x/baseos/os/Packages/p/pam-libs-1.6.1-11.el10.s390x.rpm
-    repoid: ubi-10-baseos-rpms
-    size: 65254
-    checksum: sha256:18c844c447d6db1d516de3ceaa427e4591fc9e0b999ceb1fbc24c2601793f482
-    name: pam-libs
     evr: 1.6.1-11.el10
     sourcerpm: pam-1.6.1-11.el10.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/s390x/baseos/os/Packages/s/shadow-utils-4.15.0-13.el10.s390x.rpm
@@ -2599,13 +2536,13 @@ arches:
     name: cracklib-dicts
     evr: 2.9.11-8.el10
     sourcerpm: cracklib-2.9.11-8.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os/Packages/e/expat-2.7.3-2.el10_3.4.x86_64.rpm
+  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os/Packages/e/expat-2.7.3-2.el10_3.8.x86_64.rpm
     repoid: ubi-10-baseos-rpms
-    size: 131158
-    checksum: sha256:1ec28f4e4bb1cced06f78c45385567e77e98b52dcaa1848b3eef873c1fe2d487
+    size: 134235
+    checksum: sha256:6986a1d442981bb2ab7c17478dc5ecfba71ec3f484799e7e27f316c07a03b1ec
     name: expat
-    evr: 2.7.3-2.el10_3.4
-    sourcerpm: expat-2.7.3-2.el10_3.4.src.rpm
+    evr: 2.7.3-2.el10_3.8
+    sourcerpm: expat-2.7.3-2.el10_3.8.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os/Packages/g/gdbm-1.23-12.el10_0.x86_64.rpm
     repoid: ubi-10-baseos-rpms
     size: 159273
@@ -2690,13 +2627,6 @@ arches:
     name: libpwquality
     evr: 1.4.5-13.el10
     sourcerpm: libpwquality-1.4.5-13.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os/Packages/l/libselinux-3.11-2.el10.x86_64.rpm
-    repoid: ubi-10-baseos-rpms
-    size: 108045
-    checksum: sha256:8ef4008334468fa9eda143afa556de20b900cc66df6385ca3fe25b2d6911883c
-    name: libselinux
-    evr: 3.11-2.el10
-    sourcerpm: libselinux-3.11-2.el10.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os/Packages/l/libsemanage-3.11-1.el10.x86_64.rpm
     repoid: ubi-10-baseos-rpms
     size: 131430
@@ -2704,13 +2634,6 @@ arches:
     name: libsemanage
     evr: 3.11-1.el10
     sourcerpm: libsemanage-3.11-1.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os/Packages/l/libsepol-3.11-2.el10.x86_64.rpm
-    repoid: ubi-10-baseos-rpms
-    size: 363667
-    checksum: sha256:dfe7523ec887842b15b18f2c1b89182a802c45a06cb781c062e819378380f6ce
-    name: libsepol
-    evr: 3.11-2.el10
-    sourcerpm: libsepol-3.11-2.el10.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os/Packages/l/libsmartcols-2.40.2-24.el10_3.24.x86_64.rpm
     repoid: ubi-10-baseos-rpms
     size: 90549
@@ -2765,13 +2688,6 @@ arches:
     size: 606386
     checksum: sha256:4734a5f1941e7175e6eedc6123cfda546737980c6021d1e7ff12fa596106c4fb
     name: pam
-    evr: 1.6.1-11.el10
-    sourcerpm: pam-1.6.1-11.el10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os/Packages/p/pam-libs-1.6.1-11.el10.x86_64.rpm
-    repoid: ubi-10-baseos-rpms
-    size: 63810
-    checksum: sha256:e40ddf6143fa14a5cbaf892026671e7ca2d00ec8c14032843249e71d28737313
-    name: pam-libs
     evr: 1.6.1-11.el10
     sourcerpm: pam-1.6.1-11.el10.src.rpm
   - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi10/10/x86_64/baseos/os/Packages/s/shadow-utils-4.15.0-13.el10.x86_64.rpm
