@@ -19,7 +19,7 @@
   "ignorePaths": ["upstream/**"],
   "packageRules": [
     {
-      "matchBaseBranches": ["release-v1.23.x","release-v1.24.x"],
+      "matchBaseBranches": ["release-v1.23.x"],
       "enabled": false
     },
     {
