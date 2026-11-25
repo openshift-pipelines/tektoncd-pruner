@@ -22,7 +22,7 @@ jobs:
           echo "Found branches:"
           echo "$branches"
 
-          frozen='release-v1.23.x release-v1.24.x'
+          frozen='release-v1.23.x'
           echo "Skipping frozen branches: $frozen"
           filtered=""
           while read -r b; do
