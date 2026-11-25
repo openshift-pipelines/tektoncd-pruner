@@ -10,7 +10,7 @@ on:
 jobs:
   update-sources:
     # This line prevents the job from running if CodeFreeze is true
-    if: false
+    if: true
     runs-on: ubuntu-latest
     permissions:
       contents: write
