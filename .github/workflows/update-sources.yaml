@@ -38,18 +38,28 @@ jobs:
 
       - name: update-rpms
         continue-on-error: true
+        env:
+          DOCKER_CONFIG: /home/runner/.docker
         run: |
           set -x
           export BASE_IMAGE=$(grep -h "_RUNTIME=" .konflux/dockerfiles/* | sed -E 's/.*_RUNTIME=["'\'']?([^"'\'' ]+).*/\1/' | head -n 1)
           docker run --rm\
             -e BASE_IMAGE=$BASE_IMAGE \
+            -e REGISTRY_AUTH_FILE=/tmp/auth.json \
+            -v $DOCKER_CONFIG/config.json:/tmp/auth.json:ro \
             -v ./.konflux/rpms/:/rpms -w /rpms $BASE_IMAGE  sh -c "
               cp -f /etc/yum.repos.d/*.repo ./
               sed -i 's/^\[ubi-9-/\[ubi-9-for-\$basearch-/' *.repo
               sed -i 's/^\[ubi-10-/\[ubi-10-for-\$basearch-/' *.repo
           "
+          # rpm-lockfile-prototype shells out to skopeo to read the base image's
+          # rpmdb. skopeo runs inside this container, so it needs the registry
+          # credentials written by the "Configure Docker authentication" step --
+          # without them every registry.redhat.io base image fails to resolve.
           docker run  --rm\
             -e BASE_IMAGE=$BASE_IMAGE \
+            -e REGISTRY_AUTH_FILE=/auth/config.json \
+            -v /home/runner/.docker:/auth:ro \
             -v ./.konflux/rpms/:/rpms -w /rpms registry.access.redhat.com/ubi9/ubi-minimal:latest sh -c "
           	  microdnf update -y	 &&   microdnf install -y python3-dnf skopeo pip
               python3 -m pip install https://github.com/konflux-ci/rpm-lockfile-prototype/archive/refs/tags/v0.21.0.tar.gz
