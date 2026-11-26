@@ -88,22 +88,7 @@ func filterTaskRun(logger *zap.SugaredLogger, impl *controller.Impl) func(obj in
 	}
 }
 
-// returns true if the TaskRun is part of a PipelineRun
+// isStandaloneTaskRun reports whether a TaskRun does not belong to a PipelineRun.
 func isStandaloneTaskRun(taskRun metav1.Object) bool {
-	// verify the taskRun is not part of a pipelineRun
-	if taskRun.GetLabels() != nil && taskRun.GetLabels()[config.LabelPipelineRunName] != "" {
-		return false
-	}
-
-	// if the resource has owner reference as PipelineRun, it is not a standalone TaskRun
-	// if so, ignore this taskRun
-	if len(taskRun.GetOwnerReferences()) > 0 {
-		for _, ownerReference := range taskRun.GetOwnerReferences() {
-			if ownerReference.Kind == config.KindPipelineRun {
-				return false
-			}
-		}
-	}
-
-	return true
+	return !config.IsPipelineRunOwned(taskRun)
 }

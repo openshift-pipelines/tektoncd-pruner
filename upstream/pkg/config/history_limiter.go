@@ -345,10 +345,10 @@ func (hl *HistoryLimiter) doResourceCleanup(ctx context.Context, resource metav1
 		return err
 	}
 
-	// Filter resources by status (success/failed)
+	// Filter by status and exclude children reclaimed with their PipelineRun.
 	resourcesFiltered := []metav1.Object{}
 	for _, res := range resources {
-		if getResourceFilterFn(res) {
+		if getResourceFilterFn(res) && !IsPipelineRunOwned(res) {
 			resourcesFiltered = append(resourcesFiltered, res)
 		}
 	}

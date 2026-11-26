@@ -24,6 +24,25 @@ import (
 
 // common functions used across history limiter and ttl handler
 
+// IsPipelineRunOwned reports whether a resource belongs to a PipelineRun,
+// identified by its PipelineRun label or a PipelineRun ownerReference.
+func IsPipelineRunOwned(resource metav1.Object) bool {
+	// labels contains the ownership signal added to PipelineRun children.
+	labels := resource.GetLabels()
+	if labels[LabelPipelineRunName] != "" {
+		return true
+	}
+
+	// ownerReference also identifies children that do not carry the label.
+	for _, ownerReference := range resource.GetOwnerReferences() {
+		if ownerReference.Kind == KindPipelineRun {
+			return true
+		}
+	}
+
+	return false
+}
+
 func getResourceNameLabelKey(resource metav1.Object, defaultLabelKey string) string {
 	annotations := resource.GetAnnotations()
 	// update user defined label key
