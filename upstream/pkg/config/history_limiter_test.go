@@ -338,3 +338,71 @@ func TestDoResourceCleanup(t *testing.T) {
 		})
 	}
 }
+
+// TestDoResourceCleanupExcludesPipelineRunOwnedResources verifies that history
+// limiting preserves completed children of a PipelineRun regardless of whether
+// ownership is represented by the standard label or an ownerReference.
+func TestDoResourceCleanupExcludesPipelineRunOwnedResources(t *testing.T) {
+	creationTime := time.Now().Add(-3 * time.Hour)
+	resources := []metav1.Object{
+		&mockResource{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:              "standalone-old",
+				Namespace:         "default",
+				CreationTimestamp: metav1.Time{Time: creationTime},
+			},
+			completed:  true,
+			successful: true,
+		},
+		&mockResource{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:              "pipeline-child-label",
+				Namespace:         "default",
+				Labels:            map[string]string{LabelPipelineRunName: "pipeline-run"},
+				CreationTimestamp: metav1.Time{Time: creationTime.Add(time.Minute)},
+			},
+			completed:  true,
+			successful: true,
+		},
+		&mockResource{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "pipeline-child-owner",
+				Namespace: "default",
+				OwnerReferences: []metav1.OwnerReference{{
+					Kind: KindPipelineRun,
+					Name: "pipeline-run",
+				}},
+				CreationTimestamp: metav1.Time{Time: creationTime.Add(2 * time.Minute)},
+			},
+			completed:  true,
+			successful: true,
+		},
+		&mockResource{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:              "standalone-new",
+				Namespace:         "default",
+				CreationTimestamp: metav1.Time{Time: creationTime.Add(3 * time.Minute)},
+			},
+			completed:  true,
+			successful: true,
+		},
+	}
+	mockFuncs := &mockResourceFuncs{
+		resources:       map[string][]metav1.Object{"default": resources},
+		successLimit:    ptr.Int32(1),
+		enforceLevel:    EnforcedConfigLevelGlobal,
+		defaultLabelKey: "test.label/name",
+	}
+	hl, err := NewHistoryLimiter(mockFuncs)
+	assert.NoError(t, err)
+
+	ctx := logging.WithLogger(context.Background(), zaptest.NewLogger(t).Sugar())
+	assert.NoError(t, hl.ProcessEvent(ctx, resources[3]))
+
+	remaining, err := mockFuncs.List(ctx, "default", "")
+	assert.NoError(t, err)
+	assert.Len(t, remaining, 3)
+	assert.Equal(t, "pipeline-child-label", remaining[0].GetName())
+	assert.Equal(t, "pipeline-child-owner", remaining[1].GetName())
+	assert.Equal(t, "standalone-new", remaining[2].GetName())
+}
