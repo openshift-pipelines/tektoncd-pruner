@@ -10,7 +10,7 @@ on:
 jobs:
   update-sources:
     # This line prevents the job from running if CodeFreeze is true
-    if: true
+    if: false
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -45,8 +45,8 @@ jobs:
             -e BASE_IMAGE=$BASE_IMAGE \
             -v ./.konflux/rpms/:/rpms -w /rpms $BASE_IMAGE  sh -c "
               cp -f /etc/yum.repos.d/*.repo ./
-              sed -i 's/^\[ubi-8-/\[ubi-8-for-\$basearch-/' *.repo
               sed -i 's/^\[ubi-9-/\[ubi-9-for-\$basearch-/' *.repo
+              sed -i 's/^\[ubi-10-/\[ubi-10-for-\$basearch-/' *.repo
           "
           docker run  --rm\
             -e BASE_IMAGE=$BASE_IMAGE \
